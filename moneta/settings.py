@@ -3,32 +3,22 @@ import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env(
+    DEBUG=(bool, False),
+    SECRET_KEY=(str, 'dev-secret-key'),
+    ALLOWED_HOSTS=(list, ['localhost', '127.0.0.1']),
+    CSRF_TRUSTED_ORIGINS=(list, ['http://localhost:8000', 'http://127.0.0.1:8000']),
+)
 
-def get_env_list(name, default):
-    value = os.getenv(name)
-    if value is None:
-        return default
+environ.Env.read_env(BASE_DIR / '.env')
 
-    value = value.strip()
-    if not value:
-        return default
-
-    if value.startswith('[') and value.endswith(']'):
-        value = value[1:-1]
-
-    return [
-        item.strip().strip('"').strip("'")
-        for item in value.split(',')
-        if item.strip()
-    ]
-
-
-SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
-
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
-
-ALLOWED_HOSTS = get_env_list('ALLOWED_HOSTS', ['localhost', '127.0.0.1', '0.0.0.0', '[::1]'])
-CSRF_TRUSTED_ORIGINS = get_env_list('CSRF_TRUSTED_ORIGINS', ['http://localhost:8000', 'http://127.0.0.1:8000'])
+SECRET_KEY = env('SECRET_KEY')
+DEBUG = env('DEBUG')
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1', '0.0.0.0', '[::1]'])
+CSRF_TRUSTED_ORIGINS = env.list(
+    'CSRF_TRUSTED_ORIGINS',
+    default=['http://localhost:8000', 'http://127.0.0.1:8000'],
+)
 
 
 INSTALLED_APPS = [
@@ -76,7 +66,14 @@ WSGI_APPLICATION = 'moneta.wsgi.application'
 
 
 DATABASES = {
-    'default': f"postgresql://{env('POSTGRES_USER')}:{env('POSTGRES_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('POSTGRES_DB')}"
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': env('POSTGRES_DB', default='django_db'),
+        'USER': env('POSTGRES_USER', default='django_user'),
+        'PASSWORD': env('POSTGRES_PASSWORD', default='securepassword123'),
+        'HOST': env('DB_HOST', default='db'),
+        'PORT': env('DB_PORT', default='5432'),
+    }
 }
 
 

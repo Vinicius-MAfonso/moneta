@@ -30,6 +30,7 @@ class Goal(models.Model):
         return f"{self.name} - {self.current_amount}/{self.target_amount} ({self.start_date} to {self.end_date})"
 
 class GoalTransaction(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     goal = models.ForeignKey('Goal', on_delete=models.RESTRICT)
     transaction = models.ForeignKey('transactions.Transaction', on_delete=models.RESTRICT)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
