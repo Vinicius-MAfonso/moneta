@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 class Category(models.Model):
     class types(models.TextChoices):
@@ -57,6 +58,15 @@ class Transaction(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def clean(self):
+        super().clean()
+        if not self.account and not self.credit_card:
+            raise ValidationError('A transação precisa estar associada a uma conta ou a um cartão de crédito.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.description} - {self.amount} ({self.type})"
 
@@ -88,8 +98,8 @@ class RecurringTransaction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='recurring_transactions')
     category = models.ForeignKey('Category', on_delete=models.RESTRICT, related_name='recurring_transactions')
-    account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, related_name='recurring_transactions')
-    credit_card = models.ForeignKey('wallets.CreditCard', on_delete=models.RESTRICT, related_name='recurring_transactions')
+    account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, related_name='recurring_transactions', blank=True, null=True)
+    credit_card = models.ForeignKey('wallets.CreditCard', on_delete=models.RESTRICT, related_name='recurring_transactions', blank=True, null=True)
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     type = models.CharField(max_length=10, choices=types.choices)
@@ -99,6 +109,15 @@ class RecurringTransaction(models.Model):
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        super().clean()
+        if not self.account and not self.credit_card:
+            raise ValidationError('Uma recorrência precisa estar associada a uma conta ou a um cartão de crédito.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
     
     def __str__(self):
         return f"{self.description} - {self.amount} ({self.type})"
