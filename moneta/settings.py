@@ -3,17 +3,32 @@ import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-env = environ.Env(
-    DEBUG=(bool, False)
-)
 
-environ.Env.read_env(BASE_DIR / '.env')
+def get_env_list(name, default):
+    value = os.getenv(name)
+    if value is None:
+        return default
 
-SECRET_KEY = env('SECRET_KEY')
+    value = value.strip()
+    if not value:
+        return default
 
-DEBUG = env('DEBUG')
+    if value.startswith('[') and value.endswith(']'):
+        value = value[1:-1]
 
-ALLOWED_HOSTS = env('ALLOWED_HOSTS').split(',') if env('ALLOWED_HOSTS') else []
+    return [
+        item.strip().strip('"').strip("'")
+        for item in value.split(',')
+        if item.strip()
+    ]
+
+
+SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
+
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
+
+ALLOWED_HOSTS = get_env_list('ALLOWED_HOSTS', ['localhost', '127.0.0.1', '0.0.0.0', '[::1]'])
+CSRF_TRUSTED_ORIGINS = get_env_list('CSRF_TRUSTED_ORIGINS', ['http://localhost:8000', 'http://127.0.0.1:8000'])
 
 
 INSTALLED_APPS = [

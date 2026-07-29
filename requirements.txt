@@ -1,5 +1,8 @@
 asgiref==3.12.1
 Django==6.0.7
+<<<<<<< HEAD
 django-environ==0.14.0
+=======
+>>>>>>> 0a05b05 (Refactor environment variable handling in settings; update ALLOWED_HOSTS and CSRF_TRUSTED_ORIGINS retrieval logic; fix psycopg dependency in requirements)
 psycopg2-binary==2.9.12
 sqlparse==0.5.5
