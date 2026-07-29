@@ -1,7 +1,9 @@
+import uuid
 from django.db import models
 
 class Account(models.Model):
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='accounts')
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=50)
     institution = models.CharField(max_length=100, blank=True, null=True)
@@ -9,12 +11,14 @@ class Account(models.Model):
     color = models.CharField(max_length=7, default='#000000')
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.name} ({self.type})"
 
 class CreditCard(models.Model):
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='credit_cards')
     name = models.CharField(max_length=100)
     institution = models.CharField(max_length=100, blank=True, null=True)
     limit = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -24,6 +28,7 @@ class CreditCard(models.Model):
     color = models.CharField(max_length=7, default='#000000')
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.name} ({self.institution})"
