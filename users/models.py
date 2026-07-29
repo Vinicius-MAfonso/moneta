@@ -8,8 +8,6 @@ class User(AbstractUser):
     photo_url = models.URLField(blank=True, null=True)
     currency = models.CharField(max_length=3, default='BRL')
     timezone = models.CharField(max_length=50, default='America/Sao_Paulo')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.username
