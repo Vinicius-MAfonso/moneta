@@ -1,9 +1,10 @@
 import uuid
 from django.db import models
+from django.conf import settings
 
 class Account(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='accounts')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='accounts')
     name = models.CharField(max_length=100)
     type = models.CharField(max_length=50)
     institution = models.CharField(max_length=100, blank=True, null=True)
@@ -18,7 +19,7 @@ class Account(models.Model):
 
 class CreditCard(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='credit_cards')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='credit_cards')
     name = models.CharField(max_length=100)
     institution = models.CharField(max_length=100, blank=True, null=True)
     limit = models.DecimalField(max_digits=10, decimal_places=2, default=0)

@@ -1,12 +1,20 @@
 import uuid
 from django.db import models
+from django.conf import settings
 
 class Investment(models.Model):
+    class types(models.TextChoices):
+        STOCK = 'stock', 'Stock'
+        BOND = 'bond', 'Bond'
+        REAL_ESTATE = 'real_estate', 'Real Estate'
+        MUTUAL_FUND = 'mutual_fund', 'Mutual Fund'
+        ETF = 'etf', 'ETF'
+        
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='investments')
-    account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='investments')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='investments')
+    account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, related_name='investments')
     name = models.CharField(max_length=100)
-    type = models.CharField(max_length=50, choices=[('stock', 'Stock'), ('bond', 'Bond'), ('real_estate', 'Real Estate'), ('mutual_fund', 'Mutual Fund'), ('etf', 'ETF')])
+    type = models.CharField(max_length=50, choices=types.choices)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     average_price = models.DecimalField(max_digits=10, decimal_places=2)
     current_price = models.DecimalField(max_digits=10, decimal_places=2)
