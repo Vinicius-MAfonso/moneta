@@ -1,13 +1,19 @@
-import os
 from pathlib import Path
+import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY')
+env = environ.Env(
+    DEBUG=(bool, False)
+)
 
-DEBUG = os.getenv('DEBUG') == 'True'
+environ.Env.read_env(BASE_DIR / '.env')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS').split(',') if os.getenv('ALLOWED_HOSTS') else []
+SECRET_KEY = env('SECRET_KEY')
+
+DEBUG = env('DEBUG')
+
+ALLOWED_HOSTS = env('ALLOWED_HOSTS').split(',') if env('ALLOWED_HOSTS') else []
 
 
 INSTALLED_APPS = [
@@ -55,14 +61,7 @@ WSGI_APPLICATION = 'moneta.wsgi.application'
 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRES_DB', 'django_db'),
-        'USER': os.environ.get('POSTGRES_USER', 'django_user'),
-        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'securepassword123'),
-        'HOST': os.environ.get('DB_HOST', 'db'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
-    }
+    'default': f"postgresql://{env('POSTGRES_USER')}:{env('POSTGRES_PASSWORD')}@{env('DB_HOST')}:{env('DB_PORT')}/{env('POSTGRES_DB')}"
 }
 
 
