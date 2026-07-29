@@ -26,6 +26,7 @@ class Transaction(models.Model):
     account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE)
     credit_card = models.ForeignKey('wallets.CreditCard', on_delete=models.CASCADE)
     category = models.ForeignKey('Category', on_delete=models.CASCADE)
+    tags = models.ManyToManyField('Tag', blank=True)
     type = models.CharField(max_length=10, choices=[('income', 'Income'), ('expense', 'Expense')])
     description = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -65,13 +66,3 @@ class RecurringTransaction(models.Model):
 
     def __str__(self):
         return f"{self.description} - {self.amount} ({self.type})"
-
-class TransactionTag(models.Model):
-    transaction = models.ForeignKey('Transaction', on_delete=models.CASCADE)
-    tag = models.ForeignKey('Tag', on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ('transaction', 'tag')
-
-    def __str__(self):
-        return f"{self.transaction} - {self.tag}"
