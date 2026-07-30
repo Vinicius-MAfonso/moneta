@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.conf import settings
+from django.core.validators import MinValueValidator
 
 
 class Investment(models.Model):
@@ -16,9 +17,9 @@ class Investment(models.Model):
     account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, related_name='investimentos', verbose_name='conta')
     name = models.CharField(max_length=100, verbose_name='nome')
     type = models.CharField(max_length=50, choices=types.choices, verbose_name='tipo')
-    quantity = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='quantidade')
-    average_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='preço médio')
-    current_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='preço atual')
+    quantity = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)], verbose_name='quantidade')
+    average_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)], verbose_name='preço médio')
+    current_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)], verbose_name='preço atual')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizado em')
 
