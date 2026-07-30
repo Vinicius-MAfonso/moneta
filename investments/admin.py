@@ -16,6 +16,6 @@ class InvestmentAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
 
     def save_model(self, request, obj, form, change):
-        if not obj.user:
+        if not change: 
             obj.user = request.user
         super().save_model(request, obj, form, change)

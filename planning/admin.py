@@ -16,7 +16,7 @@ class BudgetAdmin(admin.ModelAdmin):
     date_hierarchy = 'start_date'
 
     def save_model(self, request, obj, form, change):
-        if not obj.user:
+        if not change:
             obj.user = request.user
         super().save_model(request, obj, form, change)
 
@@ -33,22 +33,16 @@ class GoalAdmin(admin.ModelAdmin):
     date_hierarchy = 'start_date'
 
     def save_model(self, request, obj, form, change):
-        if not obj.user:
+        if not change:
             obj.user = request.user
         super().save_model(request, obj, form, change)
 
 
 @admin.register(GoalTransaction)
 class GoalTransactionAdmin(admin.ModelAdmin):
-    exclude = ('user',)
     readonly_fields = ('created_at', 'updated_at')
     autocomplete_fields = ('goal', 'transaction')
     list_display = ('goal', 'transaction', 'amount', 'created_at')
     search_fields = ('goal__name', 'transaction__description')
     ordering = ('-created_at',)
     list_per_page = 25
-
-    def save_model(self, request, obj, form, change):
-        if not obj.user:
-            obj.user = request.user
-        super().save_model(request, obj, form, change)

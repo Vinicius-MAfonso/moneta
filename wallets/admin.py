@@ -1,7 +1,5 @@
 from django.contrib import admin
-
-from .models import Account, CreditCard
-
+from .models import Account, CreditCardDetails
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
@@ -14,22 +12,12 @@ class AccountAdmin(admin.ModelAdmin):
     list_per_page = 25
 
     def save_model(self, request, obj, form, change):
-        if not obj.user:
+        if not change:
             obj.user = request.user
         super().save_model(request, obj, form, change)
 
-
-@admin.register(CreditCard)
-class CreditCardAdmin(admin.ModelAdmin):
-    exclude = ('user',)
-    readonly_fields = ('available_limit', 'created_at', 'updated_at')
-    list_display = ('name', 'user', 'institution', 'limit', 'available_limit', 'closing_day', 'due_day', 'active')
-    list_filter = ('active',)
-    search_fields = ('name', 'institution', 'user__username')
-    ordering = ('name',)
+@admin.register(CreditCardDetails)
+class CreditCardDetailsAdmin(admin.ModelAdmin):
+    list_display = ('account', 'limit', 'available_limit', 'closing_day', 'due_day')
+    search_fields = ('account__name', 'account__user__username')
     list_per_page = 25
-
-    def save_model(self, request, obj, form, change):
-        if not obj.user:
-            obj.user = request.user
-        super().save_model(request, obj, form, change)

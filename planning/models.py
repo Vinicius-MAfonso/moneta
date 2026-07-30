@@ -3,13 +3,13 @@ from django.db import models
 from django.db import transaction as db_transaction
 from django.conf import settings
 from django.core.validators import MinValueValidator
-
+from django.core.exceptions import ValidationError
 
 class Budget(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='budgets', verbose_name='usuário')
     category = models.ForeignKey('transactions.Category', on_delete=models.RESTRICT, related_name='budgets', verbose_name='categoria')
-    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
+    amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(verbose_name='data de término')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criado em')
@@ -21,7 +21,7 @@ class Budget(models.Model):
         ordering = ['-start_date']
         constraints = [
             models.CheckConstraint(
-                check=models.Q(end_date__gte=models.F('start_date')),
+                condition=models.Q(end_date__gte=models.F('start_date')),
                 name='budget_end_date_after_start_date',
             ),
         ]
@@ -34,8 +34,8 @@ class Goal(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='goals', verbose_name='usuário')
     name = models.CharField(max_length=100, verbose_name='nome')
-    target_amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor alvo')
-    current_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)], verbose_name='valor atual')
+    target_amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor alvo')
+    current_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0, validators=[MinValueValidator(0)], verbose_name='valor atual')
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(verbose_name='data de término')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criado em')
@@ -47,7 +47,7 @@ class Goal(models.Model):
         ordering = ['-created_at']
         constraints = [
             models.CheckConstraint(
-                check=models.Q(end_date__gte=models.F('start_date')),
+                condition=models.Q(end_date__gte=models.F('start_date')),
                 name='goal_end_date_after_start_date',
             ),
         ]
@@ -60,7 +60,7 @@ class GoalTransaction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     goal = models.ForeignKey('Goal', on_delete=models.RESTRICT, related_name='goal_transactions', verbose_name='objetivo')
     transaction = models.ForeignKey('transactions.Transaction', on_delete=models.RESTRICT, related_name='goal_transactions', verbose_name='transação')
-    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
+    amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizado em')
 
@@ -76,7 +76,19 @@ class GoalTransaction(models.Model):
         super().__init__(*args, **kwargs)
         self._original_amount = self.amount
 
+    def clean(self):
+        super().clean()
+        
+        existing_allocations = self.transaction.goal_transactions.exclude(pk=self.pk).aggregate(
+            total=models.Sum('amount')
+        )['total'] or 0
+        
+        if existing_allocations + self.amount > self.transaction.amount:
+            raise ValidationError('O valor alocado aos objetivos não pode exceder o valor total da transação.')
+
     def save(self, *args, **kwargs):
+        self.full_clean()
+        
         is_new = self._state.adding
         delta = self.amount if is_new else (self.amount - self._original_amount)
 

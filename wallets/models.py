@@ -1,7 +1,7 @@
 import uuid
 from django.db import models
 from django.conf import settings
-
+from django.core.exceptions import ValidationError
 
 class Account(models.Model):
     class Types(models.TextChoices):
@@ -10,12 +10,13 @@ class Account(models.Model):
         INVESTMENT = 'investment', 'Investimento'
         CREDIT_CARD = 'credit_card', 'Cartão de Crédito'
         OTHER = 'other', 'Outro'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='accounts', verbose_name='usuário')
     name = models.CharField(max_length=100, verbose_name='nome')
     type = models.CharField(max_length=50, choices=Types.choices, verbose_name='tipo')
     institution = models.CharField(max_length=100, blank=True, null=True, verbose_name='instituição')
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='saldo')
+    balance = models.DecimalField(max_digits=20, decimal_places=2, default=0.00, verbose_name='saldo')
     color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
     active = models.BooleanField(default=True, verbose_name='ativa')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
@@ -31,49 +32,40 @@ class Account(models.Model):
 
     def clean(self):
         super().clean()
-        if self.balance < 0:
-            raise ValidationError('Account balance cannot be negative.')
+        if self.type != self.Types.CREDIT_CARD and self.balance < 0:
+            raise ValidationError('O saldo da conta não pode ser negativo.')
 
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} ({self.type})"
+        return f"{self.name} ({self.get_type_display()})"
 
 
-class CreditCard(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='credit_cards', verbose_name='usuário')
-    name = models.CharField(max_length=100, verbose_name='nome')
-    institution = models.CharField(max_length=100, blank=True, null=True, verbose_name='instituição')
-    limit = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='limite')
-    available_limit = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='limite disponível')
+class CreditCardDetails(models.Model):
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, primary_key=True, related_name='credit_card_details', verbose_name='conta')
+    limit = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='limite')
+    available_limit = models.DecimalField(max_digits=20, decimal_places=2, default=0.00, verbose_name='limite disponível')
     closing_day = models.PositiveSmallIntegerField(verbose_name='dia de fechamento')
     due_day = models.PositiveSmallIntegerField(verbose_name='dia de vencimento')
-    color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
-    active = models.BooleanField(default=True, verbose_name='ativa')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
 
     class Meta:
-        verbose_name = 'cartão de crédito'
-        verbose_name_plural = 'cartões de crédito'
-        ordering = ['name']
-        constraints = [
-            models.UniqueConstraint(fields=['user', 'name'], name='unique_credit_card_name_per_user')
-        ]
+        verbose_name = 'detalhes do cartão de crédito'
+        verbose_name_plural = 'detalhes dos cartões de crédito'
 
     def clean(self):
         super().clean()
         if self.limit < 0:
-            raise ValidationError('Limite do cartão de crédito não pode ser negativo.')
+            raise ValidationError('O limite do cartão de crédito não pode ser negativo.')
         if self.available_limit < 0:
-            raise ValidationError('Limite disponível do cartão de crédito não pode ser negativo.')
+            raise ValidationError('O limite disponível do cartão de crédito não pode ser negativo.')
+        if self.account.type != Account.Types.CREDIT_CARD:
+            raise ValidationError('Os detalhes do cartão de crédito só podem ser associados a uma conta do tipo Cartão de Crédito.')
 
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.name} ({self.institution})"
+        return f"Detalhes de {self.account.name}"
