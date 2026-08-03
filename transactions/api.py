@@ -1,5 +1,6 @@
 import uuid
 from typing import List
+from django.db import transaction
 from ninja import Router
 from django.shortcuts import get_object_or_404
 
@@ -95,7 +96,7 @@ def create_transaction(request, payload: TransactionIn):
         status=payload.status,
         installment_number=payload.installment_number,
         total_installments=payload.total_installments,
-        recurring=payload.recurring
+        recurring_id=payload.recurring
     )
     if payload.tags:
         transaction.tags.set(payload.tags)
@@ -122,7 +123,7 @@ def update_transaction(request, transaction_id: uuid.UUID, payload: TransactionI
     transaction.status = payload.status
     transaction.installment_number = payload.installment_number
     transaction.total_installments = payload.total_installments
-    transaction.recurring = payload.recurring
+    transaction.recurring_id = payload.recurring
     transaction.save()
     if payload.tags:
         transaction.tags.set(payload.tags)
@@ -139,7 +140,7 @@ def create_recurring_transaction(request, payload: RecurringTransactionIn):
     recurring_transaction = RecurringTransaction.objects.create(
             user=request.user,
             category_id=payload.category,
-            account=payload.account,
+            account_id=payload.account,
             description=payload.description,
             amount=payload.amount,
             frequency=payload.frequency,
@@ -162,7 +163,7 @@ def get_recurring_transaction(request, transaction_id: uuid.UUID):
 def update_recurring_transaction(request, transaction_id: uuid.UUID, payload: RecurringTransactionIn):
     recurring_transaction = get_object_or_404(RecurringTransaction, id=transaction_id, user=request.user)
     recurring_transaction.category_id = payload.category
-    recurring_transaction.account = payload.account
+    recurring_transaction.account_id = payload.account
     recurring_transaction.description = payload.description
     recurring_transaction.amount = payload.amount
     recurring_transaction.frequency = payload.frequency
@@ -180,34 +181,35 @@ def delete_recurring_transaction(request, transaction_id: uuid.UUID):
 
 @router.post("/transfers", response={201: TransferOut})
 def create_transfer(request, payload: TransferIn):
-    out_transaction = Transaction.objects.create(
-        user=request.user,
-        account_id=payload.out_account_id,
-        category=payload.category,
-        description=payload.description,
-        amount=payload.amount,
-        date=payload.date,
-        status=payload.status,
-    )
-    in_transaction = Transaction.objects.create(
-        user=request.user,
-        account_id=payload.in_account_id,
-        category=payload.category,
-        description=payload.description,
-        amount=payload.amount,
-        date=payload.date,
-        status=payload.status,
-    )
-    transfer = Transfer.objects.create(
-        user=request.user,
-        out_transaction=out_transaction,
-        in_transaction=in_transaction
-    )
-    if payload.recurring:
-        out_transaction.recurring_id = payload.recurring
-        in_transaction.recurring_id = payload.recurring
-        out_transaction.save()
-        in_transaction.save()
+    with transaction.atomic():
+        out_transaction = Transaction.objects.create(
+            user=request.user,
+            account_id=payload.out_account_id,
+            category_id=payload.category,
+            description=payload.description,
+            amount=payload.amount,
+            date=payload.date,
+            status=payload.status,
+        )
+        in_transaction = Transaction.objects.create(
+            user=request.user,
+            account_id=payload.in_account_id,
+            category_id=payload.category,
+            description=payload.description,
+            amount=payload.amount,
+            date=payload.date,
+            status=payload.status,
+        )
+        transfer = Transfer.objects.create(
+            user=request.user,
+            out_transaction=out_transaction,
+            in_transaction=in_transaction
+        )
+        if payload.recurring:
+            out_transaction.recurring_id = payload.recurring
+            in_transaction.recurring_id = payload.recurring
+            out_transaction.save()
+            in_transaction.save()
     return 201, transfer
 
 @router.get("/transfers", response=List[TransferOut])
@@ -224,8 +226,8 @@ def update_transfer(request, transfer_id: uuid.UUID, payload: TransferIn):
     transfer = get_object_or_404(Transfer, id=transfer_id, user=request.user)
     transfer.out_transaction.account_id = payload.out_account_id
     transfer.in_transaction.account_id = payload.in_account_id
-    transfer.out_transaction.category = payload.category
-    transfer.in_transaction.category = payload.category
+    transfer.out_transaction.category_id = payload.category
+    transfer.in_transaction.category_id = payload.category
     transfer.out_transaction.description = payload.description
     transfer.in_transaction.description = payload.description
     transfer.out_transaction.amount = payload.amount
@@ -248,7 +250,9 @@ def update_transfer(request, transfer_id: uuid.UUID, payload: TransferIn):
 @router.delete("/transfers/{transfer_id}", response={204: None})
 def delete_transfer(request, transfer_id: uuid.UUID):
     transfer = get_object_or_404(Transfer, id=transfer_id, user=request.user)
-    transfer.out_transaction.delete()
-    transfer.in_transaction.delete()
+    out_transaction_obj = transfer.out_transaction
+    in_transaction_obj = transfer.in_transaction
+    out_transaction_obj.delete()
+    in_transaction_obj.delete()
     transfer.delete()
     return 204, None
