@@ -7,9 +7,7 @@ env = environ.Env(DEBUG=(bool, False),)
 
 environ.Env.read_env(BASE_DIR / '.env')
 
-# Require `SECRET_KEY` from environment in production to avoid committing secrets
 SECRET_KEY = env('SECRET_KEY')
-# Use boolean accessor for DEBUG
 DEBUG = env.bool('DEBUG', default=False)
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://localhost:8000', 'http://127.0.0.1:8000'])
@@ -62,12 +60,8 @@ WSGI_APPLICATION = 'moneta.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': env('POSTGRES_DB', default='django_db'),
-        'USER': env('POSTGRES_USER', default='django_user'),
-        'PASSWORD': env('POSTGRES_PASSWORD', default='securepassword123'),
-        'HOST': env('DB_HOST', default='db'),
-        'PORT': env('DB_PORT', default='5432'),
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 

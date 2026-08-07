@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 from typing import List
 from django.db import transaction
 from ninja import Router
@@ -103,8 +104,29 @@ def create_transaction(request, payload: TransactionIn):
     return 201, transaction
 
 @router.get("/transactions", response=List[TransactionOut])
-def list_transactions(request):
-    return Transaction.objects.filter(user=request.user).order_by("created_at")
+def list_transactions(
+    request,
+    account_id: uuid.UUID | None = None,
+    category_id: uuid.UUID | None = None,
+    status: str | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    tag_id: uuid.UUID | None = None,
+):
+    qs = Transaction.objects.filter(user=request.user)
+    if account_id:
+        qs = qs.filter(account_id=account_id)
+    if category_id:
+        qs = qs.filter(category_id=category_id)
+    if status:
+        qs = qs.filter(status=status)
+    if start_date:
+        qs = qs.filter(date__gte=start_date)
+    if end_date:
+        qs = qs.filter(date__lte=end_date)
+    if tag_id:
+        qs = qs.filter(tags__id=tag_id)
+    return qs.order_by("-date", "-created_at")
 
 @router.get("/transactions/{transaction_id}", response=TransactionOut)
 def get_transaction(request, transaction_id: uuid.UUID):
@@ -151,8 +173,11 @@ def create_recurring_transaction(request, payload: RecurringTransactionIn):
     return 201, recurring_transaction
 
 @router.get("/recurring-transactions", response=List[RecurringTransactionOut])
-def list_recurring_transactions(request):
-    return RecurringTransaction.objects.filter(user=request.user).order_by("created_at")
+def list_recurring_transactions(request, active: bool | None = None):
+    qs = RecurringTransaction.objects.filter(user=request.user)
+    if active is not None:
+        qs = qs.filter(active=active)
+    return qs.order_by("-created_at")
 
 @router.get("/recurring-transactions/{transaction_id}", response=RecurringTransactionOut)
 def get_recurring_transaction(request, transaction_id: uuid.UUID):
@@ -182,10 +207,19 @@ def delete_recurring_transaction(request, transaction_id: uuid.UUID):
 @router.post("/transfers", response={201: TransferOut})
 def create_transfer(request, payload: TransferIn):
     with transaction.atomic():
+        category_id = payload.category
+        if not category_id:
+            category_obj, _ = Category.objects.get_or_create(
+                user=request.user,
+                name="Transferência",
+                defaults={"type": Category.Types.TRANSFER, "color": "#737373"}
+            )
+            category_id = category_obj.id
+
         out_transaction = Transaction.objects.create(
             user=request.user,
             account_id=payload.out_account_id,
-            category_id=payload.category,
+            category_id=category_id,
             description=payload.description,
             amount=payload.amount,
             date=payload.date,
@@ -194,7 +228,7 @@ def create_transfer(request, payload: TransferIn):
         in_transaction = Transaction.objects.create(
             user=request.user,
             account_id=payload.in_account_id,
-            category_id=payload.category,
+            category_id=category_id,
             description=payload.description,
             amount=payload.amount,
             date=payload.date,
@@ -224,10 +258,19 @@ def get_transfer(request, transfer_id: uuid.UUID):
 @router.put("/transfers/{transfer_id}", response=TransferOut)
 def update_transfer(request, transfer_id: uuid.UUID, payload: TransferIn):
     transfer = get_object_or_404(Transfer, id=transfer_id, user=request.user)
+    category_id = payload.category
+    if not category_id:
+        category_obj, _ = Category.objects.get_or_create(
+            user=request.user,
+            name="Transferência",
+            defaults={"type": Category.Types.TRANSFER, "color": "#737373"}
+        )
+        category_id = category_obj.id
+
     transfer.out_transaction.account_id = payload.out_account_id
     transfer.in_transaction.account_id = payload.in_account_id
-    transfer.out_transaction.category_id = payload.category
-    transfer.in_transaction.category_id = payload.category
+    transfer.out_transaction.category_id = category_id
+    transfer.in_transaction.category_id = category_id
     transfer.out_transaction.description = payload.description
     transfer.in_transaction.description = payload.description
     transfer.out_transaction.amount = payload.amount
@@ -250,9 +293,12 @@ def update_transfer(request, transfer_id: uuid.UUID, payload: TransferIn):
 @router.delete("/transfers/{transfer_id}", response={204: None})
 def delete_transfer(request, transfer_id: uuid.UUID):
     transfer = get_object_or_404(Transfer, id=transfer_id, user=request.user)
+    
     out_transaction_obj = transfer.out_transaction
     in_transaction_obj = transfer.in_transaction
-    out_transaction_obj.delete()
-    in_transaction_obj.delete()
-    transfer.delete()
+    
+    with transaction.atomic():
+        out_transaction_obj.delete()
+        in_transaction_obj.delete()
+        
     return 204, None

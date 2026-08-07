@@ -61,7 +61,7 @@ class Transaction(models.Model):
     
     account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, related_name='transactions', verbose_name='conta')
     category = models.ForeignKey('Category', on_delete=models.RESTRICT, related_name='transactions', verbose_name='categoria')
-    tags = models.ManyToManyField('Tag', blank=True, null=True, related_name='transactions', verbose_name='tags')
+    tags = models.ManyToManyField('Tag', blank=True, related_name='transactions', verbose_name='tags')
     
     description = models.CharField(max_length=255, verbose_name='descrição')
     amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
