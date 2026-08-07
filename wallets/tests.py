@@ -6,70 +6,38 @@ from wallets.models import Account, CreditCardDetails
 User = get_user_model()
 
 
-class WalletsAPITestCase(TestCase):
+class WalletsWebTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='password123')
         self.client.force_login(self.user)
 
-    def test_account_crud(self):
-        # Create Account
+    def test_account_web_crud(self):
+        # List Accounts
+        res = self.client.get('/wallets/')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Contas & Cartões')
+
+        # Create Checking Account
         payload = {
             'name': 'Conta Principal',
             'type': Account.Types.CHECKING,
             'institution': 'Banco X',
             'balance': '1500.50',
             'color': '#123456',
-            'active': True
         }
-        res = self.client.post('/api/wallets/accounts', data=payload, content_type='application/json')
-        self.assertEqual(res.status_code, 201)
-        account_id = res.json()['id']
-        self.assertEqual(res.json()['name'], 'Conta Principal')
+        res = self.client.post('/wallets/create/', data=payload)
+        self.assertEqual(res.status_code, 302)
 
-        # List Accounts
-        res = self.client.get('/api/wallets/accounts')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(len(res.json()), 1)
+        account = Account.objects.get(name='Conta Principal')
+        self.assertEqual(account.user, self.user)
+        self.assertEqual(account.balance, Decimal('1500.50'))
 
-        # Get Account
-        res = self.client.get(f'/api/wallets/accounts/{account_id}')
+        # Confirm Delete view
+        res = self.client.get(f'/wallets/{account.id}/confirm-delete/')
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json()['id'], account_id)
-
-        # Update Account
-        update_payload = {**payload, 'name': 'Conta Atualizada'}
-        res = self.client.put(f'/api/wallets/accounts/{account_id}', data=update_payload, content_type='application/json')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json()['name'], 'Conta Atualizada')
+        self.assertContains(res, 'Excluir Conta')
 
         # Delete Account
-        res = self.client.delete(f'/api/wallets/accounts/{account_id}')
-        self.assertEqual(res.status_code, 204)
-        self.assertEqual(Account.objects.filter(id=account_id).count(), 0)
-
-    def test_credit_card_details(self):
-        account = Account.objects.create(
-            user=self.user,
-            name='Cartão Nubank',
-            type=Account.Types.CREDIT_CARD,
-            balance=Decimal('0.00')
-        )
-        cc_payload = {
-            'limit': '5000.00',
-            'available_limit': '4500.00',
-            'closing_day': 5,
-            'due_day': 12
-        }
-        # Create credit card details
-        res = self.client.post(f'/api/wallets/accounts/{account.id}/credit-card', data=cc_payload, content_type='application/json')
-        self.assertEqual(res.status_code, 201)
-
-        # Get credit card details
-        res = self.client.get(f'/api/wallets/accounts/{account.id}/credit-card')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json()['closing_day'], 5)
-
-        # Delete credit card details
-        res = self.client.delete(f'/api/wallets/accounts/{account.id}/credit-card')
-        self.assertEqual(res.status_code, 204)
-        self.assertEqual(CreditCardDetails.objects.filter(account=account).count(), 0)
+        res = self.client.post(f'/wallets/{account.id}/delete/')
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(Account.objects.filter(id=account.id).exists())

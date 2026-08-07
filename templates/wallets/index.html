@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Contas & Cartões - Moneta{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Contas & Cartões</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Gerencie suas contas bancárias, limites e cartões de crédito</p>
+        </div>
+        <button hx-get="{% url 'wallets_web:create' %}" hx-target="#modal-container" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/25">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>Nova Conta</span>
+        </button>
+    </div>
+
+    <!-- Accounts Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for account in accounts %}
+            <div class="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between border-t-4" style="border-top-color: {{ account.color }};">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ account.get_type_display }}</span>
+                        <div class="flex items-center space-x-2">
+                            {% if account.institution %}
+                                <span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium border border-slate-200 dark:border-slate-700">{{ account.institution }}</span>
+                            {% endif %}
+                            <button hx-get="{% url 'wallets_web:confirm_delete' account.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 p-1 rounded hover:bg-rose-500/10 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mt-3">{{ account.name }}</h3>
+                    <p class="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2">R$ {{ account.balance|floatformat:2 }}</p>
+                </div>
+
+                {% if account.type == 'credit_card' and account.credit_card_details %}
+                    <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                        <div class="flex justify-between text-slate-500 dark:text-slate-400">
+                            <span>Limite Total:</span>
+                            <span class="font-bold text-slate-900 dark:text-slate-200">R$ {{ account.credit_card_details.limit|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between text-slate-500 dark:text-slate-400">
+                            <span>Fechamento / Vencimento:</span>
+                            <span class="font-bold text-slate-900 dark:text-slate-200">Dia {{ account.credit_card_details.closing_day }} / Dia {{ account.credit_card_details.due_day }}</span>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="col-span-full glass-panel p-12 text-center rounded-2xl">
+                <p class="text-slate-500 text-sm">Nenhuma conta cadastrada ainda.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

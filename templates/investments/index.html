@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Investimentos - Moneta{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Carteira de Investimentos</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Acompanhe sua posição de ativos e evolução patrimonial</p>
+        </div>
+        <button hx-get="{% url 'investments_web:create' %}" hx-target="#modal-container" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/25">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            <span>Novo Ativo</span>
+        </button>
+    </div>
+
+    <!-- Summary Card -->
+    <div class="glass-panel p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Patrimônio Investido</span>
+            <p class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">R$ {{ total_value|floatformat:2 }}</p>
+        </div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">
+            <span>{{ investments.count }} ativos na carteira</span>
+        </div>
+    </div>
+
+    <!-- Investments Table -->
+    <div class="glass-panel p-4 rounded-2xl">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+                <thead class="text-xs uppercase bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">Ativo</th>
+                        <th class="px-4 py-3">Tipo</th>
+                        <th class="px-4 py-3">Corretora</th>
+                        <th class="px-4 py-3">Qtd</th>
+                        <th class="px-4 py-3">Preço Médio</th>
+                        <th class="px-4 py-3">Preço Atual</th>
+                        <th class="px-4 py-3 text-right">Valor Total</th>
+                        <th class="px-4 py-3 text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800/60">
+                    {% for inv in investments %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+                            <td class="px-4 py-3.5 font-bold text-slate-900 dark:text-white">{{ inv.name }}</td>
+                            <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">
+                                <span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 uppercase">{{ inv.get_type_display }}</span>
+                            </td>
+                            <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">{{ inv.account.name }}</td>
+                            <td class="px-4 py-3.5 text-slate-900 dark:text-slate-200 font-medium">{{ inv.quantity|floatformat:2 }}</td>
+                            <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">R$ {{ inv.average_price|floatformat:2 }}</td>
+                            <td class="px-4 py-3.5 text-xs text-slate-900 dark:text-slate-200">R$ {{ inv.current_price|floatformat:2 }}</td>
+                            <td class="px-4 py-3.5 text-right font-bold text-indigo-600 dark:text-indigo-400">
+                                R$ {{ inv.quantity|add:"0"|floatformat:2 }}
+                            </td>
+                            <td class="px-4 py-3.5 text-center">
+                                <a href="{% url 'investments_web:delete' inv.id %}" onclick="return confirm('Excluir este ativo?')" class="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10 inline-block">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-4 py-12 text-center text-slate-500">Nenhum ativo cadastrado na carteira.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

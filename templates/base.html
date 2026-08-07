@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full"
+    x-data="{ darkMode: localStorage.getItem('theme') !== 'light' }"
+    x-init="
+        if (darkMode) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark'); }
+        $watch('darkMode', val => {
+            localStorage.setItem('theme', val ? 'dark' : 'light');
+            if (val) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark'); }
+        })
+    ">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Moneta - Gestão Financeira{% endblock %}</title>
+
+    <!-- Favicon Piggy Bank -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M19 11a5 5 0 01-5 5H9.5a5.5 5.5 0 01-5.5-5.5V10A5.5 5.5 0 019.5 4.5h2A5.5 5.5 0 0117 10v1z'/><circle cx='14' cy='9' r='1' fill='%236366f1'/><path d='M19 10l2 1v2l-2 1M11 4.5V3M7.5 16.5V19M15.5 16.5V19'/></svg>">
+
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS (Play CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eep2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- HTMX & AlpineJS & ChartJS CDN -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        html.dark .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        html:not(.dark) .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        html:not(.dark) body {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body
+    class="h-full font-sans overflow-x-hidden flex flex-col md:flex-row bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200"
+    x-data="{ sidebarOpen: false, modalOpen: false }">
+
+    <!-- Mobile Header -->
+    <header
+        class="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 z-30">
+        <div class="flex items-center space-x-2">
+            <div
+                class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 via-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M19 11a5 5 0 01-5 5H9.5a5.5 5.5 0 01-5.5-5.5V10A5.5 5.5 0 019.5 4.5h2A5.5 5.5 0 0117 10v1z" />
+                    <circle cx="14" cy="9" r="1" fill="currentColor" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M19 10l2 1v2l-2 1M11 4.5V3M7.5 16.5V19M15.5 16.5V19" />
+                </svg>
+            </div>
+            <span class="font-bold text-xl tracking-tight text-slate-900 dark:text-white">Moneta</span>
+        </div>
+        <button @click="sidebarOpen = !sidebarOpen"
+            class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
+                </path>
+            </svg>
+        </button>
+    </header>
+
+    <!-- Sidebar Overlay -->
+    <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
+        class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 md:hidden transition-opacity"></div>
+
+    <!-- Sidebar Navigation -->
+    <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="fixed md:static inset-y-0 left-0 w-64 bg-white/90 dark:bg-slate-900/90 border-r border-slate-200 dark:border-slate-800/80 z-50 transform md:translate-x-0 transition-transform duration-200 ease-in-out flex flex-col justify-between p-4 glass-panel">
+        <div>
+            <!-- Brand Logo with Piggy Bank Icon -->
+            <div class="hidden md:flex items-center space-x-3 px-2 py-4 mb-4">
+                <div
+                    class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19 11a5 5 0 01-5 5H9.5a5.5 5.5 0 01-5.5-5.5V10A5.5 5.5 0 019.5 4.5h2A5.5 5.5 0 0117 10v1z" />
+                        <circle cx="14" cy="9" r="1" fill="currentColor" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M19 10l2 1v2l-2 1M11 4.5V3M7.5 16.5V19M15.5 16.5V19" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="font-bold text-xl text-slate-900 dark:text-slate-100 tracking-tight">Moneta</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Controle Financeiro</p>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="space-y-1">
+                <a href="{% url 'dashboard' %}"
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.url_name == 'dashboard' %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                        </path>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+
+                <!-- Transações Parent Menu with Submenu -->
+                <div
+                    x-data="{ txOpen: {% if 'transactions' in request.path or 'categories' in request.path or 'recurring' in request.path %}true{% else %}false{% endif %} }">
+                    <button @click="txOpen = !txOpen"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'transactions' in request.path or 'categories' in request.path or 'recurring' in request.path %}bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            <span>Transações</span>
+                        </div>
+                        <svg :class="txOpen ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div x-show="txOpen" x-cloak class="mt-1 pl-8 space-y-1">
+                        <a href="{% url 'transactions_web:list' %}"
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'list' and 'transactions' in request.path and 'categories' not in request.path and 'recurring' not in request.path %}text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/40{% endif %}">
+                            Todas as Transações
+                        </a>
+                        <a href="{% url 'transactions_web:category_list' %}"
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if 'categories' in request.path %}text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/40{% endif %}">
+                            Categorias & Tags
+                        </a>
+                        <a href="{% url 'transactions_web:recurring_list' %}"
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if 'recurring' in request.path %}text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/40{% endif %}">
+                            Recorrentes
+                        </a>
+                    </div>
+                </div>
+
+                <a href="{% url 'wallets_web:list' %}"
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'wallets' in request.path %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                    <span>Contas & Cartões</span>
+                </a>
+
+                <a href="{% url 'planning_web:list' %}"
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'planning' in request.path %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                        </path>
+                    </svg>
+                    <span>Planejamento</span>
+                </a>
+
+                <a href="{% url 'investments_web:list' %}"
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'investments' in request.path %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    <span>Investimentos</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- User Info & Theme Switcher / Bottom Section -->
+        <div class="pt-4 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
+
+            <!-- Dark / Light Theme Toggle -->
+            <button @click="darkMode = !darkMode"
+                class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-800/50 transition">
+                <div class="flex items-center space-x-2">
+                    <template x-if="darkMode">
+                        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+                            </path>
+                        </svg>
+                    </template>
+                    <template x-if="!darkMode">
+                        <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                            </path>
+                        </svg>
+                    </template>
+                    <span x-text="darkMode ? 'Modo Escuro' : 'Modo Claro'"></span>
+                </div>
+            </button>
+
+            <a href="{% url 'users_web:settings' %}"
+                class="flex items-center justify-between px-2 py-1.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/50 transition">
+                <div class="flex items-center space-x-3">
+                    {% if user.photo_url %}
+                        <img src="{{ user.photo_url }}" alt="{{ user.username }}" class="w-9 h-9 rounded-full object-cover border border-indigo-500/30 shadow-sm">
+                    {% else %}
+                        <div class="w-9 h-9 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400">
+                            {{ user.first_name|default:user.username|slice:":1"|upper }}
+                        </div>
+                    {% endif %}
+                    <div>
+                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-200 leading-none">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ user.currency|default:"BRL" }} (R$)</p>
+                    </div>
+                </div>
+                <svg class="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                    </path>
+                </svg>
+            </a>
+            <a href="{% url 'users_web:logout' %}"
+                class="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-500/10 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                    </path>
+                </svg>
+                <span>Sair da Conta</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 min-w-0 overflow-y-auto p-4 md:p-8 space-y-6">
+        <!-- Messages & Alerts -->
+        {% if messages %}
+        <div class="space-y-2">
+            {% for message in messages %}
+            <div
+                class="p-4 rounded-xl text-sm font-medium border shadow-lg transition-all {% if message.tags == 'error' %}bg-rose-500/10 text-rose-600 dark:text-rose-300 border-rose-500/30{% else %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-500/30{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Modal Container for HTMX -->
+    <div id="modal-container"></div>
+
+</body>
+
+</html>

@@ -1,14 +1,16 @@
 from decimal import Decimal
+from datetime import date
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from wallets.models import Account
 from transactions.models import Category, Tag, Transaction, RecurringTransaction, Transfer
 from moneta.common import TransactionType
+from transactions.services import process_recurring_transactions
 
 User = get_user_model()
 
 
-class TransactionsAPITestCase(TestCase):
+class TransactionsWebTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='txuser', password='password123')
         self.client.force_login(self.user)
@@ -17,56 +19,65 @@ class TransactionsAPITestCase(TestCase):
         self.category = Category.objects.create(user=self.user, name='Alimentação', type=TransactionType.EXPENSE)
         self.tag = Tag.objects.create(user=self.user, name='Essencial', color='#FF0000')
 
-    def test_category_and_tag_crud(self):
-        # Category
-        res = self.client.get('/api/transactions/categories')
+    def test_category_and_tag_web_view(self):
+        res = self.client.get('/transactions/categories/')
         self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Categorias & Tags')
 
-        # Tag
-        res = self.client.get('/api/transactions/tags')
-        self.assertEqual(res.status_code, 200)
-
-    def test_transaction_crud(self):
+    def test_transaction_web_crud(self):
         payload = {
             'account': str(self.account1.id),
             'category': str(self.category.id),
-            'tags': [str(self.tag.id)],
             'description': 'Almoço',
             'amount': '45.90',
             'date': '2026-08-07',
             'status': 'concluída'
         }
-        res = self.client.post('/api/transactions/transactions', data=payload, content_type='application/json')
-        self.assertEqual(res.status_code, 201)
-        tx_id = res.json()['id']
+        res = self.client.post('/transactions/create/', data=payload)
+        self.assertEqual(res.status_code, 302)
 
-        res = self.client.get('/api/transactions/transactions')
+        tx = Transaction.objects.get(description='Almoço')
+        self.assertEqual(tx.amount, Decimal('45.90'))
+
+        res = self.client.get('/transactions/')
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(len(res.json()), 1)
+        self.assertContains(res, 'Almoço')
 
-        res = self.client.delete(f'/api/transactions/transactions/{tx_id}')
-        self.assertEqual(res.status_code, 204)
+        res = self.client.post(f'/transactions/{tx.id}/delete/')
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(Transaction.objects.filter(id=tx.id).exists())
 
-    def test_transfer(self):
+    def test_transaction_create_recurring(self):
         payload = {
-            'out_account_id': str(self.account1.id),
-            'in_account_id': str(self.account2.id),
+            'account': str(self.account1.id),
+            'category': str(self.category.id),
+            'description': 'Aluguel Mensal',
+            'amount': '1500.00',
+            'date': '2026-08-01',
+            'status': 'concluída',
+            'is_recurring': 'on',
+            'frequency': 'mensal'
+        }
+        res = self.client.post('/transactions/create/', data=payload)
+        self.assertEqual(res.status_code, 302)
+
+        tx = Transaction.objects.get(description='Aluguel Mensal')
+        self.assertIsNotNone(tx.recurring)
+        self.assertEqual(tx.recurring.frequency, 'mensal')
+
+    def test_transfer_web_create(self):
+        payload = {
+            'out_account': str(self.account1.id),
+            'in_account': str(self.account2.id),
             'description': 'Transferência Poupança',
             'amount': '500.00',
             'date': '2026-08-07',
-            'status': 'concluída'
         }
-        res = self.client.post('/api/transactions/transfers', data=payload, content_type='application/json')
-        self.assertEqual(res.status_code, 201)
-        transfer_id = res.json()['id']
+        res = self.client.post('/transactions/transfers/create/', data=payload)
+        self.assertEqual(res.status_code, 302)
+        self.assertTrue(Transfer.objects.filter(user=self.user).exists())
 
-        res = self.client.get('/api/transactions/transfers')
-        self.assertEqual(res.status_code, 200)
-
-        res = self.client.delete(f'/api/transactions/transfers/{transfer_id}')
-        self.assertEqual(res.status_code, 204)
-
-    def test_transaction_filters(self):
+    def test_transaction_web_filters(self):
         tx1 = Transaction.objects.create(
             user=self.user,
             account=self.account1,
@@ -76,30 +87,26 @@ class TransactionsAPITestCase(TestCase):
             date='2026-08-01',
             status='concluída'
         )
-        tx2 = Transaction.objects.create(
+        res = self.client.get(f'/transactions/?account_id={self.account1.id}')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Jantar')
+
+    def test_process_recurring_transactions(self):
+        rec = RecurringTransaction.objects.create(
             user=self.user,
-            account=self.account2,
+            account=self.account1,
             category=self.category,
-            description='Gasolina',
-            amount=Decimal('150.00'),
-            date='2026-08-05',
-            status='pendente'
+            description='Assinatura Streaming',
+            amount=Decimal('39.90'),
+            frequency=RecurringTransaction.Frequencies.MONTHLY,
+            start_date=date(2026, 6, 1),
+            active=True
         )
-        # Filter by account
-        res = self.client.get(f'/api/transactions/transactions?account_id={self.account1.id}')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(len(res.json()), 1)
-        self.assertEqual(res.json()[0]['id'], str(tx1.id))
 
-        # Filter by status
-        res = self.client.get('/api/transactions/transactions?status=pendente')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(len(res.json()), 1)
-        self.assertEqual(res.json()[0]['id'], str(tx2.id))
+        process_recurring_transactions(self.user, date(2026, 8, 31))
 
-        # Filter by date range
-        res = self.client.get('/api/transactions/transactions?start_date=2026-08-02&end_date=2026-08-06')
-        self.assertEqual(res.status_code, 200)
-        self.assertEqual(len(res.json()), 1)
-        self.assertEqual(res.json()[0]['id'], str(tx2.id))
-
+        txs = Transaction.objects.filter(recurring=rec).order_by('date')
+        self.assertEqual(txs.count(), 3)
+        self.assertEqual(txs[0].date, date(2026, 6, 1))
+        self.assertEqual(txs[1].date, date(2026, 7, 1))
+        self.assertEqual(txs[2].date, date(2026, 8, 1))

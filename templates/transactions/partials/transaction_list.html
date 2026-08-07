@@ -1,0 +1,67 @@
+<div class="space-y-3">
+    <div class="flex items-center justify-center py-1">
+        <div class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm">
+            <span>Balanço Geral em <strong class="text-indigo-600 dark:text-indigo-400 capitalize">{{ month_info.month_label }}</strong>:</span>
+            <span class="font-extrabold {% if month_net_balance < 0 %}text-rose-600 dark:text-rose-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                R$ {{ month_net_balance|floatformat:2 }}
+            </span>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+            <thead class="text-xs uppercase bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                    <th class="px-4 py-3">Descrição</th>
+                    <th class="px-4 py-3">Categoria</th>
+                    <th class="px-4 py-3">Conta</th>
+                    <th class="px-4 py-3">Tags</th>
+                    <th class="px-4 py-3">Data</th>
+                    <th class="px-4 py-3">Status</th>
+                    <th class="px-4 py-3 text-right">Valor</th>
+                    <th class="px-4 py-3 text-center">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-800/60">
+                {% for tx in transactions %}
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition id-tx-{{ tx.id }}">
+                        <td class="px-4 py-3.5 font-medium text-slate-900 dark:text-slate-200">{{ tx.description }}</td>
+                        <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">
+                            <span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50" style="border-left: 3px solid {{ tx.category.color }};">
+                                {{ tx.category.name }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">{{ tx.account.name }}</td>
+                        <td class="px-4 py-3.5 text-xs">
+                            <div class="flex flex-wrap gap-1">
+                                {% for tag in tx.tags.all %}
+                                    <span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">{{ tag.name }}</span>
+                                {% empty %}
+                                    <span class="text-slate-400 dark:text-slate-600">-</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">{{ tx.date|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3.5">
+                            <span class="px-2 py-0.5 text-xs rounded-full font-medium {% if tx.status == 'concluída' %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20{% else %}bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20{% endif %}">
+                                {{ tx.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3.5 text-right font-bold {% if tx.category.type == 'receita' %}text-emerald-600 dark:text-emerald-400{% elif tx.category.type == 'despesa' %}text-rose-600 dark:text-rose-400{% else %}text-indigo-600 dark:text-indigo-400{% endif %}">
+                            {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3.5 text-center">
+                            <button hx-get="{% url 'transactions_web:confirm_delete' tx.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" class="px-4 py-12 text-center text-slate-500">Nenhuma transação encontrada para os filtros selecionados.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

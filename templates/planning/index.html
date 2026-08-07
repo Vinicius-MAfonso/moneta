@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Planejamento - Moneta{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Planejamento & Metas</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Monitore orçamentos por categoria e acompanhe suas metas financeiras</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button hx-get="{% url 'planning_web:budget_create' %}" hx-target="#modal-container" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium text-sm transition-all border border-slate-300 dark:border-slate-700">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>Novo Orçamento</span>
+            </button>
+            <button hx-get="{% url 'planning_web:goal_create' %}" hx-target="#modal-container" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/25">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>Novo Objetivo</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Goals Section -->
+    <div class="space-y-4">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Objetivos Financeiros</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for goal in goals %}
+                <div class="glass-panel p-6 rounded-2xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-bold text-slate-900 dark:text-white">{{ goal.name }}</h4>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">Até {{ goal.end_date|date:"d/m/Y" }}</span>
+                            <button hx-get="{% url 'planning_web:goal_confirm_delete' goal.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 p-1 rounded hover:bg-rose-500/10 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm mb-1.5">
+                            <span class="text-slate-500 dark:text-slate-400">Progresso</span>
+                            <span class="font-bold text-indigo-600 dark:text-indigo-400">R$ {{ goal.current_amount|floatformat:2 }} / R$ {{ goal.target_amount|floatformat:2 }}</span>
+                        </div>
+                        <div class="w-full bg-slate-200 dark:bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-800">
+                            <div class="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full transition-all duration-300" style="width: 50%;"></div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-span-full glass-panel p-8 text-center rounded-2xl">
+                    <p class="text-slate-500 text-sm">Nenhum objetivo cadastrado.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Budgets Section -->
+    <div class="space-y-4">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Orçamentos Definidos</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for budget in budgets %}
+                <div class="glass-panel p-6 rounded-2xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ budget.category.name }}</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs text-slate-500 dark:text-slate-400">{{ budget.start_date|date:"d/m" }} - {{ budget.end_date|date:"d/m" }}</span>
+                            <button hx-get="{% url 'planning_web:budget_confirm_delete' budget.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 p-1 rounded hover:bg-rose-500/10 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-2xl font-extrabold text-slate-900 dark:text-slate-100">Teto: R$ {{ budget.amount|floatformat:2 }}</p>
+                </div>
+            {% empty %}
+                <div class="col-span-full glass-panel p-8 text-center rounded-2xl">
+                    <p class="text-slate-500 text-sm">Nenhum orçamento cadastrado.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
