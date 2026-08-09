@@ -1,84 +1,9 @@
-<!DOCTYPE html>
-<html lang="pt-br" class="h-full antialiased"
-    x-data="{ darkMode: localStorage.getItem('theme') === 'dark' }"
-    x-init="
-        if (darkMode) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark'); }
-        $watch('darkMode', val => {
-            localStorage.setItem('theme', val ? 'dark' : 'light');
-            if (val) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark'); }
-        })
-    ">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Criar Conta - Moneta</title>
+{% extends "users/auth_base.html" %}
 
-    <script>
-        if (localStorage.getItem('theme') === 'dark') {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="h-full font-sans bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 flex items-center justify-center p-4">
+{% block title %}Criar Conta - Moneta{% endblock %}
+{% block subtitle %}Comece a controlar suas finanças hoje mesmo{% endblock %}
 
-    <!-- Theme Switcher Top Right -->
-    <div class="fixed top-4 right-4">
-        <button @click="darkMode = !darkMode" class="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white shadow-sm transition">
-            <template x-if="darkMode">
-                <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-            </template>
-            <template x-if="!darkMode">
-                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-            </template>
-        </button>
-    </div>
-
-    <div class="w-full max-w-md space-y-6">
-        
-        <!-- Brand Header -->
-        <div class="text-center space-y-2">
-            <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-violet-500 shadow-xl shadow-indigo-600/30 text-white mb-2">
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a5 5 0 01-5 5H9.5a5.5 5.5 0 01-5.5-5.5V10A5.5 5.5 0 019.5 4.5h2A5.5 5.5 0 0117 10v1z" />
-                    <circle cx="14" cy="9" r="1" fill="currentColor" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 10l2 1v2l-2 1M11 4.5V3M7.5 16.5V19M15.5 16.5V19" />
-                </svg>
-            </div>
-            <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Criar Conta no Moneta</h1>
-            <p class="text-slate-500 dark:text-slate-400 text-sm">Comece a controlar suas finanças hoje mesmo</p>
-        </div>
-
-        <!-- Messages & Errors -->
-        {% if messages %}
-            <div class="space-y-2">
-                {% for message in messages %}
-                    <div class="p-3.5 rounded-xl text-xs font-semibold border shadow-lg {% if message.tags == 'error' %}bg-rose-500/10 text-rose-600 dark:text-rose-300 border-rose-500/30{% else %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border-emerald-500/30{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-
+{% block content %}
         <!-- Card Form -->
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-3xl shadow-2xl space-y-6">
             <form method="POST" action="{% url 'users_web:register' %}" class="space-y-4">
@@ -135,8 +60,4 @@
                 <a href="{% url 'users_web:login' %}" class="text-indigo-600 dark:text-indigo-400 hover:underline font-semibold ml-1">Entrar agora</a>
             </div>
         </div>
-
-    </div>
-
-</body>
-</html>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios - Moneta{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Relatórios de Fluxo de Caixa</h2>
+            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Análise detalhada de suas finanças e exportação de dados</p>
+        </div>
+        
+        <!-- Filters Form -->
+        <form method="GET" action="{% url 'reports' %}" class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center space-x-2">
+                <input type="date" name="start_date" value="{{ start_date }}" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                <span class="text-slate-500">até</span>
+                <input type="date" name="end_date" value="{{ end_date }}" class="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+            </div>
+            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg shadow transition">
+                Filtrar
+            </button>
+            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 text-sm font-semibold rounded-lg transition inline-flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Exportar CSV
+            </a>
+        </form>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass-panel p-6 rounded-2xl">
+            <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Total Receitas</p>
+            <p class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-2">R$ {{ report_data.total_income|floatformat:2 }}</p>
+        </div>
+        <div class="glass-panel p-6 rounded-2xl">
+            <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Total Despesas</p>
+            <p class="text-2xl font-extrabold text-rose-600 dark:text-rose-400 mt-2">R$ {{ report_data.total_expense|floatformat:2 }}</p>
+        </div>
+        <div class="glass-panel p-6 rounded-2xl">
+            <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">Saldo no Período</p>
+            <p class="text-2xl font-extrabold {% if report_data.net_savings >= 0 %}text-indigo-600 dark:text-indigo-400{% else %}text-rose-600 dark:text-rose-400{% endif %} mt-2">R$ {{ report_data.net_savings|floatformat:2 }}</p>
+        </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Line Chart -->
+        <div class="lg:col-span-2 glass-panel p-6 rounded-2xl">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Evolução do Saldo</h3>
+            <div class="h-72">
+                <canvas id="timelineChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Doughnut Chart -->
+        <div class="glass-panel p-6 rounded-2xl">
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Despesas por Categoria</h3>
+            <div class="h-64 relative">
+                {% if report_data.expenses_by_category %}
+                    <canvas id="categoryChart"></canvas>
+                {% else %}
+                    <div class="absolute inset-0 flex items-center justify-center text-slate-500 text-sm">
+                        Nenhuma despesa no período
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Transactions -->
+    <div class="glass-panel p-6 rounded-2xl">
+        <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Maiores Despesas no Período</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+                <thead class="text-xs uppercase bg-slate-100 dark:bg-slate-900/80 text-slate-600 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                        <th class="px-4 py-3">Data</th>
+                        <th class="px-4 py-3">Descrição</th>
+                        <th class="px-4 py-3">Categoria</th>
+                        <th class="px-4 py-3">Conta</th>
+                        <th class="px-4 py-3 text-right">Valor</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 dark:divide-slate-800/60">
+                    {% for tx in report_data.top_transactions %}
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+                            <td class="px-4 py-3 text-xs text-slate-500">{{ tx.date|date:"d/m/Y" }}</td>
+                            <td class="px-4 py-3 font-medium text-slate-900 dark:text-slate-200">{{ tx.description }}</td>
+                            <td class="px-4 py-3">
+                                <span class="px-2 py-1 rounded-md text-xs bg-slate-100 dark:bg-slate-800">{{ tx.category.name }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-xs text-slate-500">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-2 h-2 rounded-full" style="background-color: {{ tx.account.color }};"></div>
+                                    <span>{{ tx.account.name }}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-right font-bold text-rose-600 dark:text-rose-400">R$ {{ tx.amount|floatformat:2 }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-slate-500">Nenhuma despesa encontrada.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Line Chart
+        const timelineCtx = document.getElementById('timelineChart');
+        if (timelineCtx) {
+            new Chart(timelineCtx, {
+                type: 'line',
+                data: {
+                    labels: {{ chart_labels_json|safe }},
+                    datasets: [
+                        {
+                            label: 'Receitas',
+                            data: {{ chart_incomes_json|safe }},
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        },
+                        {
+                            label: 'Despesas',
+                            data: {{ chart_expenses_json|safe }},
+                            borderColor: 'rgba(244, 63, 94, 1)',
+                            backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(128,128,128,0.1)' } }
+                    }
+                }
+            });
+        }
+
+        // Doughnut Chart
+        const categoryCtx = document.getElementById('categoryChart');
+        if (categoryCtx) {
+            new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: {{ pie_labels_json|safe }},
+                    datasets: [{
+                        data: {{ pie_data_json|safe }},
+                        backgroundColor: {{ pie_colors_json|safe }},
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, padding: 15 } }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

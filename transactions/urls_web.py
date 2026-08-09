@@ -12,8 +12,10 @@ urlpatterns = [
     # Categories & Tags
     path('categories/', views.category_list_view, name='category_list'),
     path('categories/create/', views.category_create_view, name='category_create'),
+    path('categories/<uuid:pk>/confirm-delete/', views.category_confirm_delete_view, name='category_confirm_delete'),
     path('categories/<uuid:pk>/delete/', views.category_delete_view, name='category_delete'),
     path('tags/create/', views.tag_create_view, name='tag_create'),
+    path('tags/<uuid:pk>/confirm-delete/', views.tag_confirm_delete_view, name='tag_confirm_delete'),
     path('tags/<uuid:pk>/delete/', views.tag_delete_view, name='tag_delete'),
 
     # Recurring

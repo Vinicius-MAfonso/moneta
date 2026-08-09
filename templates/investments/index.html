@@ -23,8 +23,8 @@
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Patrimônio Investido</span>
             <p class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">R$ {{ total_value|floatformat:2 }}</p>
         </div>
-        <div class="text-xs text-slate-500 dark:text-slate-400">
-            <span>{{ investments.count }} ativos na carteira</span>
+        <div class="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+            <span>{{ investments|length }} ativo(s) na carteira</span>
         </div>
     </div>
 
@@ -36,10 +36,11 @@
                     <tr>
                         <th class="px-4 py-3">Ativo</th>
                         <th class="px-4 py-3">Tipo</th>
-                        <th class="px-4 py-3">Corretora</th>
+                        <th class="px-4 py-3">Conta/Corretora</th>
                         <th class="px-4 py-3">Qtd</th>
                         <th class="px-4 py-3">Preço Médio</th>
                         <th class="px-4 py-3">Preço Atual</th>
+                        <th class="px-4 py-3 text-right">Rendimento</th>
                         <th class="px-4 py-3 text-right">Valor Total</th>
                         <th class="px-4 py-3 text-center">Ações</th>
                     </tr>
@@ -55,18 +56,21 @@
                             <td class="px-4 py-3.5 text-slate-900 dark:text-slate-200 font-medium">{{ inv.quantity|floatformat:2 }}</td>
                             <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">R$ {{ inv.average_price|floatformat:2 }}</td>
                             <td class="px-4 py-3.5 text-xs text-slate-900 dark:text-slate-200">R$ {{ inv.current_price|floatformat:2 }}</td>
+                            <td class="px-4 py-3.5 text-right text-xs font-bold {% if inv.gain_loss < 0 %}text-rose-600 dark:text-rose-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                                {% if inv.gain_loss >= 0 %}+{% endif %}R$ {{ inv.gain_loss|floatformat:2 }} ({{ inv.gain_loss_pct }}%)
+                            </td>
                             <td class="px-4 py-3.5 text-right font-bold text-indigo-600 dark:text-indigo-400">
-                                R$ {{ inv.quantity|add:"0"|floatformat:2 }}
+                                R$ {{ inv.total_position|floatformat:2 }}
                             </td>
                             <td class="px-4 py-3.5 text-center">
-                                <a href="{% url 'investments_web:delete' inv.id %}" onclick="return confirm('Excluir este ativo?')" class="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10 inline-block">
+                                <button hx-get="{% url 'investments_web:confirm_delete' inv.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10 inline-block">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                </a>
+                                </button>
                             </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="8" class="px-4 py-12 text-center text-slate-500">Nenhum ativo cadastrado na carteira.</td>
+                            <td colspan="9" class="px-4 py-12 text-center text-slate-500">Nenhum ativo cadastrado na carteira.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

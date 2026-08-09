@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
+from django.db import models
 from django.contrib.auth.decorators import login_required
 
 from .models import Budget, Goal
@@ -9,8 +10,26 @@ from transactions.models import Category
 
 @login_required(login_url='users_web:login')
 def planning_list_view(request):
-    budgets = Budget.objects.filter(user=request.user).select_related('category')
-    goals = Goal.objects.filter(user=request.user)
+    from planning.services import calculate_budget_progress
+    
+    raw_budgets = Budget.objects.filter(user=request.user).select_related('category').order_by('-start_date')
+    raw_goals = Goal.objects.filter(user=request.user)
+
+    goals = []
+    for goal in raw_goals:
+        pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0
+        goal.percentage = round(pct, 1)
+        goal.bounded_pct = min(100, int(pct))
+        goals.append(goal)
+
+    budgets = []
+    for budget in raw_budgets:
+        prog = calculate_budget_progress(budget)
+        budget.spent = prog['spent']
+        budget.percentage = round(prog['real_percentage'], 1)
+        budget.bounded_pct = prog['percentage']
+        budget.remaining = prog['remaining']
+        budgets.append(budget)
 
     context = {
         'budgets': budgets,
@@ -80,6 +99,20 @@ def goal_create_view(request):
         return redirect('planning_web:list')
 
     return render(request, 'planning/partials/goal_form.html')
+
+
+@login_required(login_url='users_web:login')
+def goal_deposit_view(request, pk):
+    goal = get_object_or_404(Goal, pk=pk, user=request.user)
+    if request.method == 'POST':
+        amount = Decimal(request.POST.get('amount', '0'))
+        if amount > 0:
+            Goal.objects.filter(pk=goal.pk).update(
+                current_amount=models.F('current_amount') + amount
+            )
+        return redirect('planning_web:list')
+
+    return render(request, 'planning/partials/goal_deposit_form.html', {'goal': goal})
 
 
 @login_required(login_url='users_web:login')

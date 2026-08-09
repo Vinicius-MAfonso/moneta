@@ -48,6 +48,12 @@
                             <span>Fechamento / Vencimento:</span>
                             <span class="font-bold text-slate-900 dark:text-slate-200">Dia {{ account.credit_card_details.closing_day }} / Dia {{ account.credit_card_details.due_day }}</span>
                         </div>
+                        <div class="pt-3 mt-1 flex justify-end border-t border-slate-100 dark:border-slate-800/50">
+                            <a href="{% url 'wallets_web:bill_list' account.id %}" class="inline-flex items-center space-x-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 transition text-sm">
+                                <span>Ver Faturas</span>
+                                <span>&rarr;</span>
+                            </a>
+                        </div>
                     </div>
                 {% endif %}
             </div>

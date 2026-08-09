@@ -1,7 +1,7 @@
 from decimal import Decimal
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from wallets.models import Account, CreditCardDetails
+from wallets.models import Account
 
 User = get_user_model()
 
@@ -41,3 +41,36 @@ class WalletsWebTestCase(TestCase):
         res = self.client.post(f'/wallets/{account.id}/delete/')
         self.assertEqual(res.status_code, 302)
         self.assertFalse(Account.objects.filter(id=account.id).exists())
+
+    def test_account_balance_recalculation(self):
+        from transactions.models import Category, Transaction
+        from moneta.common import TransactionType
+        from wallets.services import recalculate_account_balance
+
+        account = Account.objects.create(
+            user=self.user,
+            name='Conta Corrente Teste',
+            type=Account.Types.CHECKING,
+            balance=Decimal('1000.00'),
+            initial_balance=Decimal('1000.00')
+        )
+
+        cat_income = Category.objects.create(user=self.user, name='Salário', type=TransactionType.INCOME)
+        cat_expense = Category.objects.create(user=self.user, name='Aluguel', type=TransactionType.EXPENSE)
+
+        # Completed Income: +500
+        Transaction.objects.create(
+            user=self.user, account=account, category=cat_income,
+            description='Bonus', amount=Decimal('500.00'), date='2026-08-01',
+            status=Transaction.Statuses.COMPLETED
+        )
+        # Completed Expense: -200
+        Transaction.objects.create(
+            user=self.user, account=account, category=cat_expense,
+            description='Mercado', amount=Decimal('200.00'), date='2026-08-02',
+            status=Transaction.Statuses.COMPLETED
+        )
+
+        new_bal = recalculate_account_balance(account)
+        # 1000 + 500 - 200 = 1300
+        self.assertEqual(new_bal, Decimal('1300.00'))

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                Faturas
+            </h1>
+            <p class="text-slate-500 dark:text-slate-400 mt-1">
+                Cartão: {{ account.name }}
+            </p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'wallets_web:list' %}" class="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition shadow-sm">
+                Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Bills List -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for bill in bills %}
+            <a href="{% url 'wallets_web:bill_detail' bill.id %}" class="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all border border-slate-200 dark:border-slate-800 group">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ bill.period_date|date:"F Y" }}</span>
+                        {% if bill.status == 'paid' %}
+                            <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 font-bold uppercase">Paga</span>
+                        {% elif bill.status == 'closed' %}
+                            <span class="px-2 py-0.5 rounded text-[10px] bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 font-bold uppercase">Fechada</span>
+                        {% else %}
+                            <span class="px-2 py-0.5 rounded text-[10px] bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 font-bold uppercase">Aberta</span>
+                        {% endif %}
+                    </div>
+                    
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-4">Vencimento</p>
+                    <p class="text-lg font-bold text-slate-900 dark:text-white mt-1">{{ bill.due_date|date:"d/m/Y" }}</p>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/60 flex justify-between items-center group-hover:border-indigo-100 dark:group-hover:border-indigo-900/30 transition">
+                    <span class="text-indigo-600 dark:text-indigo-400 text-sm font-semibold">Ver detalhes &rarr;</span>
+                </div>
+            </a>
+        {% empty %}
+            <div class="col-span-full glass-panel p-12 text-center rounded-2xl border border-slate-200 dark:border-slate-800">
+                <p class="text-slate-500 dark:text-slate-400">Nenhuma fatura encontrada para este cartão.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

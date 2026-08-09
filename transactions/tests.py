@@ -56,14 +56,14 @@ class TransactionsWebTestCase(TestCase):
             'date': '2026-08-01',
             'status': 'concluída',
             'is_recurring': 'on',
-            'frequency': 'mensal'
+            'frequency': 'monthly'
         }
         res = self.client.post('/transactions/create/', data=payload)
         self.assertEqual(res.status_code, 302)
 
         tx = Transaction.objects.get(description='Aluguel Mensal')
         self.assertIsNotNone(tx.recurring)
-        self.assertEqual(tx.recurring.frequency, 'mensal')
+        self.assertEqual(tx.recurring.frequency, 'monthly')
 
     def test_transfer_web_create(self):
         payload = {
@@ -78,7 +78,7 @@ class TransactionsWebTestCase(TestCase):
         self.assertTrue(Transfer.objects.filter(user=self.user).exists())
 
     def test_transaction_web_filters(self):
-        tx1 = Transaction.objects.create(
+        Transaction.objects.create(
             user=self.user,
             account=self.account1,
             category=self.category,
@@ -110,3 +110,24 @@ class TransactionsWebTestCase(TestCase):
         self.assertEqual(txs[0].date, date(2026, 6, 1))
         self.assertEqual(txs[1].date, date(2026, 7, 1))
         self.assertEqual(txs[2].date, date(2026, 8, 1))
+
+    def test_transaction_create_recurring_transfer(self):
+        payload = {
+            'tx_type': 'transferencia',
+            'out_account': str(self.account1.id),
+            'in_account': str(self.account2.id),
+            'description': 'Reserva Mensal',
+            'amount': '300.00',
+            'date': '2026-08-01',
+            'is_recurring': 'on',
+            'frequency': 'monthly'
+        }
+        res = self.client.post('/transactions/create/', data=payload)
+        self.assertEqual(res.status_code, 302)
+
+        transfers = Transfer.objects.filter(user=self.user)
+        self.assertTrue(transfers.exists())
+        transfer = transfers.first()
+        self.assertEqual(transfer.out_transaction.amount, Decimal('300.00'))
+        self.assertIsNotNone(transfer.out_transaction.recurring)
+        self.assertEqual(transfer.out_transaction.recurring.target_account, self.account2)

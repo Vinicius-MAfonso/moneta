@@ -55,9 +55,9 @@
     </script>
 
     <!-- HTMX & AlpineJS & ChartJS CDN -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         [x-cloak] {
@@ -207,6 +207,16 @@
                     <span>Planejamento</span>
                 </a>
 
+                <a href="{% url 'reports' %}"
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.url_name == 'reports' %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                    </svg>
+                    <span>Relatórios</span>
+                </a>
+
                 <a href="{% url 'investments_web:list' %}"
                     class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'investments' in request.path %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,7 +257,7 @@
                 class="flex items-center justify-between px-2 py-1.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/50 transition">
                 <div class="flex items-center space-x-3">
                     {% if user.photo_url %}
-                        <img src="{{ user.photo_url }}" alt="{{ user.username }}" class="w-9 h-9 rounded-full object-cover border border-indigo-500/30 shadow-sm">
+                        <img src="{{ user.photo_url }}" alt="{{ user.username }}" loading="lazy" class="w-9 h-9 rounded-full object-cover border border-indigo-500/30 shadow-sm">
                     {% else %}
                         <div class="w-9 h-9 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400">
                             {{ user.first_name|default:user.username|slice:":1"|upper }}

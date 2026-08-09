@@ -17,6 +17,7 @@ class Account(models.Model):
     type = models.CharField(max_length=50, choices=Types.choices, verbose_name='tipo')
     institution = models.CharField(max_length=100, blank=True, null=True, verbose_name='instituição')
     balance = models.DecimalField(max_digits=20, decimal_places=2, default=0.00, verbose_name='saldo')
+    initial_balance = models.DecimalField(max_digits=20, decimal_places=2, default=0.00, verbose_name='saldo inicial')
     color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
     active = models.BooleanField(default=True, verbose_name='ativa')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
@@ -69,3 +70,40 @@ class CreditCardDetails(models.Model):
 
     def __str__(self):
         return f"Detalhes de {self.account.name}"
+
+
+class CreditCardBill(models.Model):
+    class Statuses(models.TextChoices):
+        OPEN = 'open', 'Aberta'
+        CLOSED = 'closed', 'Fechada'
+        PAID = 'paid', 'Paga'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='bills', verbose_name='conta')
+    period_date = models.DateField(verbose_name='mês/ano da fatura')
+    closing_date = models.DateField(verbose_name='data de fechamento')
+    due_date = models.DateField(verbose_name='data de vencimento')
+    status = models.CharField(max_length=10, choices=Statuses.choices, default='open', verbose_name='status')
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
+
+    class Meta:
+        verbose_name = 'fatura'
+        verbose_name_plural = 'faturas'
+        ordering = ['-period_date']
+        constraints = [
+            models.UniqueConstraint(fields=['account', 'period_date'], name='unique_bill_per_month')
+        ]
+
+    def clean(self):
+        super().clean()
+        if self.account.type != Account.Types.CREDIT_CARD:
+            raise ValidationError('Faturas só podem ser associadas a contas do tipo Cartão de Crédito.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Fatura {self.period_date.strftime('%m/%Y')} - {self.account.name}"

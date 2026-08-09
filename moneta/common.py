@@ -71,7 +71,7 @@ def get_month_context(month_str=None):
     }
 
 
-def get_month_calendar_grid(user, start_date, end_date):
+def get_month_calendar_grid(user, start_date, end_date, account=None):
     """
     Builds a 7-column calendar matrix (Sunday to Saturday) for the given month range
     annotated with daily income and expense totals.
@@ -79,13 +79,16 @@ def get_month_calendar_grid(user, start_date, end_date):
     from transactions.models import Transaction
     from django.db.models import Sum
 
+    qs = Transaction.objects.filter(
+        user=user,
+        date__range=(start_date, end_date),
+        status=Transaction.Statuses.COMPLETED
+    )
+    if account:
+        qs = qs.filter(account=account)
+
     daily_txs = (
-        Transaction.objects.filter(
-            user=user,
-            date__range=(start_date, end_date),
-            status=Transaction.Statuses.COMPLETED
-        )
-        .values('date', 'category__type')
+        qs.values('date', 'category__type')
         .annotate(total=Sum('amount'))
     )
 

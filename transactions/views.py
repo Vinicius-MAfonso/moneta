@@ -2,14 +2,14 @@ from decimal import Decimal
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.urls import reverse
-from django.db import transaction as db_transaction
 from django.contrib.auth.decorators import login_required
 
-from .models import Transaction, Category, Tag, RecurringTransaction, Transfer
+from .models import Transaction, Category, Tag, RecurringTransaction
 from wallets.models import Account
 from moneta.common import TransactionType, get_month_context
-from .services import process_recurring_transactions
+from .services import create_transfer, create_regular_transaction
 from django.db.models import Sum
+from django.db.models.functions import Coalesce
 
 
 @login_required(login_url='users_web:login')
@@ -21,7 +21,8 @@ def transaction_list_view(request):
     month_ctx = get_month_context(month_param)
 
     # Automatically process recurring transactions up to selected month end
-    process_recurring_transactions(request.user, month_ctx['end_date'])
+    # TODO: move to background task
+    # process_recurring_transactions(request.user, month_ctx['end_date'])
 
     tx_type = request.GET.get('type')
     account_id = request.GET.get('account_id')
@@ -53,8 +54,8 @@ def transaction_list_view(request):
     transactions = qs.select_related('account', 'category').prefetch_related('tags').order_by('-date', '-created_at')
 
     # Net balance calculation for selected period
-    month_income = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    month_expense = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    month_income = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
+    month_expense = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
     month_net_balance = month_income - month_expense
 
     context = {
@@ -78,6 +79,39 @@ def transaction_create_view(request):
     tags = Tag.objects.filter(user=request.user)
 
     if request.method == 'POST':
+        tx_type = request.POST.get('tx_type', 'despesa')
+
+        if tx_type == 'transferencia':
+            out_account_id = request.POST.get('out_account')
+            in_account_id = request.POST.get('in_account')
+            description = request.POST.get('description') or 'Transferência entre contas'
+            amount = Decimal(request.POST.get('amount', '0'))
+            tx_date = request.POST.get('date')
+            tag_ids = request.POST.getlist('tags')
+            is_recurring = request.POST.get('is_recurring') == 'on'
+            frequency = request.POST.get('frequency', 'monthly')
+            recurring_end_date = request.POST.get('recurring_end_date') or None
+
+            create_transfer(
+                user=request.user,
+                out_account_id=out_account_id,
+                in_account_id=in_account_id,
+                description=description,
+                amount=amount,
+                tx_date=tx_date,
+                tag_ids=tag_ids,
+                is_recurring=is_recurring,
+                frequency=frequency,
+                recurring_end_date=recurring_end_date
+            )
+
+            if request.headers.get('HX-Request'):
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = 'reload-transactions'
+                return response
+            return redirect('transactions_web:list')
+
+        # Normal Despesa or Receita
         account_id = request.POST.get('account')
         category_id = request.POST.get('category')
         description = request.POST.get('description')
@@ -86,42 +120,22 @@ def transaction_create_view(request):
         status = request.POST.get('status', 'concluída')
         tag_ids = request.POST.getlist('tags')
         is_recurring = request.POST.get('is_recurring') == 'on'
-        frequency = request.POST.get('frequency', 'mensal')
+        frequency = request.POST.get('frequency', 'monthly')
         recurring_end_date = request.POST.get('recurring_end_date') or None
 
-        account = get_object_or_404(Account, id=account_id, user=request.user)
-        category = get_object_or_404(Category, id=category_id, user=request.user)
-
-        with db_transaction.atomic():
-            recurring_obj = None
-            if is_recurring:
-                recurring_obj = RecurringTransaction.objects.create(
-                    user=request.user,
-                    account=account,
-                    category=category,
-                    description=description,
-                    amount=amount,
-                    frequency=frequency,
-                    start_date=tx_date,
-                    end_date=recurring_end_date,
-                    active=True,
-                )
-
-            tx = Transaction.objects.create(
-                user=request.user,
-                account=account,
-                category=category,
-                description=description,
-                amount=amount,
-                date=tx_date,
-                status=status,
-                recurring=recurring_obj,
-            )
-            if tag_ids:
-                tx.tags.set(tag_ids)
-
-            if is_recurring:
-                process_recurring_transactions(request.user)
+        create_regular_transaction(
+            user=request.user,
+            account_id=account_id,
+            category_id=category_id,
+            description=description,
+            amount=amount,
+            tx_date=tx_date,
+            status=status,
+            tag_ids=tag_ids,
+            is_recurring=is_recurring,
+            frequency=frequency,
+            recurring_end_date=recurring_end_date
+        )
 
         if request.headers.get('HX-Request'):
             response = HttpResponse(status=204)
@@ -150,8 +164,10 @@ def transaction_confirm_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def transaction_delete_view(request, pk):
+    from django_q.tasks import async_task
     tx = get_object_or_404(Transaction, pk=pk, user=request.user)
     tx.delete()
+    async_task('wallets.tasks.async_recalculate_user_balances', request.user)
 
     if request.headers.get('HX-Request'):
         return HttpResponse("")
@@ -192,9 +208,21 @@ def category_create_view(request):
 
 
 @login_required(login_url='users_web:login')
+def category_confirm_delete_view(request, pk):
+    cat = get_object_or_404(Category, pk=pk, user=request.user)
+    context = {
+        'title': 'Excluir Categoria',
+        'message': f"Tem certeza que deseja excluir a categoria '{cat.name}'?",
+        'action_url': reverse('transactions_web:category_delete', args=[cat.id]),
+    }
+    return render(request, 'partials/confirm_modal.html', context)
+
+
+@login_required(login_url='users_web:login')
 def category_delete_view(request, pk):
     cat = get_object_or_404(Category, pk=pk, user=request.user)
-    cat.delete()
+    if request.method == 'POST' or request.headers.get('HX-Request'):
+        cat.delete()
     return redirect('transactions_web:category_list')
 
 
@@ -215,9 +243,21 @@ def tag_create_view(request):
 
 
 @login_required(login_url='users_web:login')
+def tag_confirm_delete_view(request, pk):
+    tag = get_object_or_404(Tag, pk=pk, user=request.user)
+    context = {
+        'title': 'Excluir Tag',
+        'message': f"Tem certeza que deseja excluir a tag '{tag.name}'?",
+        'action_url': reverse('transactions_web:tag_delete', args=[tag.id]),
+    }
+    return render(request, 'partials/confirm_modal.html', context)
+
+
+@login_required(login_url='users_web:login')
 def tag_delete_view(request, pk):
     tag = get_object_or_404(Tag, pk=pk, user=request.user)
-    tag.delete()
+    if request.method == 'POST' or request.headers.get('HX-Request'):
+        tag.delete()
     return redirect('transactions_web:category_list')
 
 
@@ -321,6 +361,7 @@ def recurring_delete_view(request, pk):
 # Transfer View
 @login_required(login_url='users_web:login')
 def transfer_create_view(request):
+    from transactions.services import create_transfer
     accounts = Account.objects.filter(user=request.user)
 
     if request.method == 'POST':
@@ -329,40 +370,17 @@ def transfer_create_view(request):
         description = request.POST.get('description', 'Transferência entre contas')
         amount = Decimal(request.POST.get('amount', '0'))
         date = request.POST.get('date')
+        status = Transaction.Statuses.COMPLETED
 
-        out_account = get_object_or_404(Account, id=out_account_id, user=request.user)
-        in_account = get_object_or_404(Account, id=in_account_id, user=request.user)
-
-        category, _ = Category.objects.get_or_create(
+        create_transfer(
             user=request.user,
-            name="Transferência",
-            defaults={"type": TransactionType.TRANSFER, "color": "#737373"}
+            out_account_id=out_account_id,
+            in_account_id=in_account_id,
+            description=description,
+            amount=amount,
+            tx_date=date,
+            status=status
         )
-
-        with db_transaction.atomic():
-            out_tx = Transaction.objects.create(
-                user=request.user,
-                account=out_account,
-                category=category,
-                description=f"Transferência p/ {in_account.name}: {description}",
-                amount=amount,
-                date=date,
-                status=Transaction.Statuses.COMPLETED,
-            )
-            in_tx = Transaction.objects.create(
-                user=request.user,
-                account=in_account,
-                category=category,
-                description=f"Transferência de {out_account.name}: {description}",
-                amount=amount,
-                date=date,
-                status=Transaction.Statuses.COMPLETED,
-            )
-            Transfer.objects.create(
-                user=request.user,
-                out_transaction=out_tx,
-                in_transaction=in_tx,
-            )
 
         return redirect('transactions_web:list')
 

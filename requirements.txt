@@ -12,3 +12,4 @@ sqlparse==0.5.5
 typing-inspection==0.4.2
 typing_extensions==4.16.0
 whitenoise==6.5.0
+django-q2==1.7.4

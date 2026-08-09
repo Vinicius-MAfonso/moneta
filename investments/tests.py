@@ -33,6 +33,10 @@ class InvestmentsWebTestCase(TestCase):
         self.assertEqual(inv.user, self.user)
         self.assertEqual(inv.quantity, Decimal('100.00'))
 
+        res = self.client.get(f'/investments/{inv.id}/confirm-delete/')
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Excluir Ativo')
+
         res = self.client.post(f'/investments/{inv.id}/delete/')
         self.assertEqual(res.status_code, 302)
         self.assertFalse(Investment.objects.filter(id=inv.id).exists())

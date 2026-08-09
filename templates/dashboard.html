@@ -12,14 +12,26 @@
             <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Acompanhe seu fluxo de caixa e progresso financeiro</p>
         </div>
 
-        <!-- Month Navigation Selector & Actions -->
-        <div class="flex items-center space-x-3">
+        <!-- Account Filter & Month Navigation Selector & Actions -->
+        <div class="flex flex-wrap items-center gap-2.5">
+            <!-- Account Filter Dropdown -->
+            <form method="GET" action="{% url 'dashboard' %}" class="inline-block">
+                <input type="hidden" name="month" value="{{ month_info.current_month_str }}">
+                <select name="account_id" onchange="this.form.submit()" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3.5 py-2 text-xs md:text-sm font-bold text-slate-800 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                    <option value="" {% if not selected_account_id %}selected{% endif %}>Todas as Contas</option>
+                    {% for acc in accounts %}
+                        <option value="{{ acc.id }}" {% if selected_account_id == acc.id|stringformat:"s" %}selected{% endif %}>{{ acc.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+
+            <!-- Month Navigation Selector -->
             <div class="inline-flex items-center space-x-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3 py-1.5 shadow-sm text-sm font-bold text-slate-800 dark:text-slate-100">
-                <a href="?month={{ month_info.prev_month }}" class="p-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+                <a href="?month={{ month_info.prev_month }}{% if selected_account_id %}&account_id={{ selected_account_id }}{% endif %}" class="p-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                 </a>
-                <span class="px-2 min-w-[120px] text-center font-bold text-indigo-600 dark:text-indigo-400 capitalize text-xs md:text-sm">{{ month_info.month_label }}</span>
-                <a href="?month={{ month_info.next_month }}" class="p-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
+                <span class="px-2 min-w-[110px] text-center font-bold text-indigo-600 dark:text-indigo-400 capitalize text-xs md:text-sm">{{ month_info.month_label }}</span>
+                <a href="?month={{ month_info.next_month }}{% if selected_account_id %}&account_id={{ selected_account_id }}{% endif %}" class="p-1 text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </a>
             </div>
@@ -224,32 +236,59 @@
             </div>
         </div>
 
-        <!-- Accounts Quick View -->
-        <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
-            <div>
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Minhas Contas</h3>
-                    <a href="{% url 'wallets_web:list' %}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Ver todas &rarr;</a>
-                </div>
-                <div class="space-y-3">
-                    {% for account in accounts %}
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-slate-100/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80">
-                            <div class="flex items-center space-x-3">
-                                <div class="w-3 h-3 rounded-full" style="background-color: {{ account.color }};"></div>
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-900 dark:text-slate-200">{{ account.name }}</p>
-                                    <p class="text-xs text-slate-500 capitalize">{{ account.get_type_display }}</p>
+        <div class="space-y-6">
+            <!-- Accounts Quick View -->
+            <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Minhas Contas</h3>
+                        <a href="{% url 'wallets_web:list' %}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Ver todas &rarr;</a>
+                    </div>
+                    <div class="space-y-3">
+                        {% for account in accounts %}
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-100/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800/80">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-3 h-3 rounded-full" style="background-color: {{ account.color }};"></div>
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-200">{{ account.name }}</p>
+                                        <p class="text-xs text-slate-500 capitalize">{{ account.get_type_display }}</p>
+                                    </div>
                                 </div>
+                                <span class="text-sm font-bold text-slate-900 dark:text-slate-100">R$ {{ account.balance|floatformat:2 }}</span>
                             </div>
-                            <span class="text-sm font-bold text-slate-900 dark:text-slate-100">R$ {{ account.balance|floatformat:2 }}</span>
-                        </div>
-                    {% empty %}
-                        <p class="text-xs text-slate-500 py-4 text-center">Nenhuma conta cadastrada.</p>
-                    {% endfor %}
+                        {% empty %}
+                            <p class="text-xs text-slate-500 py-4 text-center">Nenhuma conta cadastrada.</p>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
-        </div>
 
+            <!-- Top Budgets -->
+            {% if top_budgets %}
+            <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Orçamentos Ativos</h3>
+                        <a href="{% url 'planning_web:list' %}" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Ver todos &rarr;</a>
+                    </div>
+                    <div class="space-y-4">
+                        {% for prog in top_budgets %}
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between items-center text-xs">
+                                    <span class="font-semibold text-slate-700 dark:text-slate-300">{{ prog.budget.category.name }}</span>
+                                    <span class="font-bold text-slate-900 dark:text-white">{{ prog.percentage|floatformat:0 }}%</span>
+                                </div>
+                                <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-300 {% if prog.is_over_budget %}bg-rose-500{% elif prog.is_warning %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ prog.percentage }}%;"></div>
+                                </div>
+                                <p class="text-[10px] text-slate-500 text-right">Resta: R$ {{ prog.remaining|floatformat:2 }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Recent Transactions Table -->
@@ -281,7 +320,12 @@
                             <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">
                                 <span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50">{{ tx.category.name }}</span>
                             </td>
-                            <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">{{ tx.account.name }}</td>
+                            <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-2 h-2 rounded-full" style="background-color: {{ tx.account.color }};"></div>
+                                    <span>{{ tx.account.name }}</span>
+                                </div>
+                            </td>
                             <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">{{ tx.date|date:"d/m/Y" }}</td>
                             <td class="px-4 py-3.5">
                                 <span class="px-2 py-0.5 text-xs rounded-full font-medium {% if tx.status == 'concluída' %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20{% else %}bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20{% endif %}">
@@ -305,22 +349,29 @@
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('cashflowChart').getContext('2d');
-        new Chart(ctx, {
+    function renderCashflowChart() {
+        const canvas = document.getElementById('cashflowChart');
+        if (!canvas) return;
+        
+        if (window.cashflowChartInstance) {
+            window.cashflowChartInstance.destroy();
+        }
+        
+        const ctx = canvas.getContext('2d');
+        window.cashflowChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['Este Mês'],
+                labels: {{ chart_labels_json|safe }},
                 datasets: [
                     {
                         label: 'Receitas',
-                        data: [parseFloat("{{ monthly_income }}".replace(',', '.')) || 0],
+                        data: {{ chart_incomes_json|safe }},
                         backgroundColor: 'rgba(16, 185, 129, 0.8)',
                         borderRadius: 8,
                     },
                     {
                         label: 'Despesas',
-                        data: [parseFloat("{{ monthly_expense }}".replace(',', '.')) || 0],
+                        data: {{ chart_expenses_json|safe }},
                         backgroundColor: 'rgba(244, 63, 94, 0.8)',
                         borderRadius: 8,
                     }
@@ -338,6 +389,9 @@
                 }
             }
         });
-    });
+    }
+
+    document.addEventListener("DOMContentLoaded", renderCashflowChart);
+    document.addEventListener("htmx:afterSettle", renderCashflowChart);
 </script>
 {% endblock %}

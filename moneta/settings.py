@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'transactions',
     'users',
     'wallets',
+    'django_q',
 ]
 
 MIDDLEWARE = [
@@ -112,3 +113,16 @@ SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 
+# Django-Q2 Settings
+Q_CLUSTER = {
+    'name': 'moneta_cluster',
+    'workers': 2,
+    'recycle': 500,
+    'timeout': 60,
+    'compress': True,
+    'save_limit': 250,
+    'queue_limit': 500,
+    'cpu_affinity': 1,
+    'label': 'Django Q',
+    'orm': 'default',
+}

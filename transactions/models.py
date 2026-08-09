@@ -71,6 +71,7 @@ class Transaction(models.Model):
     installment_number = models.PositiveIntegerField(blank=True, null=True, verbose_name='número da parcela')
     total_installments = models.PositiveIntegerField(blank=True, null=True, verbose_name='total de parcelas')
     recurring = models.ForeignKey('RecurringTransaction', on_delete=models.RESTRICT, blank=True, null=True, related_name='generated_transactions', verbose_name='recorrente')
+    bill = models.ForeignKey('wallets.CreditCardBill', on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name='fatura')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
 
@@ -149,6 +150,7 @@ class RecurringTransaction(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='recurring_transactions', verbose_name='usuário')
     category = models.ForeignKey('Category', on_delete=models.RESTRICT, related_name='recurring_transactions', verbose_name='categoria')
     account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, related_name='recurring_transactions', verbose_name='conta')
+    target_account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, blank=True, null=True, related_name='recurring_transfers_in', verbose_name='conta de destino')
     description = models.CharField(max_length=255, verbose_name='descrição')
     amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
     frequency = models.CharField(max_length=10, choices=Frequencies.choices, verbose_name='frequência')

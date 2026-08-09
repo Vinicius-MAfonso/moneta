@@ -3,13 +3,15 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-from .views import dashboard_view
+from .views import dashboard_view, reports_view, export_transactions_csv_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
     # Web / HTMX Routes
     path('', dashboard_view, name='dashboard'),
+    path('reports/', reports_view, name='reports'),
+    path('reports/export/csv/', export_transactions_csv_view, name='export_csv'),
     path('transactions/', include('transactions.urls_web')),
     path('wallets/', include('wallets.urls_web')),
     path('planning/', include('planning.urls_web')),
