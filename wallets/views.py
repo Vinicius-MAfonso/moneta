@@ -61,6 +61,48 @@ def account_create_view(request):
 
 
 @login_required(login_url='users_web:login')
+def account_update_view(request, pk):
+    from django.contrib import messages
+    from wallets.models import Account, CreditCardDetails
+    from .forms import AccountForm
+    
+    account = get_object_or_404(Account, pk=pk, user=request.user)
+    
+    if request.method == 'POST':
+        form = AccountForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            account.name = cd['name']
+            account.institution = cd['institution']
+            account.color = cd['color']
+            # We don't update type or initial_balance to avoid complex recalculations
+            account.save()
+            
+            if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
+                cc = account.credit_card_details
+                
+                # if limit increased, available limit should increase too
+                diff = cd['limit'] - cc.limit
+                cc.limit = cd['limit']
+                cc.available_limit = max(Decimal('0.00'), cc.available_limit + diff)
+                
+                cc.closing_day = cd['closing_day']
+                cc.due_day = cd['due_day']
+                cc.save()
+                
+            messages.success(request, "Conta atualizada com sucesso!")
+            return redirect('wallets_web:list')
+        else:
+            messages.error(request, f"Erro ao atualizar conta: {form.errors.as_text()}")
+            return redirect('wallets_web:list')
+            
+    context = {
+        'account': account,
+    }
+    return render(request, 'wallets/partials/account_form.html', context)
+
+
+@login_required(login_url='users_web:login')
 def account_confirm_delete_view(request, pk):
     account = get_object_or_404(Account, pk=pk, user=request.user)
     context = {
@@ -93,7 +135,10 @@ def bill_detail_view(request, pk):
     
     expenses = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     incomes = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    total = expenses - incomes
+    transfers_in = transactions.filter(transfer_in__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    transfers_out = transactions.filter(transfer_out__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    total = expenses - incomes - transfers_in + transfers_out
     
     checking_accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
 
@@ -119,9 +164,10 @@ def pay_bill_view(request, pk):
     
     if request.method == 'POST':
         payment_account_id = request.POST.get('payment_account')
+        payment_amount = request.POST.get('payment_amount')
         try:
-            pay_credit_card_bill(bill, payment_account_id)
-            messages.success(request, f"Fatura de {bill.period_date.strftime('%m/%Y')} paga com sucesso!")
+            pay_credit_card_bill(bill, payment_account_id, payment_amount)
+            messages.success(request, f"Pagamento da fatura de {bill.period_date.strftime('%m/%Y')} registrado com sucesso!")
         except Exception as e:
             messages.error(request, f"Erro ao pagar fatura: {e!s}")
             

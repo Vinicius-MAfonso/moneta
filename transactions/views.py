@@ -119,7 +119,15 @@ def transaction_create_view(request):
                 messages.success(request, "Transferência criada com sucesso!")
                 return redirect('transactions_web:list')
             else:
-                messages.error(request, f"Erro na transferência: {form.errors.as_text()}")
+                error_msg = form.errors.as_text()
+                if request.headers.get('HX-Request'):
+                    import json
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({
+                        'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                    })
+                    return response
+                messages.error(request, f"Erro na transferência: {error_msg}")
                 return redirect('transactions_web:list')
 
         # Normal Despesa or Receita
@@ -137,7 +145,8 @@ def transaction_create_view(request):
                 tag_ids=[t.id for t in cd['tags']],
                 is_recurring=cd['is_recurring'],
                 frequency=cd['frequency'],
-                recurring_end_date=cd['recurring_end_date']
+                recurring_end_date=cd['recurring_end_date'],
+                installments=cd.get('installments') or 1
             )
             if request.headers.get('HX-Request'):
                 import json
@@ -150,7 +159,15 @@ def transaction_create_view(request):
             messages.success(request, "Transação criada com sucesso!")
             return redirect('transactions_web:list')
         else:
-            messages.error(request, f"Erro ao criar transação: {form.errors.as_text()}")
+            error_msg = form.errors.as_text()
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({
+                    'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                })
+                return response
+            messages.error(request, f"Erro ao criar transação: {error_msg}")
             return redirect('transactions_web:list')
 
     context = {
@@ -186,6 +203,12 @@ def transaction_delete_view(request, pk):
     tx = get_object_or_404(Transaction, pk=pk, user=request.user)
     delete_mode = request.POST.get('delete_mode', 'single')
     
+    tx_to_delete_extra = None
+    if hasattr(tx, 'transfer_out'):
+        tx_to_delete_extra = tx.transfer_out.in_transaction
+    elif hasattr(tx, 'transfer_in'):
+        tx_to_delete_extra = tx.transfer_in.out_transaction
+        
     if tx.recurring:
         import datetime
         if delete_mode == 'future':
@@ -202,8 +225,12 @@ def transaction_delete_view(request, pk):
                 tx.recurring.ignored_dates.append(date_str)
                 tx.recurring.save(update_fields=['ignored_dates'])
             tx.delete()
+            if tx_to_delete_extra:
+                tx_to_delete_extra.delete()
     else:
         tx.delete()
+        if tx_to_delete_extra:
+            tx_to_delete_extra.delete()
         
     messages.success(request, "Transação excluída com sucesso.")
 

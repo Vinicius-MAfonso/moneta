@@ -166,7 +166,7 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
             out_tx.tags.set(tag_ids)
             in_tx.tags.set(tag_ids)
 
-        Transfer.objects.create(
+        transfer = Transfer.objects.create(
             user=user,
             out_transaction=out_tx,
             in_transaction=in_tx,
@@ -175,8 +175,12 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
         if is_recurring:
             async_task('transactions.services.process_recurring_transactions', user)
 
+        return transfer
 
-def create_regular_transaction(user, account_id, category_id, description, amount, tx_date, status, tag_ids=None, is_recurring=False, frequency='monthly', recurring_end_date=None):
+
+def create_regular_transaction(user, account_id, category_id, description, amount, tx_date, status, tag_ids=None, is_recurring=False, frequency='monthly', recurring_end_date=None, installments=1):
+    from decimal import Decimal
+    
     from django.db import transaction as db_transaction
     from django.shortcuts import get_object_or_404
     from django_q.tasks import async_task
@@ -187,41 +191,69 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
 
     account = get_object_or_404(Account, id=account_id, user=user)
     category = get_object_or_404(Category, id=category_id, user=user)
+    
+    if account.type != Account.Types.CREDIT_CARD:
+        installments = 1
 
     with db_transaction.atomic():
-        recurring_obj = None
-        if is_recurring:
-            recurring_obj = RecurringTransaction.objects.create(
+        if installments > 1:
+            base_amount = (amount / Decimal(installments)).quantize(Decimal('.01'))
+            remaining_amount = amount - (base_amount * (installments - 1))
+            
+            for i in range(1, installments + 1):
+                current_amount = base_amount if i < installments else remaining_amount
+                current_date = add_months(tx_date, i - 1)
+                
+                bill = None
+                if account.type == Account.Types.CREDIT_CARD:
+                    bill = get_or_create_bill_for_transaction(account, current_date)
+                    
+                tx = Transaction.objects.create(
+                    user=user,
+                    account=account,
+                    category=category,
+                    description=f"{description} ({i}/{installments})",
+                    amount=current_amount,
+                    date=current_date,
+                    status=status if i == 1 and current_date <= timezone.now().date() else Transaction.Statuses.PENDING,
+                    bill=bill,
+                    installment_number=i,
+                    total_installments=installments
+                )
+                if tag_ids:
+                    tx.tags.set(tag_ids)
+        else:
+            recurring_obj = None
+            if is_recurring:
+                recurring_obj = RecurringTransaction.objects.create(
+                    user=user,
+                    account=account,
+                    category=category,
+                    description=description,
+                    amount=amount,
+                    frequency=frequency,
+                    start_date=tx_date,
+                    end_date=recurring_end_date,
+                    active=True,
+                )
+
+            bill = None
+            if account.type == Account.Types.CREDIT_CARD:
+                bill = get_or_create_bill_for_transaction(account, tx_date)
+
+            tx = Transaction.objects.create(
                 user=user,
                 account=account,
                 category=category,
                 description=description,
                 amount=amount,
-                frequency=frequency,
-                start_date=tx_date,
-                end_date=recurring_end_date,
-                active=True,
+                date=tx_date,
+                status=status,
+                recurring=recurring_obj,
+                bill=bill,
             )
+            if tag_ids:
+                tx.tags.set(tag_ids)
 
-        bill = None
-        if account.type == Account.Types.CREDIT_CARD:
-            bill = get_or_create_bill_for_transaction(account, tx_date)
-
-        tx = Transaction.objects.create(
-            user=user,
-            account=account,
-            category=category,
-            description=description,
-            amount=amount,
-            date=tx_date,
-            status=status,
-            recurring=recurring_obj,
-            bill=bill,
-        )
-        if tag_ids:
-            tx.tags.set(tag_ids)
-
-        if is_recurring:
-            async_task('transactions.services.process_recurring_transactions', user)
-
-
+            if is_recurring:
+                async_task('transactions.services.process_recurring_transactions', user)

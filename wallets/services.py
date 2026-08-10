@@ -140,8 +140,10 @@ def get_or_create_bill_for_transaction(account, transaction_date):
     return bill
 
 
-def pay_credit_card_bill(bill, payment_account_id):
+def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
     from django.db import transaction as db_transaction
+    from django.db import models
+    from decimal import Decimal
 
     from moneta.common import TransactionType
     from transactions.services import create_transfer
@@ -152,26 +154,38 @@ def pay_credit_card_bill(bill, payment_account_id):
         
     expenses = bill.transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     incomes = bill.transactions.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+    transfers_in = bill.transactions.filter(transfer_in__isnull=False).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+    transfers_out = bill.transactions.filter(transfer_out__isnull=False).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     
-    total_amount = expenses - incomes
-    if total_amount <= 0:
-        bill.status = CreditCardBill.Statuses.PAID
-        bill.save()
+    total_amount = expenses - incomes - transfers_in + transfers_out
+    amount_to_pay = Decimal(payment_amount) if payment_amount is not None else total_amount
+    if amount_to_pay > total_amount:
+        amount_to_pay = total_amount
+
+    if amount_to_pay <= 0:
+        if total_amount <= 0:
+            bill.status = CreditCardBill.Statuses.PAID
+            bill.save()
         return bill
         
     with db_transaction.atomic():
         import datetime
-        create_transfer(
+        transfer = create_transfer(
             user=bill.account.user,
             out_account_id=payment_account_id,
             in_account_id=bill.account.id,
             description=f"Pagamento Fatura {bill.period_date.strftime('%m/%Y')}",
-            amount=total_amount,
+            amount=amount_to_pay,
             tx_date=datetime.date.today(),
             status='concluída'
         )
         
-        bill.status = CreditCardBill.Statuses.PAID
-        bill.save()
+        in_tx = transfer.in_transaction
+        in_tx.bill = bill
+        in_tx.save()
+        
+        if amount_to_pay >= total_amount:
+            bill.status = CreditCardBill.Statuses.PAID
+            bill.save()
         
     return bill
