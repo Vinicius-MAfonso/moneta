@@ -15,6 +15,7 @@ def investment_list_view(request):
 
     investments = []
     total_value = Decimal('0.00')
+    total_invested = Decimal('0.00')
 
     for inv in raw_investments:
         total_position = inv.quantity * inv.current_price
@@ -28,7 +29,10 @@ def investment_list_view(request):
         inv.gain_loss_pct = round(gain_loss_pct, 2)
 
         total_value += total_position
+        total_invested += total_cost
         investments.append(inv)
+        
+    total_profit_loss = total_value - total_invested
 
     # Agrupa por tipo para o gráfico de pizza
     from collections import defaultdict
@@ -55,6 +59,8 @@ def investment_list_view(request):
         'pie_labels': pie_labels,
         'pie_data': pie_data,
         'pie_colors': pie_colors,
+        'total_invested': total_invested,
+        'total_profit_loss': total_profit_loss,
     }
     return render(request, 'investments/index.html', context)
 
@@ -64,12 +70,19 @@ def investment_create_view(request):
     accounts = Account.objects.filter(user=request.user, type=Account.Types.INVESTMENT)
 
     if request.method == 'POST':
+        from django.contrib import messages
         account_id = request.POST.get('account')
         name = request.POST.get('name')
         inv_type = request.POST.get('type')
         quantity = Decimal(request.POST.get('quantity', '0'))
         average_price = Decimal(request.POST.get('average_price', '0'))
         current_price = Decimal(request.POST.get('current_price', '0'))
+
+        # Security check: ensure account belongs to user and is an investment account
+        account = get_object_or_404(Account, pk=account_id, user=request.user)
+        if account.type != Account.Types.INVESTMENT:
+            messages.error(request, "Conta inválida. Selecione uma conta de investimento.")
+            return redirect('investments_web:list')
 
         Investment.objects.create(
             user=request.user,
