@@ -1,16 +1,18 @@
 from decimal import Decimal
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse
-from django.urls import reverse
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
 
-from .models import Transaction, Category, Tag, RecurringTransaction
-from wallets.models import Account
-from moneta.common import TransactionType, get_month_context
-from .services import create_transfer, create_regular_transaction
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+
+from moneta.common import TransactionType, get_month_context
+from wallets.models import Account
+
+from .models import Category, RecurringTransaction, Tag, Transaction
+from .services import create_regular_transaction, create_transfer
 
 
 @login_required(login_url='users_web:login')
@@ -99,7 +101,7 @@ def transaction_create_view(request):
                     description=cd['description'],
                     amount=cd['amount'],
                     tx_date=cd['date'],
-                    status=request.POST.get('status', 'concluída'),
+                    status=cd.get('status', 'concluída'),
                     tag_ids=[t.id for t in cd['tags']],
                     is_recurring=cd['is_recurring'],
                     frequency=cd['frequency'],
@@ -179,7 +181,6 @@ def transaction_confirm_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def transaction_delete_view(request, pk):
-    from django_q.tasks import async_task
     tx = get_object_or_404(Transaction, pk=pk, user=request.user)
     delete_mode = request.POST.get('delete_mode', 'single')
     
@@ -224,8 +225,9 @@ def category_list_view(request):
 
 @login_required(login_url='users_web:login')
 def category_create_view(request):
-    from .forms import CategoryForm
     from django.contrib import messages
+
+    from .forms import CategoryForm
     if request.method == 'POST':
         form = CategoryForm(request.POST)
         if form.is_valid():
@@ -265,8 +267,9 @@ def category_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def tag_create_view(request):
-    from .forms import TagForm
     from django.contrib import messages
+
+    from .forms import TagForm
     if request.method == 'POST':
         form = TagForm(request.POST)
         if form.is_valid():

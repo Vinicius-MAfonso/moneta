@@ -1,11 +1,19 @@
-from decimal import Decimal
 from datetime import date
-from django.test import TestCase
+from decimal import Decimal
+
 from django.contrib.auth import get_user_model
-from wallets.models import Account
-from transactions.models import Category, Tag, Transaction, RecurringTransaction, Transfer
+from django.test import TestCase
+
 from moneta.common import TransactionType
+from transactions.models import (
+    Category,
+    RecurringTransaction,
+    Tag,
+    Transaction,
+    Transfer,
+)
 from transactions.services import process_recurring_transactions
+from wallets.models import Account
 
 User = get_user_model()
 

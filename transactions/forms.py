@@ -1,6 +1,7 @@
 from django import forms
-from .models import Transaction, Category, Tag
-from wallets.models import Account
+
+from .models import Category, Tag, Transaction
+
 
 class TransactionForm(forms.Form):
     account = forms.UUIDField(required=True)
@@ -37,6 +38,7 @@ class TransferForm(forms.Form):
     is_recurring = forms.BooleanField(required=False)
     frequency = forms.ChoiceField(choices=[('daily', 'Diária'), ('weekly', 'Semanal'), ('monthly', 'Mensal'), ('yearly', 'Anual')], required=False)
     recurring_end_date = forms.DateField(required=False)
+    status = forms.ChoiceField(choices=Transaction.Statuses.choices, required=False, initial=Transaction.Statuses.COMPLETED)
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)

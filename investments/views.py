@@ -1,10 +1,12 @@
 from decimal import Decimal
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
+
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+
+from wallets.models import Account
 
 from .models import Investment
-from wallets.models import Account
 
 
 @login_required(login_url='users_web:login')

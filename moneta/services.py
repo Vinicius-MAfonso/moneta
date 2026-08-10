@@ -1,5 +1,6 @@
 from django.db.models import Sum
 
+
 def get_category_breakdown(base_tx_qs, tx_type, start_date, end_date):
     from transactions.models import Transaction
 
@@ -25,8 +26,9 @@ def get_category_breakdown(base_tx_qs, tx_type, start_date, end_date):
 def get_report_data(user, start_date, end_date):
     import datetime
     from decimal import Decimal
-    from transactions.models import Transaction
+
     from moneta.common import TransactionType
+    from transactions.models import Transaction
     
     transactions = Transaction.objects.filter(
         user=user,
@@ -97,6 +99,7 @@ def get_report_data(user, start_date, end_date):
 
 def generate_csv_export(transactions):
     import csv
+
     from django.http import HttpResponse
     
     response = HttpResponse(content_type='text/csv')

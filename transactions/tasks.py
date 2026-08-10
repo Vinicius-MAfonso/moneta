@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+
 from transactions.services import process_recurring_transactions
 
 User = get_user_model()

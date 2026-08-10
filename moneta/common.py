@@ -1,7 +1,8 @@
 import calendar
+from collections import defaultdict
 from datetime import date
 from decimal import Decimal
-from collections import defaultdict
+
 from django.db import models
 from django.utils import timezone
 
@@ -76,8 +77,9 @@ def get_month_calendar_grid(user, start_date, end_date, account=None):
     Builds a 7-column calendar matrix (Sunday to Saturday) for the given month range
     annotated with daily income and expense totals.
     """
-    from transactions.models import Transaction
     from django.db.models import Sum
+
+    from transactions.models import Transaction
 
     qs = Transaction.objects.filter(
         user=user,

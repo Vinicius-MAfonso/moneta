@@ -22,6 +22,10 @@ services:
         value: ".onrender.com"
       - key: SECURE_SSL_REDIRECT
         value: "True"
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://moneta-web.onrender.com"
+      - key: NODE_VERSION
+        value: "20.11.1"
 
   # Database Service
   - type: psql

@@ -1,6 +1,6 @@
 annotated-types==0.8.0
 asgiref==3.12.1
-Django==6.0.7
+Django>=5.1,<6.0
 django-environ==0.14.0
 django-ninja==1.6.2
 gunicorn==22.0.0

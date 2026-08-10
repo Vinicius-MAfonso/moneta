@@ -1,9 +1,11 @@
 from decimal import Decimal
-from django.test import TestCase
+
 from django.contrib.auth import get_user_model
-from transactions.models import Category
-from planning.models import Budget, Goal
+from django.test import TestCase
+
 from moneta.common import TransactionType
+from planning.models import Budget, Goal
+from transactions.models import Category
 
 User = get_user_model()
 

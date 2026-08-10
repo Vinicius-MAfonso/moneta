@@ -1,7 +1,8 @@
 from decimal import Decimal
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
+
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from .models import Account, CreditCardDetails
 
@@ -25,8 +26,9 @@ def account_list_view(request):
 
 @login_required(login_url='users_web:login')
 def account_create_view(request):
-    from .forms import AccountForm
     from django.contrib import messages
+
+    from .forms import AccountForm
     if request.method == 'POST':
         form = AccountForm(request.POST)
         if form.is_valid():
@@ -81,9 +83,10 @@ def account_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def bill_detail_view(request, pk):
-    from wallets.models import CreditCardBill, Account
-    from moneta.common import TransactionType
     from django.db.models import Sum
+
+    from moneta.common import TransactionType
+    from wallets.models import Account, CreditCardBill
     
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
     transactions = bill.transactions.all().order_by('-date', '-created_at')
@@ -107,9 +110,10 @@ def bill_detail_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def pay_bill_view(request, pk):
+    from django.contrib import messages
+
     from wallets.models import CreditCardBill
     from wallets.services import pay_credit_card_bill
-    from django.contrib import messages
     
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
     
@@ -119,7 +123,7 @@ def pay_bill_view(request, pk):
             pay_credit_card_bill(bill, payment_account_id)
             messages.success(request, f"Fatura de {bill.period_date.strftime('%m/%Y')} paga com sucesso!")
         except Exception as e:
-            messages.error(request, f"Erro ao pagar fatura: {str(e)}")
+            messages.error(request, f"Erro ao pagar fatura: {e!s}")
             
     return redirect('wallets_web:bill_detail', pk=bill.pk)
 

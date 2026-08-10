@@ -1,17 +1,18 @@
-import json
 from decimal import Decimal
-from django.shortcuts import render
+
+from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.db.models.functions import Coalesce, TruncMonth
-from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
 
-from wallets.models import Account
-from transactions.models import Transaction
+from moneta.common import TransactionType, get_month_calendar_grid, get_month_context
 from planning.models import Goal
-from moneta.common import TransactionType, get_month_context, get_month_calendar_grid
-from transactions.services import process_recurring_transactions
-from wallets.services import recalculate_all_user_balances
 from planning.services import get_active_budgets
+from transactions.models import Transaction
+from transactions.services import process_recurring_transactions
+from wallets.models import Account
+from wallets.services import recalculate_all_user_balances
+
 from .services import get_category_breakdown
 
 
@@ -186,8 +187,10 @@ def dashboard_view(request):
 @login_required(login_url='users_web:login')
 def reports_view(request):
     import datetime
-    from .services import get_report_data
+
     from django.utils import timezone
+
+    from .services import get_report_data
     
     user = request.user
     today = timezone.now().date()
@@ -226,8 +229,10 @@ def reports_view(request):
 @login_required(login_url='users_web:login')
 def export_transactions_csv_view(request):
     import datetime
-    from .services import get_report_data, generate_csv_export
+
     from django.utils import timezone
+
+    from .services import generate_csv_export, get_report_data
     
     user = request.user
     today = timezone.now().date()

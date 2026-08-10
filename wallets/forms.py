@@ -1,5 +1,7 @@
 from django import forms
+
 from .models import Account
+
 
 class AccountForm(forms.ModelForm):
     # Additional fields for credit card details

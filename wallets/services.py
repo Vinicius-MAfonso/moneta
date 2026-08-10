@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 from django.db import models
 
 
@@ -7,8 +8,8 @@ def recalculate_account_balance(account):
     Calculates the real current balance of an account based on:
     initial_balance + sum(completed receitas) - sum(completed despesas) - sum(transfers out) + sum(transfers in)
     """
-    from transactions.models import Transaction, Transfer
     from moneta.common import TransactionType
+    from transactions.models import Transaction, Transfer
     from wallets.models import Account
 
     # 1. Transações concluídas normais (não-transferências)
@@ -55,8 +56,8 @@ def calculate_expected_balance(account, end_date=None):
     """
     Calculates the expected balance by adding pending transactions to the current balance.
     """
-    from transactions.models import Transaction, Transfer
     from moneta.common import TransactionType
+    from transactions.models import Transaction, Transfer
     
     pending_txs = Transaction.objects.filter(
         account=account,
@@ -91,6 +92,7 @@ def calculate_expected_balance(account, end_date=None):
 
 def get_or_create_bill_for_transaction(account, transaction_date):
     import datetime
+
     from wallets.models import CreditCardBill
     
     if account.type != account.Types.CREDIT_CARD or not hasattr(account, 'credit_card_details'):
@@ -139,10 +141,11 @@ def get_or_create_bill_for_transaction(account, transaction_date):
 
 
 def pay_credit_card_bill(bill, payment_account_id):
-    from wallets.models import CreditCardBill
-    from transactions.services import create_transfer
     from django.db import transaction as db_transaction
+
     from moneta.common import TransactionType
+    from transactions.services import create_transfer
+    from wallets.models import CreditCardBill
     
     if bill.status == CreditCardBill.Statuses.PAID:
         raise ValueError("Esta fatura já está paga.")

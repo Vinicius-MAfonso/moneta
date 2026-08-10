@@ -1,12 +1,10 @@
-from django.shortcuts import render, redirect
 from django.contrib import messages
-from django.contrib.auth import get_user_model, authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.core.files.storage import FileSystemStorage
-from django.conf import settings
+from django.shortcuts import redirect, render
 
-from transactions.models import Category
 from moneta.common import TransactionType
+from transactions.models import Category
 
 User = get_user_model()
 
@@ -24,7 +22,12 @@ def login_view(request):
             next_url = request.GET.get('next') or 'dashboard'
             return redirect(next_url)
         else:
-            messages.error(request, 'Usuário ou senha incorretos.')
+            # Check if user exists but is inactive
+            user_obj = User.objects.filter(username=username).first()
+            if user_obj and user_obj.check_password(password) and not user_obj.is_active:
+                messages.warning(request, 'Sua conta ainda está em análise pelo administrador. Aguarde a aprovação.')
+            else:
+                messages.error(request, 'Usuário ou senha incorretos.')
 
     return render(request, 'users/login.html')
 
@@ -54,6 +57,7 @@ def register_view(request):
                 first_name=first_name,
                 last_name=last_name,
                 currency=currency,
+                is_active=False,  # Requer aprovação do admin
             )
             # Cria as categorias padrão para o novo usuário
             default_categories = [
@@ -68,9 +72,8 @@ def register_view(request):
             for name, cat_type, color in default_categories:
                 Category.objects.create(user=user, name=name, type=cat_type, color=color)
 
-            login(request, user)
-            messages.success(request, 'Conta criada com sucesso! Bem-vindo ao Moneta.')
-            return redirect('dashboard')
+            messages.success(request, 'Conta criada com sucesso! Aguarde a aprovação do administrador para acessar.')
+            return redirect('users_web:login')
 
     return render(request, 'users/register.html')
 

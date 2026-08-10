@@ -6,4 +6,4 @@ class TransactionsConfig(AppConfig):
     verbose_name = 'Transações'
 
     def ready(self):
-        import transactions.signals
+        pass

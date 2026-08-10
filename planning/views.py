@@ -1,11 +1,13 @@
 from decimal import Decimal
-from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse
-from django.db import models
+
 from django.contrib.auth.decorators import login_required
+from django.db import models
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+
+from transactions.models import Category
 
 from .models import Budget, Goal
-from transactions.models import Category
 
 
 @login_required(login_url='users_web:login')

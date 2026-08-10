@@ -1,9 +1,12 @@
 import uuid
-from django.db import models
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
+from django.db import models
+
 from moneta.common import TransactionType
+
 
 class Category(models.Model):
     Types = TransactionType

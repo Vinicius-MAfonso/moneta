@@ -1,8 +1,11 @@
 from datetime import date, timedelta
 from decimal import Decimal
+
 from django.core.mail import send_mail
+
 from planning.models import Goal
 from wallets.models import CreditCardBill
+
 
 def check_and_send_alerts():
     """

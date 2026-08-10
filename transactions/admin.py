@@ -1,9 +1,10 @@
 from django.contrib import admin
+
 from .models import Category, RecurringTransaction, Tag, Transaction, Transfer
+
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    exclude = ('user',)
     readonly_fields = ('created_at', 'updated_at')
     autocomplete_fields = ('parent',)
     list_display = ('name', 'user', 'type', 'parent', 'created_at')
@@ -12,28 +13,18 @@ class CategoryAdmin(admin.ModelAdmin):
     ordering = ('name',)
     list_per_page = 25
 
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.user = request.user
-        super().save_model(request, obj, form, change)
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    exclude = ('user',)
     readonly_fields = ('created_at', 'updated_at')
     list_display = ('name', 'user', 'color')
     search_fields = ('name', 'user__username')
     ordering = ('name',)
     list_per_page = 25
 
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.user = request.user
-        super().save_model(request, obj, form, change)
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    exclude = ('user',)
     readonly_fields = ('created_at', 'updated_at')
     autocomplete_fields = ('account', 'category', 'recurring')
     filter_horizontal = ('tags',)
@@ -44,28 +35,18 @@ class TransactionAdmin(admin.ModelAdmin):
     list_per_page = 25
     date_hierarchy = 'date'
 
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.user = request.user
-        super().save_model(request, obj, form, change)
 
 @admin.register(Transfer)
 class TransferAdmin(admin.ModelAdmin):
-    exclude = ('user',)
     readonly_fields = ('created_at', 'updated_at')
     autocomplete_fields = ('out_transaction', 'in_transaction')
     list_display = ('out_transaction', 'in_transaction', 'user', 'created_at')
     ordering = ('-created_at',)
     list_per_page = 25
 
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.user = request.user
-        super().save_model(request, obj, form, change)
 
 @admin.register(RecurringTransaction)
 class RecurringTransactionAdmin(admin.ModelAdmin):
-    exclude = ('user',)
     readonly_fields = ('created_at', 'updated_at')
     autocomplete_fields = ('category', 'account')
     list_display = ('description', 'user', 'category', 'account', 'amount', 'type', 'frequency', 'active')
@@ -75,7 +56,3 @@ class RecurringTransactionAdmin(admin.ModelAdmin):
     list_per_page = 25
     date_hierarchy = 'start_date'
 
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.user = request.user
-        super().save_model(request, obj, form, change)

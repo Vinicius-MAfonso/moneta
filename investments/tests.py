@@ -1,8 +1,10 @@
 from decimal import Decimal
-from django.test import TestCase
+
 from django.contrib.auth import get_user_model
-from wallets.models import Account
+from django.test import TestCase
+
 from investments.models import Investment
+from wallets.models import Account
 
 User = get_user_model()
 

@@ -1,6 +1,8 @@
 from decimal import Decimal
-from django.test import TestCase
+
 from django.contrib.auth import get_user_model
+from django.test import TestCase
+
 from wallets.models import Account
 
 User = get_user_model()
@@ -43,8 +45,8 @@ class WalletsWebTestCase(TestCase):
         self.assertFalse(Account.objects.filter(id=account.id).exists())
 
     def test_account_balance_recalculation(self):
-        from transactions.models import Category, Transaction
         from moneta.common import TransactionType
+        from transactions.models import Category, Transaction
         from wallets.services import recalculate_account_balance
 
         account = Account.objects.create(

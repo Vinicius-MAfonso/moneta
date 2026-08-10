@@ -1,9 +1,10 @@
 from django.contrib import admin
+
 from .models import Account, CreditCardDetails
+
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
-    exclude = ('user',)
     readonly_fields = ('created_at', 'updated_at')
     list_display = ('name', 'user', 'type', 'institution', 'balance', 'active')
     list_filter = ('type', 'active')
@@ -11,10 +12,6 @@ class AccountAdmin(admin.ModelAdmin):
     ordering = ('name',)
     list_per_page = 25
 
-    def save_model(self, request, obj, form, change):
-        if not change:
-            obj.user = request.user
-        super().save_model(request, obj, form, change)
 
 @admin.register(CreditCardDetails)
 class CreditCardDetailsAdmin(admin.ModelAdmin):

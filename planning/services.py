@@ -1,10 +1,12 @@
 from decimal import Decimal
+
 from django.db import models
 from django.utils import timezone
 
+
 def calculate_budget_progress(budget):
-    from transactions.models import Transaction
     from moneta.common import TransactionType
+    from transactions.models import Transaction
     
     transactions = Transaction.objects.filter(
         user=budget.user,
