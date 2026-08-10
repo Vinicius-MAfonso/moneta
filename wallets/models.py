@@ -15,7 +15,7 @@ class Account(models.Model):
         OTHER = 'other', 'Outro'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='accounts', verbose_name='usuário')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='accounts', verbose_name='usuário')
     name = models.CharField(max_length=100, verbose_name='nome')
     type = models.CharField(max_length=50, choices=Types.choices, verbose_name='tipo')
     institution = models.CharField(max_length=100, blank=True, null=True, verbose_name='instituição')

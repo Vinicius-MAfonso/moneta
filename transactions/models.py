@@ -12,12 +12,12 @@ class Category(models.Model):
     Types = TransactionType
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='categories', null=True, blank=True, verbose_name='usuário')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='categories', null=True, blank=True, verbose_name='usuário')
     name = models.CharField(max_length=100, verbose_name='nome')
     type = models.CharField(max_length=15, choices=TransactionType.choices, verbose_name='tipo')
     icon = models.CharField(max_length=100, blank=True, null=True, verbose_name='ícone')
     color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
-    parent = models.ForeignKey('self', on_delete=models.RESTRICT, blank=True, null=True, related_name='subcategories', verbose_name='categoria pai')
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='subcategories', verbose_name='categoria pai')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
 
@@ -36,7 +36,7 @@ class Category(models.Model):
 
 class Tag(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='tags', verbose_name='usuário')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tags', verbose_name='usuário')
     name = models.CharField(max_length=100, verbose_name='nome')
     color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
@@ -60,7 +60,7 @@ class Transaction(models.Model):
         COMPLETED = 'concluída', 'Concluída'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='transactions', verbose_name='usuário')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions', verbose_name='usuário')
     
     account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='transactions', verbose_name='conta')
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='transactions', verbose_name='categoria')
@@ -73,7 +73,7 @@ class Transaction(models.Model):
     status = models.CharField(max_length=10, choices=Statuses.choices, default='pendente', verbose_name='status')
     installment_number = models.PositiveIntegerField(blank=True, null=True, verbose_name='número da parcela')
     total_installments = models.PositiveIntegerField(blank=True, null=True, verbose_name='total de parcelas')
-    recurring = models.ForeignKey('RecurringTransaction', on_delete=models.RESTRICT, blank=True, null=True, related_name='generated_transactions', verbose_name='recorrente')
+    recurring = models.ForeignKey('RecurringTransaction', on_delete=models.CASCADE, blank=True, null=True, related_name='generated_transactions', verbose_name='recorrente')
     bill = models.ForeignKey('wallets.CreditCardBill', on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name='fatura')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
@@ -113,7 +113,7 @@ class Transaction(models.Model):
 
 class Transfer(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='transfers', verbose_name='usuário')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transfers', verbose_name='usuário')
     
     out_transaction = models.OneToOneField('Transaction', on_delete=models.CASCADE, related_name='transfer_out', verbose_name='transação de saída')
     in_transaction = models.OneToOneField('Transaction', on_delete=models.CASCADE, related_name='transfer_in', verbose_name='transação de entrada')
@@ -150,7 +150,7 @@ class RecurringTransaction(models.Model):
         YEARLY = 'yearly', 'Anualmente'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='recurring_transactions', verbose_name='usuário')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='recurring_transactions', verbose_name='usuário')
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='recurring_transactions', verbose_name='categoria')
     account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='recurring_transactions', verbose_name='conta')
     target_account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, blank=True, null=True, related_name='recurring_transfers_in', verbose_name='conta de destino')

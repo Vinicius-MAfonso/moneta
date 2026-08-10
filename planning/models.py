@@ -9,8 +9,8 @@ from django.db import transaction as db_transaction
 
 class Budget(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='budgets', verbose_name='usuário')
-    category = models.ForeignKey('transactions.Category', on_delete=models.RESTRICT, related_name='budgets', verbose_name='categoria')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='budgets', verbose_name='usuário')
+    category = models.ForeignKey('transactions.Category', on_delete=models.CASCADE, related_name='budgets', verbose_name='categoria')
     amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(verbose_name='data de término')
@@ -34,7 +34,7 @@ class Budget(models.Model):
 
 class Goal(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='goals', verbose_name='usuário')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='goals', verbose_name='usuário')
     name = models.CharField(max_length=100, verbose_name='nome')
     target_amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor alvo')
     current_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0, validators=[MinValueValidator(0)], verbose_name='valor atual')
@@ -61,8 +61,8 @@ class Goal(models.Model):
 
 class GoalTransaction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    goal = models.ForeignKey('Goal', on_delete=models.RESTRICT, related_name='goal_transactions', verbose_name='objetivo')
-    transaction = models.ForeignKey('transactions.Transaction', on_delete=models.RESTRICT, related_name='goal_transactions', verbose_name='transação')
+    goal = models.ForeignKey('Goal', on_delete=models.CASCADE, related_name='goal_transactions', verbose_name='objetivo')
+    transaction = models.ForeignKey('transactions.Transaction', on_delete=models.CASCADE, related_name='goal_transactions', verbose_name='transação')
     amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizado em')

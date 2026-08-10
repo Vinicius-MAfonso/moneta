@@ -292,7 +292,7 @@
                 setTimeout(() => {
                     const t = this.toasts.find(t => t.id === id);
                     if (t) t.show = true;
-                }, 10);
+                }, 50);
 
                 // Auto remove after 5 seconds
                 setTimeout(() => this.removeToast(id), 5000);
