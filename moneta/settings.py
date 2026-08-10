@@ -26,6 +26,13 @@ INSTALLED_APPS = [
     'users',
     'wallets',
     'django_q',
+    'tailwind',
+    'theme',
+]
+
+TAILWIND_APP_NAME = 'theme'
+INTERNAL_IPS = [
+    "127.0.0.1",
 ]
 
 MIDDLEWARE = [
@@ -37,6 +44,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'moneta.middleware.DailyNotificationsMiddleware',
 ]
 
 ROOT_URLCONF = 'moneta.urls'
@@ -99,11 +107,11 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = 'media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# Use compressed manifest static files storage in production for efficient serving
+# Usa o armazenamento de arquivos estáticos manifestos compactados em produção para servir de forma eficiente
 if not DEBUG:
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Security settings with environment-controlled overrides
+# Configurações de segurança com substituições controladas por ambiente
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=not DEBUG)
 CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=not DEBUG)
@@ -113,7 +121,7 @@ SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 
-# Django-Q2 Settings
+# Configurações do Django-Q2
 Q_CLUSTER = {
     'name': 'moneta_cluster',
     'workers': 2,
@@ -126,3 +134,5 @@ Q_CLUSTER = {
     'label': 'Django Q',
     'orm': 'default',
 }
+# Configuração de e-mail (Console para desenvolvimento)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

@@ -84,6 +84,7 @@ class CreditCardBill(models.Model):
     closing_date = models.DateField(verbose_name='data de fechamento')
     due_date = models.DateField(verbose_name='data de vencimento')
     status = models.CharField(max_length=10, choices=Statuses.choices, default='open', verbose_name='status')
+    is_due_tomorrow_notified = models.BooleanField(default=False, verbose_name='notificado vencimento amanha')
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')

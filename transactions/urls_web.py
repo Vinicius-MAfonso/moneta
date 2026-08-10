@@ -9,6 +9,11 @@ urlpatterns = [
     path('<uuid:pk>/confirm-delete/', views.transaction_confirm_delete_view, name='confirm_delete'),
     path('<uuid:pk>/delete/', views.transaction_delete_view, name='delete'),
     
+    # Import
+    path('import/', views.import_upload_view, name='import_upload'),
+    path('import/preview/', views.import_preview_view, name='import_preview'),
+    path('import/process/', views.import_process_view, name='import_process'),
+    
     # Categories & Tags
     path('categories/', views.category_list_view, name='category_list'),
     path('categories/create/', views.category_create_view, name='category_create'),

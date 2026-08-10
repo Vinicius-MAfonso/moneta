@@ -13,3 +13,5 @@ typing-inspection==0.4.2
 typing_extensions==4.16.0
 whitenoise==6.5.0
 django-q2==1.7.4
+django-tailwind==3.8.0
+ofxparse==0.21

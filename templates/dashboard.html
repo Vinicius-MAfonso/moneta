@@ -17,7 +17,7 @@
             <!-- Account Filter Dropdown -->
             <form method="GET" action="{% url 'dashboard' %}" class="inline-block">
                 <input type="hidden" name="month" value="{{ month_info.current_month_str }}">
-                <select name="account_id" onchange="this.form.submit()" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3.5 py-2 text-xs md:text-sm font-bold text-slate-800 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                <select name="account_id" onchange="this.form.submit()" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl pl-3.5 pr-8 py-2 text-xs md:text-sm font-bold text-slate-800 dark:text-slate-100 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none">
                     <option value="" {% if not selected_account_id %}selected{% endif %}>Todas as Contas</option>
                     {% for acc in accounts %}
                         <option value="{{ acc.id }}" {% if selected_account_id == acc.id|stringformat:"s" %}selected{% endif %}>{{ acc.name }}</option>
@@ -128,7 +128,7 @@
                             <span class="text-slate-900 dark:text-slate-100 font-bold">R$ {{ item.total|floatformat:2 }} ({{ item.percentage }}%)</span>
                         </div>
                         <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full transition-all duration-500" style="width: {{ item.percentage }}%; background-color: {{ item.color }};"></div>
+                            <div class="h-full rounded-full transition-all duration-500" style="width: min({{ item.percentage|floatformat:0 }}%, 100%); background-color: {{ item.color }};"></div>
                         </div>
                     </div>
                 {% empty %}
@@ -279,7 +279,7 @@
                                     <span class="font-bold text-slate-900 dark:text-white">{{ prog.percentage|floatformat:0 }}%</span>
                                 </div>
                                 <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                                    <div class="h-full rounded-full transition-all duration-300 {% if prog.is_over_budget %}bg-rose-500{% elif prog.is_warning %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ prog.percentage }}%;"></div>
+                                    <div class="h-full rounded-full transition-all duration-300 {% if prog.is_over_budget %}bg-rose-500{% elif prog.is_warning %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: min({{ prog.percentage|floatformat:0 }}%, 100%);"></div>
                                 </div>
                                 <p class="text-[10px] text-slate-500 text-right">Resta: R$ {{ prog.remaining|floatformat:2 }}</p>
                             </div>
@@ -348,6 +348,9 @@
 
 </div>
 
+{{ chart_labels|json_script:"chart-labels" }}
+{{ chart_incomes|json_script:"chart-incomes" }}
+{{ chart_expenses|json_script:"chart-expenses" }}
 <script>
     function renderCashflowChart() {
         const canvas = document.getElementById('cashflowChart');
@@ -357,21 +360,25 @@
             window.cashflowChartInstance.destroy();
         }
         
+        const labels = JSON.parse(document.getElementById('chart-labels').textContent);
+        const incomes = JSON.parse(document.getElementById('chart-incomes').textContent);
+        const expenses = JSON.parse(document.getElementById('chart-expenses').textContent);
+        
         const ctx = canvas.getContext('2d');
         window.cashflowChartInstance = new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: {{ chart_labels_json|safe }},
+                labels: labels,
                 datasets: [
                     {
                         label: 'Receitas',
-                        data: {{ chart_incomes_json|safe }},
+                        data: incomes,
                         backgroundColor: 'rgba(16, 185, 129, 0.8)',
                         borderRadius: 8,
                     },
                     {
                         label: 'Despesas',
-                        data: {{ chart_expenses_json|safe }},
+                        data: expenses,
                         backgroundColor: 'rgba(244, 63, 94, 0.8)',
                         borderRadius: 8,
                     }

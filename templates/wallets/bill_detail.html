@@ -99,7 +99,7 @@
 </div>
 
 <!-- Pay Bill Modal -->
-<div x-data="{ open: false }" @open-pay-modal.window="open = true" @keydown.escape.window="open = false" x-show="open" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+<div x-data="{ open: false }" @open-pay-modal.window="open = true" @keydown.esc.window="open = false" x-show="open" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
     <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
         <div x-show="open" x-transition.opacity class="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm" @click="open = false"></div>
 

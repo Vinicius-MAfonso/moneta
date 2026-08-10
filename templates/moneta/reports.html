@@ -110,21 +110,30 @@
         </div>
     </div>
 
-</div>
+</div>{{ chart_labels|json_script:"timeline-labels" }}
+{{ chart_incomes|json_script:"timeline-incomes" }}
+{{ chart_expenses|json_script:"timeline-expenses" }}
+{{ pie_labels|json_script:"pie-labels" }}
+{{ pie_data|json_script:"pie-data" }}
+{{ pie_colors|json_script:"pie-colors" }}
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
+        const timelineLabels = JSON.parse(document.getElementById('timeline-labels').textContent);
+        const timelineIncomes = JSON.parse(document.getElementById('timeline-incomes').textContent);
+        const timelineExpenses = JSON.parse(document.getElementById('timeline-expenses').textContent);
+
         // Line Chart
         const timelineCtx = document.getElementById('timelineChart');
         if (timelineCtx) {
             new Chart(timelineCtx, {
                 type: 'line',
                 data: {
-                    labels: {{ chart_labels_json|safe }},
+                    labels: timelineLabels,
                     datasets: [
                         {
                             label: 'Receitas',
-                            data: {{ chart_incomes_json|safe }},
+                            data: timelineIncomes,
                             borderColor: 'rgba(16, 185, 129, 1)',
                             backgroundColor: 'rgba(16, 185, 129, 0.1)',
                             borderWidth: 2,
@@ -133,7 +142,7 @@
                         },
                         {
                             label: 'Despesas',
-                            data: {{ chart_expenses_json|safe }},
+                            data: timelineExpenses,
                             borderColor: 'rgba(244, 63, 94, 1)',
                             backgroundColor: 'rgba(244, 63, 94, 0.1)',
                             borderWidth: 2,
@@ -155,16 +164,20 @@
             });
         }
 
+        const pieLabels = JSON.parse(document.getElementById('pie-labels').textContent);
+        const pieData = JSON.parse(document.getElementById('pie-data').textContent);
+        const pieColors = JSON.parse(document.getElementById('pie-colors').textContent);
+
         // Doughnut Chart
         const categoryCtx = document.getElementById('categoryChart');
         if (categoryCtx) {
             new Chart(categoryCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: {{ pie_labels_json|safe }},
+                    labels: pieLabels,
                     datasets: [{
-                        data: {{ pie_data_json|safe }},
-                        backgroundColor: {{ pie_colors_json|safe }},
+                        data: pieData,
+                        backgroundColor: pieColors,
                         borderWidth: 0
                     }]
                 },

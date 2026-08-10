@@ -55,7 +55,7 @@ def register_view(request):
                 last_name=last_name,
                 currency=currency,
             )
-            # Create default categories for new user
+            # Cria as categorias padrão para o novo usuário
             default_categories = [
                 ('Alimentação', TransactionType.EXPENSE, '#ef4444'),
                 ('Moradia', TransactionType.EXPENSE, '#f59e0b'),
@@ -91,14 +91,7 @@ def settings_view(request):
         user.currency = request.POST.get('currency', user.currency)
         user.timezone = request.POST.get('timezone', user.timezone)
 
-        # Profile photo file upload handling
-        if 'profile_photo' in request.FILES:
-            photo_file = request.FILES['profile_photo']
-            fs = FileSystemStorage(location=settings.MEDIA_ROOT / 'profile_photos', base_url='/media/profile_photos/')
-            filename = fs.save(f"user_{user.id}_{photo_file.name}", photo_file)
-            user.photo_url = fs.url(filename)
-        elif request.POST.get('photo_url'):
-            user.photo_url = request.POST.get('photo_url')
+
 
         user.save()
         messages.success(request, 'Perfil e preferências atualizados com sucesso!')

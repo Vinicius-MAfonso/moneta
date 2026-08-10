@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Importar Extrato - Moneta{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center space-x-3 mb-6">
+        <div class="w-10 h-10 rounded-2xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+        </div>
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-white">Importar Extrato</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Envie um arquivo OFX ou CSV do seu banco.</p>
+        </div>
+    </div>
+
+    {% if messages %}
+        <div class="space-y-2 mb-4">
+            {% for message in messages %}
+                <div class="p-4 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 dark:bg-rose-900/20 dark:border-rose-800/50 dark:text-rose-400 text-sm">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" class="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        {% csrf_token %}
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Conta de Destino</label>
+            <select name="account_id" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500">
+                <option value="">Selecione uma conta...</option>
+                {% for account in accounts %}
+                    <option value="{{ account.id }}">{{ account.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Arquivo (OFX ou CSV)</label>
+            
+            <div class="mt-1 flex justify-center items-center px-6 pt-5 pb-6 border-2 border-slate-300 dark:border-slate-700 border-dashed rounded-2xl hover:border-indigo-500 dark:hover:border-indigo-500 transition-colors bg-slate-50 dark:bg-slate-950/50 min-h-[160px]">
+                <div class="space-y-1 text-center">
+                    <svg class="mx-auto h-12 w-12 text-slate-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <div class="flex text-sm text-slate-600 dark:text-slate-400 justify-center">
+                        <label for="file-upload" class="relative cursor-pointer rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                            <span>Fazer Upload do Arquivo</span>
+                            <input id="file-upload" name="file" type="file" accept=".ofx,.csv" required class="sr-only">
+                        </label>
+                    </div>
+                    <p class="text-xs text-slate-500">Tamanho máximo 10MB</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end pt-4">
+            <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-6 rounded-xl transition shadow-sm hover:shadow-md flex items-center space-x-2">
+                <span>Continuar</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('file-upload').addEventListener('change', function(e) {
+        let fileName = e.target.files[0]?.name;
+        if(fileName) {
+            let label = this.parentElement.querySelector('span');
+            label.textContent = fileName;
+        }
+    });
+</script>
+{% endblock %}

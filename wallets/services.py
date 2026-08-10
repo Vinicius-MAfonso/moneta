@@ -11,7 +11,7 @@ def recalculate_account_balance(account):
     from moneta.common import TransactionType
     from wallets.models import Account
 
-    # 1. Non-transfer completed transactions
+    # 1. Transações concluídas normais (não-transferências)
     completed_txs = Transaction.objects.filter(
         account=account,
         status=Transaction.Statuses.COMPLETED,
@@ -20,13 +20,13 @@ def recalculate_account_balance(account):
     incomes = completed_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     expenses = completed_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
 
-    # 2. Completed Transfers Out
+    # 2. Transferências de saída concluídas
     transfers_out = Transfer.objects.filter(
         out_transaction__account=account,
         out_transaction__status=Transaction.Statuses.COMPLETED,
     ).aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
 
-    # 3. Completed Transfers In
+    # 3. Transferências de entrada concluídas
     transfers_in = Transfer.objects.filter(
         in_transaction__account=account,
         in_transaction__status=Transaction.Statuses.COMPLETED,
@@ -34,7 +34,7 @@ def recalculate_account_balance(account):
 
     new_balance = account.initial_balance + incomes - expenses - transfers_out + transfers_in
 
-    # Handle CreditCardDetails available limit update
+    # Atualiza o limite disponível caso seja Cartão de Crédito
     if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
         cc = account.credit_card_details
         cc.available_limit = max(Decimal('0.00'), cc.limit - expenses + incomes)
@@ -47,7 +47,7 @@ def recalculate_account_balance(account):
 
 def recalculate_all_user_balances(user):
     from wallets.models import Account
-    for account in Account.objects.filter(user=user):
+    for account in Account.objects.filter(user_id=user.id if hasattr(user, 'id') else user):
         recalculate_account_balance(account)
 
 
@@ -62,7 +62,7 @@ def get_or_create_bill_for_transaction(account, transaction_date):
     closing_day = cc.closing_day
     due_day = cc.due_day
     
-    # Determine the closing date for the billing cycle this transaction falls into.
+    # Determina a data de fechamento para a fatura na qual esta transação se enquadra
     if transaction_date.day <= closing_day:
         cycle_month = transaction_date.month
         cycle_year = transaction_date.year

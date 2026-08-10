@@ -3,6 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 
 from .models import Transaction, Category, Tag, RecurringTransaction
 from wallets.models import Account
@@ -20,9 +21,7 @@ def transaction_list_view(request):
     month_param = request.GET.get('month')
     month_ctx = get_month_context(month_param)
 
-    # Automatically process recurring transactions up to selected month end
-    # TODO: move to background task
-    # process_recurring_transactions(request.user, month_ctx['end_date'])
+
 
     tx_type = request.GET.get('type')
     account_id = request.GET.get('account_id')
@@ -78,70 +77,62 @@ def transaction_create_view(request):
     categories = Category.objects.filter(user=request.user)
     tags = Tag.objects.filter(user=request.user)
 
+    from .forms import TransactionForm, TransferForm
+
     if request.method == 'POST':
         tx_type = request.POST.get('tx_type', 'despesa')
 
         if tx_type == 'transferencia':
-            out_account_id = request.POST.get('out_account')
-            in_account_id = request.POST.get('in_account')
-            description = request.POST.get('description') or 'Transferência entre contas'
-            amount = Decimal(request.POST.get('amount', '0'))
-            tx_date = request.POST.get('date')
-            tag_ids = request.POST.getlist('tags')
-            is_recurring = request.POST.get('is_recurring') == 'on'
-            frequency = request.POST.get('frequency', 'monthly')
-            recurring_end_date = request.POST.get('recurring_end_date') or None
+            form = TransferForm(request.POST, user=request.user)
+            if form.is_valid():
+                cd = form.cleaned_data
+                create_transfer(
+                    user=request.user,
+                    out_account_id=cd['out_account'],
+                    in_account_id=cd['in_account'],
+                    description=cd['description'],
+                    amount=cd['amount'],
+                    tx_date=cd['date'],
+                    status=request.POST.get('status', 'concluída'),
+                    tag_ids=[t.id for t in cd['tags']],
+                    is_recurring=cd['is_recurring'],
+                    frequency=cd['frequency'],
+                    recurring_end_date=cd['recurring_end_date']
+                )
+                if request.headers.get('HX-Request'):
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = 'reload-transactions'
+                    return response
+                return redirect('transactions_web:list')
+            else:
+                messages.error(request, f"Erro na transferência: {form.errors.as_text()}")
+                return redirect('transactions_web:list')
 
-            create_transfer(
+        # Normal Despesa or Receita
+        form = TransactionForm(request.POST, user=request.user)
+        if form.is_valid():
+            cd = form.cleaned_data
+            create_regular_transaction(
                 user=request.user,
-                out_account_id=out_account_id,
-                in_account_id=in_account_id,
-                description=description,
-                amount=amount,
-                tx_date=tx_date,
-                tag_ids=tag_ids,
-                is_recurring=is_recurring,
-                frequency=frequency,
-                recurring_end_date=recurring_end_date
+                account_id=cd['account'],
+                category_id=cd['category'],
+                description=cd['description'],
+                amount=cd['amount'],
+                tx_date=cd['date'],
+                status=cd['status'],
+                tag_ids=[t.id for t in cd['tags']],
+                is_recurring=cd['is_recurring'],
+                frequency=cd['frequency'],
+                recurring_end_date=cd['recurring_end_date']
             )
-
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = 'reload-transactions'
                 return response
             return redirect('transactions_web:list')
-
-        # Normal Despesa or Receita
-        account_id = request.POST.get('account')
-        category_id = request.POST.get('category')
-        description = request.POST.get('description')
-        amount = Decimal(request.POST.get('amount', '0'))
-        tx_date = request.POST.get('date')
-        status = request.POST.get('status', 'concluída')
-        tag_ids = request.POST.getlist('tags')
-        is_recurring = request.POST.get('is_recurring') == 'on'
-        frequency = request.POST.get('frequency', 'monthly')
-        recurring_end_date = request.POST.get('recurring_end_date') or None
-
-        create_regular_transaction(
-            user=request.user,
-            account_id=account_id,
-            category_id=category_id,
-            description=description,
-            amount=amount,
-            tx_date=tx_date,
-            status=status,
-            tag_ids=tag_ids,
-            is_recurring=is_recurring,
-            frequency=frequency,
-            recurring_end_date=recurring_end_date
-        )
-
-        if request.headers.get('HX-Request'):
-            response = HttpResponse(status=204)
-            response['HX-Trigger'] = 'reload-transactions'
-            return response
-        return redirect('transactions_web:list')
+        else:
+            messages.error(request, f"Erro ao criar transação: {form.errors.as_text()}")
+            return redirect('transactions_web:list')
 
     context = {
         'accounts': accounts,
@@ -159,6 +150,14 @@ def transaction_confirm_delete_view(request, pk):
         'message': f"Tem certeza que deseja excluir a transação '{tx.description}' no valor de R$ {tx.amount}?",
         'action_url': reverse('transactions_web:delete', args=[tx.id]),
     }
+    
+    if tx.recurring:
+        context['options'] = [
+            {'value': 'single', 'label': 'Excluir somente esta'},
+            {'value': 'future', 'label': 'Excluir esta e as futuras'},
+            {'value': 'all', 'label': 'Excluir toda a série'},
+        ]
+        
     return render(request, 'partials/confirm_modal.html', context)
 
 
@@ -166,8 +165,17 @@ def transaction_confirm_delete_view(request, pk):
 def transaction_delete_view(request, pk):
     from django_q.tasks import async_task
     tx = get_object_or_404(Transaction, pk=pk, user=request.user)
-    tx.delete()
-    async_task('wallets.tasks.async_recalculate_user_balances', request.user)
+    delete_mode = request.POST.get('delete_mode', 'single')
+    
+    if tx.recurring:
+        if delete_mode == 'future':
+            Transaction.objects.filter(recurring=tx.recurring, date__gte=tx.date).delete()
+        elif delete_mode == 'all':
+            Transaction.objects.filter(recurring=tx.recurring).delete()
+        else:
+            tx.delete()
+    else:
+        tx.delete()
 
     if request.headers.get('HX-Request'):
         return HttpResponse("")
@@ -189,20 +197,18 @@ def category_list_view(request):
 
 @login_required(login_url='users_web:login')
 def category_create_view(request):
+    from .forms import CategoryForm
+    from django.contrib import messages
     if request.method == 'POST':
-        name = request.POST.get('name')
-        cat_type = request.POST.get('type', TransactionType.EXPENSE)
-        color = request.POST.get('color', '#6366f1')
-        icon = request.POST.get('icon', 'tag')
-
-        Category.objects.create(
-            user=request.user,
-            name=name,
-            type=cat_type,
-            color=color,
-            icon=icon,
-        )
-        return redirect('transactions_web:category_list')
+        form = CategoryForm(request.POST)
+        if form.is_valid():
+            cat = form.save(commit=False)
+            cat.user = request.user
+            cat.save()
+            return redirect('transactions_web:category_list')
+        else:
+            messages.error(request, f"Erro ao criar categoria: {form.errors.as_text()}")
+            return redirect('transactions_web:category_list')
 
     return render(request, 'categories/partials/category_form.html')
 
@@ -228,16 +234,18 @@ def category_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def tag_create_view(request):
+    from .forms import TagForm
+    from django.contrib import messages
     if request.method == 'POST':
-        name = request.POST.get('name')
-        color = request.POST.get('color', '#6366f1')
-
-        Tag.objects.create(
-            user=request.user,
-            name=name,
-            color=color,
-        )
-        return redirect('transactions_web:category_list')
+        form = TagForm(request.POST)
+        if form.is_valid():
+            tag = form.save(commit=False)
+            tag.user = request.user
+            tag.save()
+            return redirect('transactions_web:category_list')
+        else:
+            messages.error(request, f"Erro ao criar tag: {form.errors.as_text()}")
+            return redirect('transactions_web:category_list')
 
     return render(request, 'categories/partials/tag_form.html')
 
@@ -385,3 +393,108 @@ def transfer_create_view(request):
         return redirect('transactions_web:list')
 
     return render(request, 'transactions/partials/transfer_form.html', {'accounts': accounts})
+
+# Import Views
+@login_required(login_url='users_web:login')
+def import_upload_view(request):
+    if request.method == 'POST':
+        account_id = request.POST.get('account_id')
+        file = request.FILES.get('file')
+        if not file or not account_id:
+            messages.error(request, 'Por favor, selecione uma conta e um arquivo.')
+            return redirect('transactions_web:import_upload')
+            
+        from transactions.services import parse_statement_file
+        try:
+            transactions = parse_statement_file(file.read(), file.name)
+            request.session['import_data'] = transactions
+            request.session['import_account_id'] = account_id
+            return redirect('transactions_web:import_preview')
+        except Exception as e:
+            messages.error(request, f'Erro ao ler o arquivo: {str(e)}')
+            return redirect('transactions_web:import_upload')
+            
+    accounts = Account.objects.filter(user=request.user)
+    return render(request, 'transactions/import_upload.html', {'accounts': accounts})
+
+@login_required(login_url='users_web:login')
+def import_preview_view(request):
+    import_data = request.session.get('import_data')
+    account_id = request.session.get('import_account_id')
+    
+    if not import_data or not account_id:
+        return redirect('transactions_web:import_upload')
+        
+    account = get_object_or_404(Account, id=account_id, user=request.user)
+    categories = Category.objects.filter(user=request.user)
+    
+    from transactions.services import guess_category
+    
+    for tx in import_data:
+        if 'category_id' not in tx:
+            tx['category_id'] = guess_category(tx['description'], request.user)
+            
+    # save back to session with guesses
+    request.session['import_data'] = import_data
+    
+    context = {
+        'account': account,
+        'transactions': import_data,
+        'categories': categories,
+    }
+    return render(request, 'transactions/import_preview.html', context)
+
+@login_required(login_url='users_web:login')
+def import_process_view(request):
+    import_data = request.session.get('import_data')
+    account_id = request.session.get('import_account_id')
+    
+    if not import_data or not account_id:
+        return redirect('transactions_web:import_upload')
+        
+    account = get_object_or_404(Account, id=account_id, user=request.user)
+    
+    if request.method == 'POST':
+        selected_ids = request.POST.getlist('selected_transactions')
+        
+        imported_count = 0
+        from django.db import transaction as db_transaction
+        
+        with db_transaction.atomic():
+            for tx in import_data:
+                orig_id = str(tx.get('original_id'))
+                if orig_id in selected_ids:
+                    cat_id_str = request.POST.get(f"category_{orig_id}")
+                    cat = None
+                    if cat_id_str:
+                        cat = Category.objects.filter(id=cat_id_str, user=request.user).first()
+                    
+                    if not cat:
+                        cat, _ = Category.objects.get_or_create(
+                            user=request.user,
+                            name="Outros (Importado)",
+                            defaults={"type": tx['type'], "color": "#9ca3af"}
+                        )
+                        
+                    Transaction.objects.create(
+                        user=request.user,
+                        account=account,
+                        category=cat,
+                        description=tx['description'],
+                        amount=Decimal(tx['amount']),
+                        date=tx['date'],
+                        status=Transaction.Statuses.COMPLETED
+                    )
+                    imported_count += 1
+                    
+        # Recalculate balance is now handled by signals
+
+        
+        # Clear session
+        del request.session['import_data']
+        del request.session['import_account_id']
+        
+        messages.success(request, f'{imported_count} transações importadas com sucesso!')
+        return redirect('transactions_web:list')
+        
+    return redirect('transactions_web:import_preview')

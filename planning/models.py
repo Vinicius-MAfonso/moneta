@@ -38,6 +38,7 @@ class Goal(models.Model):
     current_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0, validators=[MinValueValidator(0)], verbose_name='valor atual')
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(verbose_name='data de término')
+    is_near_target_notified = models.BooleanField(default=False, verbose_name='notificado quase atingindo')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizado em')
 

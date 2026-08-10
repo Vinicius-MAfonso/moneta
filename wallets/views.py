@@ -8,8 +8,7 @@ from .models import Account, CreditCardDetails
 
 @login_required(login_url='users_web:login')
 def account_list_view(request):
-    # TODO: move to background task or call only on account updates
-    # recalculate_all_user_balances(request.user)
+
     accounts = Account.objects.filter(user=request.user).select_related('credit_card_details')
     context = {
         'accounts': accounts,
@@ -19,36 +18,34 @@ def account_list_view(request):
 
 @login_required(login_url='users_web:login')
 def account_create_view(request):
+    from .forms import AccountForm
+    from django.contrib import messages
     if request.method == 'POST':
-        name = request.POST.get('name')
-        account_type = request.POST.get('type')
-        institution = request.POST.get('institution')
-        balance = Decimal(request.POST.get('balance', '0'))
-        color = request.POST.get('color', '#6366f1')
-
-        account = Account.objects.create(
-            user=request.user,
-            name=name,
-            type=account_type,
-            institution=institution,
-            balance=balance,
-            initial_balance=balance,
-            color=color,
-        )
-
-        if account_type == Account.Types.CREDIT_CARD:
-            limit = Decimal(request.POST.get('limit', '0'))
-            closing_day = int(request.POST.get('closing_day', '1'))
-            due_day = int(request.POST.get('due_day', '10'))
-            CreditCardDetails.objects.create(
-                account=account,
-                limit=limit,
-                available_limit=limit,
-                closing_day=closing_day,
-                due_day=due_day,
+        form = AccountForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            account = Account.objects.create(
+                user=request.user,
+                name=cd['name'],
+                type=cd['type'],
+                institution=cd['institution'],
+                balance=cd['balance'],
+                initial_balance=cd['balance'],
+                color=cd['color'],
             )
 
-        return redirect('wallets_web:list')
+            if cd['type'] == Account.Types.CREDIT_CARD:
+                CreditCardDetails.objects.create(
+                    account=account,
+                    limit=cd['limit'],
+                    available_limit=cd['limit'],
+                    closing_day=cd['closing_day'],
+                    due_day=cd['due_day'],
+                )
+            return redirect('wallets_web:list')
+        else:
+            messages.error(request, f"Erro ao criar conta: {form.errors.as_text()}")
+            return redirect('wallets_web:list')
 
     return render(request, 'wallets/partials/account_form.html')
 

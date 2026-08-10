@@ -23,10 +23,10 @@ def dashboard_view(request):
     account_id_param = request.GET.get('account_id')
     month_ctx = get_month_context(month_param)
 
-    # Process recurring transactions for user up to selected month end
+    # Processa transações recorrentes para o usuário até o final do mês selecionado
     process_recurring_transactions(user, month_ctx['end_date'])
 
-    # Recalculate real account balances
+    # Recalcula o saldo real de todas as contas
     recalculate_all_user_balances(user)
     accounts = Account.objects.filter(user=user, active=True)
 
@@ -137,9 +137,9 @@ def dashboard_view(request):
         'expenses_by_category': expenses_by_category,
         'incomes_by_category': incomes_by_category,
         'calendar_grid': calendar_grid,
-        'chart_labels_json': json.dumps(chart_labels),
-        'chart_incomes_json': json.dumps(chart_incomes),
-        'chart_expenses_json': json.dumps(chart_expenses),
+        'chart_labels': chart_labels,
+        'chart_incomes': [float(v) for v in chart_incomes],
+        'chart_expenses': [float(v) for v in chart_expenses],
     }
     return render(request, 'dashboard.html', context)
 
@@ -173,12 +173,12 @@ def reports_view(request):
         'start_date': start_date.strftime('%Y-%m-%d'),
         'end_date': end_date.strftime('%Y-%m-%d'),
         'report_data': report_data,
-        'chart_labels_json': json.dumps(report_data['timeline_labels']),
-        'chart_incomes_json': json.dumps(report_data['timeline_incomes']),
-        'chart_expenses_json': json.dumps(report_data['timeline_expenses']),
-        'pie_labels_json': json.dumps([item['name'] for item in report_data['expenses_by_category']]),
-        'pie_data_json': json.dumps(pie_data),
-        'pie_colors_json': json.dumps([item['color'] for item in report_data['expenses_by_category']]),
+        'chart_labels': report_data['timeline_labels'],
+        'chart_incomes': [float(v) for v in report_data['timeline_incomes']],
+        'chart_expenses': [float(v) for v in report_data['timeline_expenses']],
+        'pie_labels': [item['name'] for item in report_data['expenses_by_category']],
+        'pie_data': pie_data,
+        'pie_colors': [item['color'] for item in report_data['expenses_by_category']],
     }
     
     return render(request, 'moneta/reports.html', context)
