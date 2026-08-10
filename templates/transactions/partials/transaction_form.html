@@ -31,17 +31,17 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Descrição</label>
-                    <input type="text" name="description" required :placeholder="txType === 'transferencia' ? 'Ex: Reserva de Emergência, Transferência Nubank...' : 'Ex: Supermercado, Salário...'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                    <input type="text" name="description" required :placeholder="txType === 'transferencia' ? 'Ex: Reserva de Emergência, Transferência Nubank...' : 'Ex: Supermercado, Salário...'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Valor (R$)</label>
-                        <input type="number" step="0.01" min="0.01" name="amount" required placeholder="0.00" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <input type="number" step="0.01" min="0.01" name="amount" required placeholder="0.00" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Data</label>
-                        <input type="date" name="date" required value="{% now 'Y-m-d' %}" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <input type="date" name="date" required value="{% now 'Y-m-d' %}" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
                 </div>
 
@@ -49,7 +49,7 @@
                 <div x-show="txType !== 'transferencia'" class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Conta</label>
-                        <select name="account" :required="txType !== 'transferencia'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <select name="account" :required="txType !== 'transferencia'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                             {% for account in accounts %}
                                 <option value="{{ account.id }}">{{ account.name }}</option>
                             {% empty %}
@@ -62,7 +62,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Categoria</label>
-                        <select name="category" :required="txType !== 'transferencia'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <select name="category" :required="txType !== 'transferencia'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                             <option value="" disabled selected>Selecione uma categoria</option>
                             <template x-for="cat in categories.filter(c => c.type === txType)" :key="cat.id">
                                 <option :value="cat.id" x-text="cat.name"></option>
@@ -78,7 +78,7 @@
                 <div x-show="txType === 'transferencia'" class="grid grid-cols-2 gap-4" x-cloak>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Conta Origem (Saída)</label>
-                        <select name="out_account" :required="txType === 'transferencia'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <select name="out_account" :required="txType === 'transferencia'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                             {% for account in accounts %}
                                 <option value="{{ account.id }}">{{ account.name }}</option>
                             {% empty %}
@@ -88,7 +88,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Conta Destino (Entrada)</label>
-                        <select name="in_account" :required="txType === 'transferencia'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <select name="in_account" :required="txType === 'transferencia'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                             {% for account in accounts %}
                                 <option value="{{ account.id }}" {% if forloop.counter == 2 %}selected{% endif %}>{{ account.name }}</option>
                             {% empty %}
@@ -100,7 +100,7 @@
 
                 <div x-show="txType !== 'transferencia'">
                     <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Status</label>
-                    <select name="status" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                    <select name="status" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                         <option value="concluída" selected>Concluída / Pago</option>
                         <option value="pendente">Pendente / A Vencer</option>
                     </select>
@@ -133,7 +133,7 @@
                     <div x-show="isRecurring" x-cloak class="grid grid-cols-2 gap-3 p-3.5 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                         <div>
                             <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Frequência</label>
-                            <select name="frequency" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100">
+                            <select name="frequency" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 pr-10 py-2 text-xs text-slate-900 dark:text-slate-100">
                                 <option value="monthly" selected>Mensalmente</option>
                                 <option value="weekly">Semanalmente</option>
                                 <option value="daily">Diariamente</option>
@@ -142,7 +142,7 @@
                         </div>
                         <div>
                             <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1">Término (Opcional)</label>
-                            <input type="date" name="recurring_end_date" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100">
+                            <input type="date" name="recurring_end_date" class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 pr-10 py-2 text-xs text-slate-900 dark:text-slate-100">
                         </div>
                     </div>
                 </div>
