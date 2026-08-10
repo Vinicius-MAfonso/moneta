@@ -1,13 +1,13 @@
-<div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-data="{ txType: 'despesa', isRecurring: false, selectedAccountType: '{% if accounts %}{{ accounts.0.type }}{% endif %}', selectedAccountLimit: parseFloat('{% if accounts and accounts.0.type == 'credit_card' %}{{ accounts.0.credit_card_details.available_limit|stringformat:".2f" }}{% else %}0{% endif %}'), categories: [ {% for cat in categories %}{ id: '{{ cat.id }}', name: '{% if cat.icon %}{{ cat.icon }} {% endif %}{{ cat.name|escapejs }}', type: '{{ cat.type }}' }{% if not forloop.last %},{% endif %}{% endfor %} ] }" @keydown.escape.window="$el.remove()">
+<div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-data="{ txType: '{% if transaction %}{{ transaction.category.type }}{% else %}despesa{% endif %}', isRecurring: false, selectedAccountType: '{% if transaction %}{{ transaction.account.type }}{% elif accounts %}{{ accounts.0.type }}{% endif %}', selectedAccountLimit: parseFloat('{% if accounts and accounts.0.type == 'credit_card' %}{{ accounts.0.credit_card_details.available_limit|stringformat:".2f" }}{% else %}0{% endif %}'), categories: [ {% for cat in categories %}{ id: '{{ cat.id }}', name: '{% if cat.icon %}{{ cat.icon }} {% endif %}{{ cat.name|escapejs }}', type: '{{ cat.type }}' }{% if not forloop.last %},{% endif %}{% endfor %} ] }" @keydown.escape.window="$el.remove()">
     <div class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-full max-w-xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 relative animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white" x-text="txType === 'transferencia' ? 'Nova Transferência' : 'Nova Transação'">Nova Transação</h3>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white" x-text="txType === 'transferencia' ? '{% if transaction %}Editar Transferência{% else %}Nova Transferência{% endif %}' : '{% if transaction %}Editar Transação{% else %}Nova Transação{% endif %} '">Nova Transação</h3>
             <button @click="$el.closest('.fixed').remove()" class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
 
-        <form hx-post="{% url 'transactions_web:create' %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { document.getElementById('filter-form') ? document.getElementById('filter-form').dispatchEvent(new Event('submit')) : window.location.reload(); this.closest('.fixed').remove(); }">
+        <form hx-post="{% if transaction %}{% url 'transactions_web:edit' transaction.id %}{% else %}{% url 'transactions_web:create' %}{% endif %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { document.getElementById('filter-form') ? document.getElementById('filter-form').dispatchEvent(new Event('submit')) : window.location.reload(); this.closest('.fixed').remove(); }">
             {% csrf_token %}
             <input type="hidden" name="tx_type" :value="txType">
 
@@ -25,7 +25,7 @@
                             <button type="button" @click="txType = 'receita'" :class="txType === 'receita' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/40 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'" class="flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all truncate">
                                 Receita
                             </button>
-                            <button type="button" @click="txType = 'transferencia'" :class="txType === 'transferencia' ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/40 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'" class="flex-[1.2] py-2 rounded-lg text-[11px] font-semibold transition-all truncate">
+                            <button type="button" @click="txType = 'transferencia'" :class="txType === 'transferencia' ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/40 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'" class="flex-[1.2] py-2 rounded-lg text-[11px] font-semibold transition-all truncate" {% if transaction %}disabled{% endif %}>
                                 Transferência
                             </button>
                         </div>
@@ -33,13 +33,13 @@
 
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Descrição</label>
-                        <input type="text" name="description" required :placeholder="txType === 'transferencia' ? 'Ex: Reserva, Nubank...' : 'Ex: Supermercado, Salário...'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                        <input type="text" name="description" required value="{{ transaction.description|default:'' }}" :placeholder="txType === 'transferencia' ? 'Ex: Reserva, Nubank...' : 'Ex: Supermercado, Salário...'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
 
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Valor (R$)</label>
-                            <input type="number" step="0.01" min="0.01" name="amount" x-ref="amountInput" required placeholder="0.00" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                            <input type="number" step="0.01" min="0.01" name="amount" x-ref="amountInput" required value="{{ transaction.amount|stringformat:'.2f'|default:'' }}" placeholder="0.00" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                             <div x-show="txType === 'despesa' && selectedAccountType === 'credit_card' && parseFloat($refs.amountInput?.value || 0) > selectedAccountLimit" class="text-[10px] text-amber-600 dark:text-amber-500 mt-1.5 flex items-center gap-1 font-semibold leading-tight" x-cloak>
                                 <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                                 <span>Este valor excede o limite disponível de R$ <span x-text="selectedAccountLimit.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})"></span></span>
@@ -47,7 +47,7 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Data</label>
-                            <input type="date" name="date" required value="{% now 'Y-m-d' %}" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                            <input type="date" name="date" required value="{% if transaction %}{{ transaction.date|date:'Y-m-d' }}{% else %}{% now 'Y-m-d' %}{% endif %}" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                         </div>
                     </div>
 
@@ -57,7 +57,7 @@
                             <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Conta</label>
                             <select name="account" :required="txType !== 'transferencia'" @change="selectedAccountType = $event.target.options[$event.target.selectedIndex].dataset.type; selectedAccountLimit = parseFloat($event.target.options[$event.target.selectedIndex].dataset.limit || 0);" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                                 {% for account in accounts %}
-                                    <option value="{{ account.id }}" data-type="{{ account.type }}" data-limit="{% if account.type == 'credit_card' %}{{ account.credit_card_details.available_limit|stringformat:'.2f' }}{% else %}0{% endif %}" :class="{ 'hidden': txType === 'receita' && '{{ account.type }}' === 'credit_card' }" :disabled="txType === 'receita' && '{{ account.type }}' === 'credit_card'">{{ account.name }}</option>
+                                    <option value="{{ account.id }}" data-type="{{ account.type }}" data-limit="{% if account.type == 'credit_card' %}{{ account.credit_card_details.available_limit|stringformat:'.2f' }}{% else %}0{% endif %}" :class="{ 'hidden': txType === 'receita' && '{{ account.type }}' === 'credit_card' }" :disabled="txType === 'receita' && '{{ account.type }}' === 'credit_card'" {% if transaction and transaction.account.id == account.id %}selected{% endif %}>{{ account.name }}</option>
                                 {% empty %}
                                     <option value="" disabled selected data-type="">Nenhuma conta</option>
                                 {% endfor %}
@@ -71,7 +71,7 @@
                             <select name="category" :required="txType !== 'transferencia'" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                                 <option value="" disabled selected>Selecione...</option>
                                 <template x-for="cat in categories.filter(c => c.type === txType)" :key="cat.id">
-                                    <option :value="cat.id" x-text="cat.name"></option>
+                                    <option :value="cat.id" x-text="cat.name" :selected="'{% if transaction %}{{ transaction.category.id }}{% endif %}' === cat.id"></option>
                                 </template>
                             </select>
                             {% if not categories %}
@@ -112,8 +112,8 @@
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Status</label>
                                 <select name="status" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
-                                    <option value="concluída" selected>Concluída / Pago</option>
-                                    <option value="pendente">Pendente / A Vencer</option>
+                                    <option value="concluída" {% if not transaction or transaction.status == 'concluída' %}selected{% endif %}>Concluída / Pago</option>
+                                    <option value="pendente" {% if transaction and transaction.status == 'pendente' %}selected{% endif %}>Pendente / A Vencer</option>
                                 </select>
                             </div>
                             <div x-show="txType === 'despesa' && selectedAccountType === 'credit_card'" x-cloak>
@@ -128,7 +128,7 @@
                             <div class="flex flex-wrap gap-2 p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl min-h-[42px] max-h-32 overflow-y-auto items-center">
                                 {% for tag in tags %}
                                     <label class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border text-slate-800 dark:text-slate-200 transition-all hover:scale-105 shadow-sm" style="background-color: {{ tag.color }}20; border-color: {{ tag.color }}50;">
-                                        <input type="checkbox" name="tags" value="{{ tag.id }}" class="rounded text-indigo-600 focus:ring-0">
+                                        <input type="checkbox" name="tags" value="{{ tag.id }}" class="rounded text-indigo-600 focus:ring-0" {% if transaction and tag in transaction.tags.all %}checked{% endif %}>
                                         <span class="w-2 h-2 rounded-full shadow-sm" style="background-color: {{ tag.color }}; border: 1px solid {{ tag.color }}80;"></span>
                                         <span>{{ tag.name }}</span>
                                     </label>
@@ -139,6 +139,7 @@
                         </div>
 
                         <!-- Recurring Transaction Toggle -->
+                        {% if not transaction %}
                         <div class="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-3">
                             <label class="flex items-center justify-between cursor-pointer">
                                 <span class="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300" x-text="txType === 'transferencia' ? 'Repetir esta transferência' : 'Repetir esta transação'">Repetir esta transação</span>
@@ -162,6 +163,7 @@
                                 </div>
                             </div>
                         </div>
+                        {% endif %}
                     </div>
 
                     <div class="flex items-center space-x-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">

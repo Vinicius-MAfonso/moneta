@@ -7,7 +7,7 @@ class TransactionForm(forms.Form):
     account = forms.UUIDField(required=True)
     category = forms.UUIDField(required=True)
     description = forms.CharField(max_length=255, required=False)
-    amount = forms.DecimalField(max_digits=20, decimal_places=2, min_value=0.01, required=True)
+    amount = forms.DecimalField(max_digits=20, decimal_places=2, min_value=0.01, required=True, localize=True)
     date = forms.DateField(required=True)
     status = forms.ChoiceField(choices=Transaction.Statuses.choices, required=False, initial=Transaction.Statuses.COMPLETED)
     tags = forms.ModelMultipleChoiceField(queryset=Tag.objects.none(), required=False)

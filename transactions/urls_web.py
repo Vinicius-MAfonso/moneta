@@ -7,6 +7,7 @@ app_name = 'transactions_web'
 urlpatterns = [
     path('', views.transaction_list_view, name='list'),
     path('create/', views.transaction_create_view, name='create'),
+    path('<uuid:pk>/edit/', views.transaction_update_view, name='edit'),
     path('<uuid:pk>/confirm-delete/', views.transaction_confirm_delete_view, name='confirm_delete'),
     path('<uuid:pk>/delete/', views.transaction_delete_view, name='delete'),
     

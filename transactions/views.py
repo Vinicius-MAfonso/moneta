@@ -180,6 +180,83 @@ def transaction_create_view(request):
 
 
 @login_required(login_url='users_web:login')
+def transaction_update_view(request, pk):
+    from wallets.services import recalculate_account_balance
+    
+    transaction = get_object_or_404(Transaction, pk=pk, user=request.user)
+    
+    # Do not allow editing transfers in this version
+    if transaction.category.type == TransactionType.TRANSFER:
+        if request.headers.get('HX-Request'):
+            import json
+            response = HttpResponse(status=204)
+            response['HX-Trigger'] = json.dumps({
+                'show-toast': {'message': 'Edição de transferências não permitida.', 'type': 'error'}
+            })
+            return response
+        messages.error(request, "Não é possível editar transferências.")
+        return redirect('transactions_web:list')
+        
+    accounts = Account.objects.filter(user=request.user, active=True)
+    categories = Category.objects.filter(user=request.user)
+    tags = Tag.objects.filter(user=request.user)
+    
+    if request.method == 'POST':
+        from .forms import TransactionForm
+        form = TransactionForm(request.POST, user=request.user)
+        if form.is_valid():
+            cd = form.cleaned_data
+            
+            old_account_id = transaction.account_id
+            
+            transaction.account_id = cd['account']
+            transaction.category_id = cd['category']
+            transaction.description = cd['description']
+            transaction.amount = cd['amount']
+            transaction.date = cd['date']
+            transaction.status = cd['status']
+            transaction.save()
+            
+            transaction.tags.set(cd['tags'])
+            
+            # Recalculate balances
+            recalculate_account_balance(transaction.account)
+            if old_account_id != transaction.account_id:
+                old_account = Account.objects.get(id=old_account_id)
+                recalculate_account_balance(old_account)
+                
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({
+                    'reload-transactions': '',
+                    'show-toast': {'message': 'Transação atualizada com sucesso!', 'type': 'success'}
+                })
+                return response
+            messages.success(request, "Transação atualizada com sucesso!")
+            return redirect('transactions_web:list')
+        else:
+            error_msg = form.errors.as_text()
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({
+                    'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                })
+                return response
+            messages.error(request, f"Erro: {error_msg}")
+            return redirect('transactions_web:list')
+            
+    context = {
+        'transaction': transaction,
+        'accounts': accounts,
+        'categories': categories,
+        'tags': tags,
+    }
+    return render(request, 'transactions/partials/transaction_form.html', context)
+
+
+@login_required(login_url='users_web:login')
 def transaction_confirm_delete_view(request, pk):
     tx = get_object_or_404(Transaction, pk=pk, user=request.user)
     context = {

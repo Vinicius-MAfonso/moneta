@@ -353,6 +353,7 @@
                         <th class="px-4 py-3">Data</th>
                         <th class="px-4 py-3">Status</th>
                         <th class="px-4 py-3 text-right">Valor</th>
+                        <th class="px-4 py-3 text-center">Ações</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200 dark:divide-slate-800/60">
@@ -379,10 +380,15 @@
                             <td class="px-4 py-3.5 text-right font-bold {% if tx.category.type == 'receita' %}text-emerald-600 dark:text-emerald-400{% elif tx.category.type == 'despesa' %}text-rose-600 dark:text-rose-400{% else %}text-indigo-600 dark:text-indigo-400{% endif %}">
                                 {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
                             </td>
+                            <td class="px-4 py-3.5 text-center flex items-center justify-center">
+                                <button hx-get="{% url 'transactions_web:edit' tx.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-indigo-500 transition rounded-lg hover:bg-indigo-500/10" title="Editar">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                </button>
+                            </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="6" class="px-4 py-8 text-center text-slate-500">Nenhuma transação recente encontrada.</td>
+                            <td colspan="7" class="px-4 py-8 text-center text-slate-500">Nenhuma transação recente encontrada.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

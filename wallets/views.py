@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -75,7 +76,10 @@ def account_update_view(request, pk):
             account.name = cd['name']
             account.institution = cd['institution']
             account.color = cd['color']
-            # We don't update type or initial_balance to avoid complex recalculations
+            # We don't update type to avoid complex recalculations
+            if 'balance' in cd:
+                account.initial_balance = cd['balance']
+                
             account.save()
             
             if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
@@ -90,16 +94,89 @@ def account_update_view(request, pk):
                 cc.due_day = cd['due_day']
                 cc.save()
                 
+            from wallets.services import recalculate_account_balance
+            recalculate_account_balance(account)
+                
             messages.success(request, "Conta atualizada com sucesso!")
+            if request.headers.get('HX-Request'):
+                return HttpResponse()
             return redirect('wallets_web:list')
         else:
-            messages.error(request, f"Erro ao atualizar conta: {form.errors.as_text()}")
-            return redirect('wallets_web:list')
+            context = {'account': account, 'form': form}
+            return render(request, 'wallets/partials/account_form.html', context)
             
     context = {
         'account': account,
     }
     return render(request, 'wallets/partials/account_form.html', context)
+
+@login_required(login_url='users_web:login')
+def account_balance_adjustment_view(request, pk):
+    from django.contrib import messages
+    from wallets.services import recalculate_account_balance
+    from transactions.models import Category, Transaction
+    from moneta.common import TransactionType
+    from django.utils import timezone
+    
+    account = get_object_or_404(Account, pk=pk, user=request.user)
+    
+    if request.method == 'POST':
+        new_balance_str = request.POST.get('new_balance')
+        adjustment_type = request.POST.get('adjustment_type')
+        
+        try:
+            # Replace comma for point to parse decimal if needed
+            new_balance = Decimal(new_balance_str.replace(',', '.'))
+        except:
+            messages.error(request, "Valor de saldo inválido.")
+            return redirect('wallets_web:list')
+            
+        if adjustment_type == 'initial':
+            account.initial_balance = new_balance
+            account.save()
+            recalculate_account_balance(account)
+            
+            messages.success(request, f"Saldo inicial de '{account.name}' atualizado.")
+        
+        elif adjustment_type == 'transaction':
+            delta = new_balance - account.balance
+            if delta != 0:
+                tx_type = TransactionType.INCOME if delta > 0 else TransactionType.EXPENSE
+                
+                category_name = "Reajuste de Saldo Positivo" if delta > 0 else "Reajuste de Saldo Negativo"
+                # Get or create category for adjustment
+                category, _ = Category.objects.get_or_create(
+                    user=request.user,
+                    name=category_name,
+                    defaults={
+                        'type': tx_type,
+                        'color': '#64748B', # Slate 500
+                        'icon': '⚖️'
+                    }
+                )
+                
+                Transaction.objects.create(
+                    user=request.user,
+                    account=account,
+                    category=category,
+                    amount=abs(delta),
+                    date=timezone.now().date(),
+                    description="Reajuste de Saldo",
+                    status=Transaction.Statuses.COMPLETED
+                )
+                
+                recalculate_account_balance(account)
+                messages.success(request, f"Transação de reajuste criada em '{account.name}'.")
+            else:
+                messages.info(request, "O novo saldo é igual ao saldo atual.")
+                
+        if request.headers.get('HX-Request'):
+            return HttpResponse()
+        return redirect('wallets_web:list')
+        
+    context = {'account': account}
+    return render(request, 'wallets/partials/balance_adjustment_form.html', context)
+
 
 
 @login_required(login_url='users_web:login')
