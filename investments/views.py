@@ -30,14 +30,14 @@ def investment_list_view(request):
         total_value += total_position
         investments.append(inv)
 
-    # Group by type for the pie chart
+    # Agrupa por tipo para o gráfico de pizza
     from collections import defaultdict
     type_totals = defaultdict(Decimal)
     for inv in investments:
         if inv.total_position > 0:
             type_totals[inv.get_type_display()] += inv.total_position
 
-    # Sort descending and assign colors
+    # Ordena em forma decrescente e atribui cores
     sorted_types = sorted(type_totals.items(), key=lambda x: x[1], reverse=True)
     pie_labels = []
     pie_data = []

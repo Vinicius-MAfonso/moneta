@@ -18,7 +18,7 @@ from .services import create_regular_transaction, create_transfer
 @login_required(login_url='users_web:login')
 def transaction_list_view(request):
     qs = Transaction.objects.filter(user=request.user)
-    
+
     # Query Filters
     month_param = request.GET.get('month')
     month_ctx = get_month_context(month_param)
@@ -44,7 +44,7 @@ def transaction_list_view(request):
     if search:
         from django.db.models import Q
         qs = qs.filter(
-            Q(description__icontains=search) | 
+            Q(description__icontains=search) |
             Q(tags__name__icontains=search) |
             Q(category__name__icontains=search) |
             Q(account__name__icontains=search)
@@ -75,7 +75,7 @@ def transaction_list_view(request):
 
     if request.headers.get('HX-Request'):
         return render(request, 'transactions/partials/transaction_list.html', context)
-    
+
     return render(request, 'transactions/index.html', context)
 
 
@@ -182,9 +182,9 @@ def transaction_create_view(request):
 @login_required(login_url='users_web:login')
 def transaction_update_view(request, pk):
     from wallets.services import recalculate_account_balance
-    
+
     transaction = get_object_or_404(Transaction, pk=pk, user=request.user)
-    
+
     # Do not allow editing transfers in this version
     if transaction.category.type == TransactionType.TRANSFER:
         if request.headers.get('HX-Request'):
@@ -196,19 +196,19 @@ def transaction_update_view(request, pk):
             return response
         messages.error(request, "Não é possível editar transferências.")
         return redirect('transactions_web:list')
-        
+
     accounts = Account.objects.filter(user=request.user, active=True)
     categories = Category.objects.filter(user=request.user)
     tags = Tag.objects.filter(user=request.user)
-    
+
     if request.method == 'POST':
         from .forms import TransactionForm
         form = TransactionForm(request.POST, user=request.user)
         if form.is_valid():
             cd = form.cleaned_data
-            
+
             old_account_id = transaction.account_id
-            
+
             transaction.account_id = cd['account']
             transaction.category_id = cd['category']
             transaction.description = cd['description']
@@ -216,15 +216,15 @@ def transaction_update_view(request, pk):
             transaction.date = cd['date']
             transaction.status = cd['status']
             transaction.save()
-            
+
             transaction.tags.set(cd['tags'])
-            
+
             # Recalculate balances
             recalculate_account_balance(transaction.account)
             if old_account_id != transaction.account_id:
                 old_account = Account.objects.get(id=old_account_id)
                 recalculate_account_balance(old_account)
-                
+
             if request.headers.get('HX-Request'):
                 import json
                 response = HttpResponse(status=204)
@@ -246,7 +246,7 @@ def transaction_update_view(request, pk):
                 return response
             messages.error(request, f"Erro: {error_msg}")
             return redirect('transactions_web:list')
-            
+
     context = {
         'transaction': transaction,
         'accounts': accounts,
@@ -264,14 +264,14 @@ def transaction_confirm_delete_view(request, pk):
         'message': f"Tem certeza que deseja excluir a transação '{tx.description}' no valor de R$ {tx.amount}?",
         'action_url': reverse('transactions_web:delete', args=[tx.id]),
     }
-    
+
     if tx.recurring:
         context['options'] = [
             {'value': 'single', 'label': 'Excluir somente esta'},
             {'value': 'future', 'label': 'Excluir esta e as futuras'},
             {'value': 'all', 'label': 'Excluir toda a série'},
         ]
-        
+
     return render(request, 'partials/confirm_modal.html', context)
 
 
@@ -279,13 +279,13 @@ def transaction_confirm_delete_view(request, pk):
 def transaction_delete_view(request, pk):
     tx = get_object_or_404(Transaction, pk=pk, user=request.user)
     delete_mode = request.POST.get('delete_mode', 'single')
-    
+
     tx_to_delete_extra = None
     if hasattr(tx, 'transfer_out'):
         tx_to_delete_extra = tx.transfer_out.in_transaction
     elif hasattr(tx, 'transfer_in'):
         tx_to_delete_extra = tx.transfer_in.out_transaction
-        
+
     if tx.recurring:
         import datetime
         if delete_mode == 'future':
@@ -308,7 +308,7 @@ def transaction_delete_view(request, pk):
         tx.delete()
         if tx_to_delete_extra:
             tx_to_delete_extra.delete()
-        
+
     messages.success(request, "Transação excluída com sucesso.")
 
     if request.headers.get('HX-Request'):
@@ -353,7 +353,7 @@ def category_create_view(request):
 def category_confirm_delete_view(request, pk):
     from django.http import HttpResponse
     cat = get_object_or_404(Category, pk=pk, user=request.user)
-    
+
     if cat.transactions.exists():
         from django.contrib import messages
         messages.error(request, f"Não é possível excluir a categoria '{cat.name}' pois existem transações atreladas a ela.")
@@ -373,7 +373,7 @@ def category_confirm_delete_view(request, pk):
 def category_delete_view(request, pk):
     from django.contrib import messages
     cat = get_object_or_404(Category, pk=pk, user=request.user)
-    
+
     if cat.transactions.exists():
         messages.error(request, "Não é possível excluir esta categoria.")
         return redirect('transactions_web:category_list')

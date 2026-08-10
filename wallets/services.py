@@ -58,18 +58,18 @@ def calculate_expected_balance(account, end_date=None):
     """
     from moneta.common import TransactionType
     from transactions.models import Transaction, Transfer
-    
+
     pending_txs = Transaction.objects.filter(
         account=account,
         status=Transaction.Statuses.PENDING,
     ).exclude(category__type=TransactionType.TRANSFER)
-    
+
     if end_date:
         pending_txs = pending_txs.filter(date__lte=end_date)
-        
+
     incomes = pending_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     expenses = pending_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    
+
     transfers_out_qs = Transfer.objects.filter(
         out_transaction__account=account,
         out_transaction__status=Transaction.Statuses.PENDING,
@@ -85,7 +85,7 @@ def calculate_expected_balance(account, end_date=None):
     if end_date:
         transfers_in_qs = transfers_in_qs.filter(in_transaction__date__lte=end_date)
     transfers_in = transfers_in_qs.aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
-    
+
     return account.balance + incomes - expenses - transfers_out + transfers_in
 
 
@@ -94,14 +94,14 @@ def get_or_create_bill_for_transaction(account, transaction_date):
     import datetime
 
     from wallets.models import CreditCardBill
-    
+
     if account.type != account.Types.CREDIT_CARD or not hasattr(account, 'credit_card_details'):
         return None
-        
+
     cc = account.credit_card_details
     closing_day = cc.closing_day
     due_day = cc.due_day
-    
+
     # Determina a data de fechamento para a fatura na qual esta transação se enquadra
     if transaction_date.day <= closing_day:
         cycle_month = transaction_date.month
@@ -112,9 +112,9 @@ def get_or_create_bill_for_transaction(account, transaction_date):
         if cycle_month > 12:
             cycle_month = 1
             cycle_year += 1
-            
+
     closing_date = datetime.date(cycle_year, cycle_month, closing_day)
-    
+
     if due_day > closing_day:
         due_month = cycle_month
         due_year = cycle_year
@@ -124,10 +124,10 @@ def get_or_create_bill_for_transaction(account, transaction_date):
         if due_month > 12:
             due_month = 1
             due_year += 1
-            
+
     due_date = datetime.date(due_year, due_month, due_day)
     period_date = datetime.date(due_year, due_month, 1)
-    
+
     bill, created = CreditCardBill.objects.get_or_create(
         account=account,
         period_date=period_date,
@@ -148,15 +148,15 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
     from moneta.common import TransactionType
     from transactions.services import create_transfer
     from wallets.models import CreditCardBill
-    
+
     if bill.status == CreditCardBill.Statuses.PAID:
         raise ValueError("Esta fatura já está paga.")
-        
+
     expenses = bill.transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     incomes = bill.transactions.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     transfers_in = bill.transactions.filter(transfer_in__isnull=False).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     transfers_out = bill.transactions.filter(transfer_out__isnull=False).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    
+
     total_amount = expenses - incomes - transfers_in + transfers_out
     amount_to_pay = Decimal(payment_amount) if payment_amount is not None else total_amount
     if amount_to_pay > total_amount:
@@ -167,7 +167,7 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
             bill.status = CreditCardBill.Statuses.PAID
             bill.save()
         return bill
-        
+
     with db_transaction.atomic():
         import datetime
         transfer = create_transfer(
@@ -179,13 +179,13 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
             tx_date=datetime.date.today(),
             status='concluída'
         )
-        
+
         in_tx = transfer.in_transaction
         in_tx.bill = bill
         in_tx.save()
-        
+
         if amount_to_pay >= total_amount:
             bill.status = CreditCardBill.Statuses.PAID
             bill.save()
-        
+
     return bill

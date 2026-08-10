@@ -4,7 +4,7 @@ from .models import Account
 
 
 class AccountForm(forms.ModelForm):
-    # Additional fields for credit card details
+    # Campos adicionais para detalhes de cartão de crédito
     balance = forms.DecimalField(max_digits=20, decimal_places=2, localize=True)
     limit = forms.DecimalField(max_digits=20, decimal_places=2, min_value=0, required=False, localize=True)
     closing_day = forms.IntegerField(min_value=1, max_value=31, required=False)

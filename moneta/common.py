@@ -103,7 +103,7 @@ def get_month_calendar_grid(user, start_date, end_date, account=None):
         elif c_type == TransactionType.EXPENSE:
             daily_totals[d_str]['expense'] += item['total']
 
-    cal = calendar.Calendar(firstweekday=6)  # Sunday = 6
+    cal = calendar.Calendar(firstweekday=6)  # Domingo = 6
     month_days = list(cal.itermonthdays4(start_date.year, start_date.month))
 
     grid = []

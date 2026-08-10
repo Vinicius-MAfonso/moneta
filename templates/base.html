@@ -14,10 +14,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Moneta - Gestão Financeira{% endblock %}</title>
 
-    <!-- Favicon Piggy Bank -->
+    <!-- Ícone do Cofre (Favicon) -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M19 11a5 5 0 01-5 5H9.5a5.5 5.5 0 01-5.5-5.5V10A5.5 5.5 0 019.5 4.5h2A5.5 5.5 0 0117 10v1z'/><circle cx='14' cy='9' r='1' fill='%236366f1'/><path d='M19 10l2 1v2l-2 1M11 4.5V3M7.5 16.5V19M15.5 16.5V19'/></svg>">
 
-    <!-- HTMX Config for View Transitions -->
+    <!-- Configuração do HTMX para Transições -->
     <meta name="htmx-config" content='{"globalViewTransitions":true}'>
 
     <script>
@@ -28,7 +28,7 @@
         }
     </script>
 
-    <!-- Google Fonts Inter -->
+    <!-- Fonte Google Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -79,7 +79,7 @@
     class="h-full font-sans overflow-x-hidden flex flex-col md:flex-row bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
     x-data="{ sidebarOpen: false, modalOpen: false }">
 
-    <!-- Mobile Header -->
+    <!-- Cabeçalho Mobile -->
     <header
         class="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 z-30">
         <div class="flex items-center space-x-2">
@@ -269,7 +269,7 @@
         </div>
     </aside>
 
-    <!-- Main Content Area -->
+    <!-- Área Principal de Conteúdo -->
     <main class="flex-1 min-w-0 overflow-y-auto p-4 md:p-8 space-y-6">
         {% block content %}{% endblock %}
     </main>

@@ -5,20 +5,19 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from .models import Account, CreditCardDetails
-
+from wallets.models import Account
 
 @login_required(login_url='users_web:login')
 def account_list_view(request):
 
     accounts_qs = Account.objects.filter(user=request.user).select_related('credit_card_details')
     from wallets.services import calculate_expected_balance
-    
+
     accounts = []
     for account in accounts_qs:
         account.expected_balance = calculate_expected_balance(account)
         accounts.append(account)
-        
+
     context = {
         'accounts': accounts,
     }
@@ -45,6 +44,7 @@ def account_create_view(request):
             )
 
             if cd['type'] == Account.Types.CREDIT_CARD:
+                from wallets.models import CreditCardDetails
                 CreditCardDetails.objects.create(
                     account=account,
                     limit=cd['limit'],
@@ -64,11 +64,10 @@ def account_create_view(request):
 @login_required(login_url='users_web:login')
 def account_update_view(request, pk):
     from django.contrib import messages
-    from wallets.models import Account, CreditCardDetails
     from .forms import AccountForm
-    
+
     account = get_object_or_404(Account, pk=pk, user=request.user)
-    
+
     if request.method == 'POST':
         form = AccountForm(request.POST)
         if form.is_valid():
@@ -76,27 +75,27 @@ def account_update_view(request, pk):
             account.name = cd['name']
             account.institution = cd['institution']
             account.color = cd['color']
-            # We don't update type to avoid complex recalculations
+            # Não atualizamos o tipo para evitar recálculos complexos
             if 'balance' in cd:
                 account.initial_balance = cd['balance']
-                
+
             account.save()
-            
+
             if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
                 cc = account.credit_card_details
-                
-                # if limit increased, available limit should increase too
+
+                # Se o limite aumentou, o limite disponível também deve aumentar
                 diff = cd['limit'] - cc.limit
                 cc.limit = cd['limit']
                 cc.available_limit = max(Decimal('0.00'), cc.available_limit + diff)
-                
+
                 cc.closing_day = cd['closing_day']
                 cc.due_day = cd['due_day']
                 cc.save()
-                
+
             from wallets.services import recalculate_account_balance
             recalculate_account_balance(account)
-                
+
             messages.success(request, "Conta atualizada com sucesso!")
             if request.headers.get('HX-Request'):
                 return HttpResponse()
@@ -104,7 +103,7 @@ def account_update_view(request, pk):
         else:
             context = {'account': account, 'form': form}
             return render(request, 'wallets/partials/account_form.html', context)
-            
+
     context = {
         'account': account,
     }
@@ -117,34 +116,34 @@ def account_balance_adjustment_view(request, pk):
     from transactions.models import Category, Transaction
     from moneta.common import TransactionType
     from django.utils import timezone
-    
+
     account = get_object_or_404(Account, pk=pk, user=request.user)
-    
+
     if request.method == 'POST':
         new_balance_str = request.POST.get('new_balance')
         adjustment_type = request.POST.get('adjustment_type')
-        
+
         try:
-            # Replace comma for point to parse decimal if needed
+            # Troca vírgula por ponto para fazer o parse de decimal se necessário
             new_balance = Decimal(new_balance_str.replace(',', '.'))
-        except:
+        except Exception:
             messages.error(request, "Valor de saldo inválido.")
             return redirect('wallets_web:list')
-            
+
         if adjustment_type == 'initial':
             account.initial_balance = new_balance
             account.save()
             recalculate_account_balance(account)
-            
+
             messages.success(request, f"Saldo inicial de '{account.name}' atualizado.")
-        
+
         elif adjustment_type == 'transaction':
             delta = new_balance - account.balance
             if delta != 0:
                 tx_type = TransactionType.INCOME if delta > 0 else TransactionType.EXPENSE
-                
+
                 category_name = "Reajuste de Saldo Positivo" if delta > 0 else "Reajuste de Saldo Negativo"
-                # Get or create category for adjustment
+                # Obtém ou cria a categoria para reajuste
                 category, _ = Category.objects.get_or_create(
                     user=request.user,
                     name=category_name,
@@ -154,7 +153,7 @@ def account_balance_adjustment_view(request, pk):
                         'icon': '⚖️'
                     }
                 )
-                
+
                 Transaction.objects.create(
                     user=request.user,
                     account=account,
@@ -164,16 +163,16 @@ def account_balance_adjustment_view(request, pk):
                     description="Reajuste de Saldo",
                     status=Transaction.Statuses.COMPLETED
                 )
-                
+
                 recalculate_account_balance(account)
                 messages.success(request, f"Transação de reajuste criada em '{account.name}'.")
             else:
                 messages.info(request, "O novo saldo é igual ao saldo atual.")
-                
+
         if request.headers.get('HX-Request'):
             return HttpResponse()
         return redirect('wallets_web:list')
-        
+
     context = {'account': account}
     return render(request, 'wallets/partials/balance_adjustment_form.html', context)
 
@@ -206,17 +205,17 @@ def bill_detail_view(request, pk):
 
     from moneta.common import TransactionType
     from wallets.models import Account, CreditCardBill
-    
+
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
     transactions = bill.transactions.all().order_by('-date', '-created_at')
-    
+
     expenses = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     incomes = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     transfers_in = transactions.filter(transfer_in__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     transfers_out = transactions.filter(transfer_out__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    
+
     total = expenses - incomes - transfers_in + transfers_out
-    
+
     checking_accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
 
     context = {
@@ -236,9 +235,9 @@ def pay_bill_view(request, pk):
 
     from wallets.models import CreditCardBill
     from wallets.services import pay_credit_card_bill
-    
+
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
-    
+
     if request.method == 'POST':
         payment_account_id = request.POST.get('payment_account')
         payment_amount = request.POST.get('payment_amount')
@@ -247,7 +246,7 @@ def pay_bill_view(request, pk):
             messages.success(request, f"Pagamento da fatura de {bill.period_date.strftime('%m/%Y')} registrado com sucesso!")
         except Exception as e:
             messages.error(request, f"Erro ao pagar fatura: {e!s}")
-            
+
     return redirect('wallets_web:bill_detail', pk=bill.pk)
 
 
@@ -256,11 +255,11 @@ def bill_list_view(request, account_id):
     from wallets.models import Account
     account = get_object_or_404(Account, pk=account_id, user=request.user, type=Account.Types.CREDIT_CARD)
     bills = account.bills.all().order_by('-period_date')
-    
+
     status_filter = request.GET.get('status')
     if status_filter in ['open', 'closed', 'paid']:
         bills = bills.filter(status=status_filter)
-    
+
     context = {
         'account': account,
         'bills': bills,
