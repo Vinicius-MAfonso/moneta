@@ -58,7 +58,7 @@
         <!-- Doughnut Chart -->
         <div class="glass-panel p-6 rounded-2xl">
             <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Despesas por Categoria</h3>
-            <div class="h-64 relative">
+            <div class="h-80 relative">
                 {% if report_data.expenses_by_category %}
                     <canvas id="categoryChart"></canvas>
                 {% else %}
@@ -155,10 +155,32 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    plugins: { 
+                        legend: { labels: { color: '#94a3b8' } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
                     scales: {
                         x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
-                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(128,128,128,0.1)' } }
+                        y: { 
+                            ticks: { 
+                                color: '#94a3b8',
+                                callback: function(value, index, values) {
+                                    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: "compact", compactDisplay: "short" }).format(value);
+                                }
+                            }, 
+                            grid: { color: 'rgba(128,128,128,0.1)' } 
+                        }
                     }
                 }
             });
@@ -185,7 +207,19 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, padding: 15 } }
+                        legend: { position: 'bottom', labels: { color: '#94a3b8', boxWidth: 12, padding: 15 } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed !== null) {
+                                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
                     },
                     cutout: '70%'
                 }

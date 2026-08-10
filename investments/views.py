@@ -30,16 +30,38 @@ def investment_list_view(request):
         total_value += total_position
         investments.append(inv)
 
+    # Group by type for the pie chart
+    from collections import defaultdict
+    type_totals = defaultdict(Decimal)
+    for inv in investments:
+        if inv.total_position > 0:
+            type_totals[inv.get_type_display()] += inv.total_position
+
+    # Sort descending and assign colors
+    sorted_types = sorted(type_totals.items(), key=lambda x: x[1], reverse=True)
+    pie_labels = []
+    pie_data = []
+    pie_colors = []
+    color_palette = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6']
+
+    for idx, (t_name, t_val) in enumerate(sorted_types):
+        pie_labels.append(t_name)
+        pie_data.append(float(t_val))
+        pie_colors.append(color_palette[idx % len(color_palette)])
+
     context = {
         'investments': investments,
         'total_value': total_value,
+        'pie_labels': pie_labels,
+        'pie_data': pie_data,
+        'pie_colors': pie_colors,
     }
     return render(request, 'investments/index.html', context)
 
 
 @login_required(login_url='users_web:login')
 def investment_create_view(request):
-    accounts = Account.objects.filter(user=request.user)
+    accounts = Account.objects.filter(user=request.user, type=Account.Types.INVESTMENT)
 
     if request.method == 'POST':
         account_id = request.POST.get('account')

@@ -17,14 +17,30 @@
         </button>
     </div>
 
-    <!-- Summary Card -->
-    <div class="glass-panel p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Patrimônio Investido</span>
-            <p class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">R$ {{ total_value|floatformat:2 }}</p>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Summary Card -->
+        <div class="glass-panel p-6 rounded-2xl flex flex-col justify-center gap-4">
+            <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Patrimônio Investido</span>
+                <p class="text-3xl font-extrabold text-slate-900 dark:text-white mt-1">R$ {{ total_value|floatformat:2 }}</p>
+            </div>
+            <div class="text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                <span>{{ investments|length }} ativo(s) na carteira</span>
+            </div>
         </div>
-        <div class="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-            <span>{{ investments|length }} ativo(s) na carteira</span>
+
+        <!-- Portfolio Distribution Chart -->
+        <div class="lg:col-span-2 glass-panel p-6 rounded-2xl flex flex-col justify-center min-h-[200px]">
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Distribuição por Tipo</h3>
+            <div class="h-40 relative">
+                {% if pie_data %}
+                    <canvas id="portfolioChart"></canvas>
+                {% else %}
+                    <div class="absolute inset-0 flex items-center justify-center text-slate-400 dark:text-slate-500 text-sm">
+                        Nenhum dado para exibir.
+                    </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 
@@ -79,4 +95,54 @@
     </div>
 
 </div>
+
+{{ pie_labels|json_script:"pie-labels" }}
+{{ pie_data|json_script:"pie-data" }}
+{{ pie_colors|json_script:"pie-colors" }}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const labelsNode = document.getElementById('pie-labels');
+        if (labelsNode) {
+            const pieLabels = JSON.parse(labelsNode.textContent);
+            const pieData = JSON.parse(document.getElementById('pie-data').textContent);
+            const pieColors = JSON.parse(document.getElementById('pie-colors').textContent);
+
+            const ctx = document.getElementById('portfolioChart');
+            if (ctx && pieData.length > 0) {
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: pieLabels,
+                        datasets: [{
+                            data: pieData,
+                            backgroundColor: pieColors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'right', labels: { color: '#94a3b8', boxWidth: 12, padding: 15 } },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) { label += ': '; }
+                                        if (context.parsed !== null) {
+                                            label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+        }
+    });
+</script>
 {% endblock %}

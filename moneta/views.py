@@ -38,8 +38,9 @@ def dashboard_view(request):
     for account in accounts_qs:
         account.expected_balance = calculate_expected_balance(account, month_ctx['end_date'])
         accounts.append(account)
-        total_balance += account.balance
-        total_expected_balance += account.expected_balance
+        if account.type != Account.Types.CREDIT_CARD:
+            total_balance += account.balance
+            total_expected_balance += account.expected_balance
 
     selected_account = None
     if account_id_param:

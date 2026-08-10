@@ -71,19 +71,19 @@
         <div class="divide-y divide-slate-100 dark:divide-slate-800/60">
             {% for tx in transactions %}
                 <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition group">
-                    <div class="flex items-center gap-4">
-                        <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm" style="background-color: {{ tx.category.color }}">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white shadow-sm" style="background-color: {{ tx.category.color }}">
                             <span class="text-lg">{{ tx.category.icon|default:"🏷️" }}</span>
                         </div>
-                        <div>
-                            <p class="font-semibold text-slate-900 dark:text-white text-sm">{{ tx.description }}</p>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                <span class="text-xs text-slate-500">{{ tx.date|date:"d M, Y" }}</span>
-                                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">{{ tx.category.name }}</span>
+                        <div class="min-w-0">
+                            <p class="font-semibold text-slate-900 dark:text-white text-sm truncate">{{ tx.description }}</p>
+                            <div class="flex items-center gap-2 mt-0.5 overflow-hidden flex-wrap">
+                                <span class="text-xs text-slate-500 whitespace-nowrap">{{ tx.date|date:"d M, Y" }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium truncate max-w-full">{{ tx.category.name }}</span>
                             </div>
                         </div>
                     </div>
-                    <div class="text-right">
+                    <div class="text-right max-w-[45%] break-all">
                         {% if hasattr and tx.transfer_in or tx.type == 'receita' or tx.description|slice:":17" == "Transferência de " %}
                         <p class="font-bold text-emerald-600 dark:text-emerald-400">
                             +R$ {{ tx.amount|floatformat:2 }}
@@ -118,23 +118,27 @@
                 </button>
             </div>
 
-            <form method="POST" action="{% url 'wallets_web:pay_bill' pk=bill.pk %}" class="space-y-4">
+            <form method="POST" action="{% url 'wallets_web:pay_bill' pk=bill.pk %}" class="space-y-4" x-data="{ selectedAccountBalance: null, paymentAmount: {{ total|stringformat:'.2f' }} }">
                 {% csrf_token %}
                 <p class="text-sm text-slate-600 dark:text-slate-400">
                     O valor total de <strong class="text-slate-900 dark:text-white">R$ {{ total|floatformat:2 }}</strong> será pago. Selecione a conta de origem:
                 </p>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Valor a Pagar (R$)</label>
-                    <input type="number" step="0.01" max="{{ total|stringformat:'.2f' }}" name="payment_amount" value="{{ total|stringformat:'.2f' }}" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition">
+                    <input type="number" step="0.01" max="{{ total|stringformat:'.2f' }}" name="payment_amount" x-model.number="paymentAmount" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Conta de Origem</label>
-                    <select name="payment_account" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition">
-                        <option value="" disabled selected>Escolha uma conta...</option>
+                    <select name="payment_account" @change="selectedAccountBalance = parseFloat($event.target.options[$event.target.selectedIndex].dataset.balance || 0)" required class="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition">
+                        <option value="" disabled selected data-balance="0">Escolha uma conta...</option>
                         {% for acc in checking_accounts %}
-                            <option value="{{ acc.id }}">{{ acc.name }} (Saldo: R$ {{ acc.balance|floatformat:2 }})</option>
+                            <option value="{{ acc.id }}" data-balance="{{ acc.balance|stringformat:'.2f' }}">{{ acc.name }} (Saldo: R$ {{ acc.balance|floatformat:2 }})</option>
                         {% endfor %}
                     </select>
+                    <div x-show="selectedAccountBalance !== null && selectedAccountBalance < paymentAmount" class="text-[11px] text-amber-600 dark:text-amber-500 mt-2 flex items-start gap-1 font-semibold leading-tight" x-cloak>
+                        <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <span>O saldo desta conta é insuficiente. A conta ficará negativa se o pagamento for confirmado.</span>
+                    </div>
                 </div>
 
                 <div class="mt-6 flex justify-end gap-3">
