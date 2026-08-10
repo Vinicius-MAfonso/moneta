@@ -245,10 +245,19 @@ def category_create_view(request):
 
 @login_required(login_url='users_web:login')
 def category_confirm_delete_view(request, pk):
+    from django.http import HttpResponse
     cat = get_object_or_404(Category, pk=pk, user=request.user)
+    
+    if cat.transactions.exists():
+        from django.contrib import messages
+        messages.error(request, f"Não é possível excluir a categoria '{cat.name}' pois existem transações atreladas a ela.")
+        response = HttpResponse("")
+        response['HX-Redirect'] = reverse('transactions_web:category_list')
+        return response
+
     context = {
         'title': 'Excluir Categoria',
-        'message': f"Tem certeza que deseja excluir a categoria '{cat.name}'? Isso vai excluir TODAS as transações relacionadas a essa categoria.",
+        'message': f"Tem certeza que deseja excluir a categoria '{cat.name}'?",
         'action_url': reverse('transactions_web:category_delete', args=[cat.id]),
     }
     return render(request, 'partials/confirm_modal.html', context)
@@ -258,10 +267,15 @@ def category_confirm_delete_view(request, pk):
 def category_delete_view(request, pk):
     from django.contrib import messages
     cat = get_object_or_404(Category, pk=pk, user=request.user)
+    
+    if cat.transactions.exists():
+        messages.error(request, "Não é possível excluir esta categoria.")
+        return redirect('transactions_web:category_list')
+
     if request.method == 'POST' or request.headers.get('HX-Request'):
         cat_name = cat.name
         cat.delete()
-        messages.success(request, f"Categoria '{cat_name}' e todas as suas transações foram excluídas.")
+        messages.success(request, f"Categoria '{cat_name}' excluída com sucesso.")
     return redirect('transactions_web:category_list')
 
 

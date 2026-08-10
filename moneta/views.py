@@ -9,9 +9,7 @@ from moneta.common import TransactionType, get_month_calendar_grid, get_month_co
 from planning.models import Goal
 from planning.services import get_active_budgets
 from transactions.models import Transaction
-from transactions.services import process_recurring_transactions
 from wallets.models import Account
-from wallets.services import recalculate_all_user_balances
 
 from .services import get_category_breakdown
 
@@ -24,11 +22,12 @@ def dashboard_view(request):
     account_id_param = request.GET.get('account_id')
     month_ctx = get_month_context(month_param)
 
-    # Processa transações recorrentes para o usuário até o final do mês selecionado
-    process_recurring_transactions(user, month_ctx['end_date'])
+    # Processa transações recorrentes em background para não travar o carregamento
+    from django_q.tasks import async_task
+    async_task('transactions.services.process_recurring_transactions', user, month_ctx['end_date'])
 
-    # Recalcula o saldo real de todas as contas
-    recalculate_all_user_balances(user)
+    # Nota: Não chamamos mais recalculate_all_user_balances(user) de forma síncrona,
+    # pois os signals em transactions/signals.py já mantêm o saldo atualizado.
     accounts_qs = Account.objects.filter(user=user, active=True).select_related('credit_card_details')
     from wallets.services import calculate_expected_balance
     

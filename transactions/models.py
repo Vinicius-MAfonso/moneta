@@ -63,7 +63,7 @@ class Transaction(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions', verbose_name='usuário')
     
     account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='transactions', verbose_name='conta')
-    category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='transactions', verbose_name='categoria')
+    category = models.ForeignKey('Category', on_delete=models.PROTECT, related_name='transactions', verbose_name='categoria')
     tags = models.ManyToManyField('Tag', blank=True, related_name='transactions', verbose_name='tags')
     
     description = models.CharField(max_length=255, verbose_name='descrição')
