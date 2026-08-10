@@ -134,8 +134,13 @@ def bill_list_view(request, account_id):
     account = get_object_or_404(Account, pk=account_id, user=request.user, type=Account.Types.CREDIT_CARD)
     bills = account.bills.all().order_by('-period_date')
     
+    status_filter = request.GET.get('status')
+    if status_filter in ['open', 'closed', 'paid']:
+        bills = bills.filter(status=status_filter)
+    
     context = {
         'account': account,
         'bills': bills,
+        'status_filter': status_filter,
     }
     return render(request, 'wallets/bill_list.html', context)

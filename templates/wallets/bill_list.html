@@ -19,6 +19,14 @@
         </div>
     </div>
 
+    <!-- Filters -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-2">
+        <a href="?status=" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {% if not status_filter %}bg-indigo-600 text-white shadow-md shadow-indigo-600/20{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700{% endif %}">Todas</a>
+        <a href="?status=open" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {% if status_filter == 'open' %}bg-indigo-600 text-white shadow-md shadow-indigo-600/20{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700{% endif %}">Abertas</a>
+        <a href="?status=closed" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {% if status_filter == 'closed' %}bg-rose-600 text-white shadow-md shadow-rose-600/20{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700{% endif %}">Fechadas</a>
+        <a href="?status=paid" class="px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors {% if status_filter == 'paid' %}bg-emerald-600 text-white shadow-md shadow-emerald-600/20{% else %}bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700{% endif %}">Pagas</a>
+    </div>
+
     <!-- Bills List -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for bill in bills %}
