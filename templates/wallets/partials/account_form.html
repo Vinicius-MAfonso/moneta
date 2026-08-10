@@ -25,10 +25,11 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
+                    {% if not account %}
                     <div>
                         <label
                             class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Tipo</label>
-                        <select name="type" x-on:change="isCreditCard = ($el.value === 'credit_card')" required {% if account %}disabled{% endif %}
+                        <select name="type" x-on:change="isCreditCard = ($el.value === 'credit_card')" required
                             class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[position:right_1rem_center] bg-no-repeat disabled:opacity-100">
                             <option value="checking" {% if account.type == 'checking' %}selected{% endif %}>Conta Corrente</option>
                             <option value="savings" {% if account.type == 'savings' %}selected{% endif %}>Poupança</option>
@@ -36,26 +37,30 @@
                             <option value="credit_card" {% if account.type == 'credit_card' %}selected{% endif %}>Cartão de Crédito</option>
                             <option value="other" {% if account.type == 'other' %}selected{% endif %}>Outro</option>
                         </select>
-                        {% if account %}
-                            <input type="hidden" name="type" value="{{ account.type }}">
-                        {% endif %}
                     </div>
-                    <div>
+                    {% else %}
+                    <input type="hidden" name="type" value="{{ account.type }}">
+                    {% endif %}
+                    
+                    <div {% if account %}class="col-span-1"{% endif %}>
                         <label
                             class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Instituição</label>
                         <input type="text" name="institution" placeholder="Ex: Nubank" value="{{ account.institution|default:'' }}"
                             class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
-                </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
+                    {% if not account %}
+                    <div x-show="!isCreditCard">
                         <label
                             class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Saldo
                             Inicial (R$)</label>
-                        <input type="number" step="0.01" name="balance" required value="{{ account.initial_balance|default:'0.00' }}"
+                        <input type="number" step="0.01" name="balance" :required="!isCreditCard" value="{{ account.initial_balance|default:'0.00' }}"
                             class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
                     </div>
+                    {% else %}
+                    <input type="hidden" name="balance" value="{{ account.initial_balance|floatformat:2 }}">
+                    {% endif %}
+
                     <div>
                         <label
                             class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Cor
