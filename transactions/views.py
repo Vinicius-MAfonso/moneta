@@ -81,7 +81,8 @@ def transaction_list_view(request):
 
 @login_required(login_url='users_web:login')
 def transaction_create_view(request):
-    accounts = Account.objects.filter(user=request.user)
+    accounts = Account.objects.filter(user=request.user, active=True)
+    transfer_accounts = accounts.exclude(type='credit_card')
     categories = Category.objects.filter(user=request.user)
     tags = Tag.objects.filter(user=request.user)
 
@@ -154,6 +155,7 @@ def transaction_create_view(request):
 
     context = {
         'accounts': accounts,
+        'transfer_accounts': transfer_accounts,
         'categories': categories,
         'tags': tags,
     }

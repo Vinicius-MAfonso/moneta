@@ -37,10 +37,12 @@
                     <h3 class="text-xl font-bold text-slate-900 dark:text-white mt-3">
                         {{ account.name }}
                     </h3>
-                    <p class="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2">R$ {{ account.balance|floatformat:2 }}</p>
-                    <div class="mt-1 flex items-center space-x-1.5 text-xs font-medium {% if account.expected_balance >= account.balance %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
-                        <span>Previsto: R$ {{ account.expected_balance|floatformat:2 }}</span>
-                    </div>
+                    {% if account.type != 'credit_card' %}
+                        <p class="text-3xl font-extrabold {% if account.balance > 0 %}text-emerald-600 dark:text-emerald-400{% elif account.balance < 0 %}text-rose-600 dark:text-rose-400{% else %}text-slate-900 dark:text-slate-100{% endif %} mt-2">R$ {{ account.balance|floatformat:2 }}</p>
+                        <div class="mt-1 flex items-center space-x-1.5 text-xs font-medium {% if account.expected_balance >= account.balance %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                            <span>Previsto: R$ {{ account.expected_balance|floatformat:2 }}</span>
+                        </div>
+                    {% endif %}
                 </div>
 
                 {% if account.type == 'credit_card' and account.credit_card_details %}
