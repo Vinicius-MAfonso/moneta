@@ -59,8 +59,8 @@ class Transaction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='transactions', verbose_name='usuário')
     
-    account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, related_name='transactions', verbose_name='conta')
-    category = models.ForeignKey('Category', on_delete=models.RESTRICT, related_name='transactions', verbose_name='categoria')
+    account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='transactions', verbose_name='conta')
+    category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='transactions', verbose_name='categoria')
     tags = models.ManyToManyField('Tag', blank=True, related_name='transactions', verbose_name='tags')
     
     description = models.CharField(max_length=255, verbose_name='descrição')
@@ -148,15 +148,16 @@ class RecurringTransaction(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.RESTRICT, related_name='recurring_transactions', verbose_name='usuário')
-    category = models.ForeignKey('Category', on_delete=models.RESTRICT, related_name='recurring_transactions', verbose_name='categoria')
-    account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, related_name='recurring_transactions', verbose_name='conta')
-    target_account = models.ForeignKey('wallets.Account', on_delete=models.RESTRICT, blank=True, null=True, related_name='recurring_transfers_in', verbose_name='conta de destino')
+    category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='recurring_transactions', verbose_name='categoria')
+    account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='recurring_transactions', verbose_name='conta')
+    target_account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, blank=True, null=True, related_name='recurring_transfers_in', verbose_name='conta de destino')
     description = models.CharField(max_length=255, verbose_name='descrição')
     amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
     frequency = models.CharField(max_length=10, choices=Frequencies.choices, verbose_name='frequência')
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(blank=True, null=True, verbose_name='data de término')
     active = models.BooleanField(default=True, verbose_name='ativa')
+    ignored_dates = models.JSONField(default=list, blank=True, verbose_name='datas ignoradas')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
 

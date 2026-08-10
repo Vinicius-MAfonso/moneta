@@ -30,9 +30,15 @@
             {% for cat in categories %}
                 <div class="glass-panel p-4 rounded-2xl flex items-center justify-between border-l-4" style="border-left-color: {{ cat.color }};">
                     <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white" style="background-color: {{ cat.color }};">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 11h.01M7 15h.01M13 7h.01M13 11h.01M13 15h.01M17 7h.01M17 11h.01M17 15h.01"></path></svg>
-                        </div>
+                        {% if cat.icon %}
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xl shadow-sm" style="background-color: {{ cat.color }}20; color: {{ cat.color }}; border: 1px solid {{ cat.color }}40;">
+                                {{ cat.icon }}
+                            </div>
+                        {% else %}
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center text-white" style="background-color: {{ cat.color }};">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 11h.01M7 15h.01M13 7h.01M13 11h.01M13 15h.01M17 7h.01M17 11h.01M17 15h.01"></path></svg>
+                            </div>
+                        {% endif %}
                         <div>
                             <p class="text-sm font-bold text-slate-900 dark:text-white">{{ cat.name }}</p>
                             <span class="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 capitalize">{{ cat.get_type_display }}</span>

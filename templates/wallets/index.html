@@ -34,15 +34,25 @@
                         </div>
                     </div>
                     
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mt-3">{{ account.name }}</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mt-3">
+                        {{ account.name }}
+                    </h3>
                     <p class="text-3xl font-extrabold text-slate-900 dark:text-slate-100 mt-2">R$ {{ account.balance|floatformat:2 }}</p>
+                    <div class="mt-1 flex items-center space-x-1.5 text-xs font-medium {% if account.expected_balance >= account.balance %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                        <span>Previsto: R$ {{ account.expected_balance|floatformat:2 }}</span>
+                    </div>
                 </div>
 
                 {% if account.type == 'credit_card' and account.credit_card_details %}
                     <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs">
-                        <div class="flex justify-between text-slate-500 dark:text-slate-400">
-                            <span>Limite Total:</span>
-                            <span class="font-bold text-slate-900 dark:text-slate-200">R$ {{ account.credit_card_details.limit|floatformat:2 }}</span>
+                        <div class="space-y-1.5">
+                            <div class="flex justify-between font-medium">
+                                <span>Limite Usado: R$ {{ account.credit_card_details.used_limit|floatformat:2 }}</span>
+                                <span class="text-slate-900 dark:text-slate-200">De R$ {{ account.credit_card_details.limit|floatformat:2 }}</span>
+                            </div>
+                            <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-300 {% if account.credit_card_details.limit_usage_pct >= 90 %}bg-rose-500{% elif account.credit_card_details.limit_usage_pct >= 75 %}bg-amber-500{% else %}bg-indigo-500{% endif %}" style="width: min({{ account.credit_card_details.limit_usage_pct_str }}%, 100%);"></div>
+                            </div>
                         </div>
                         <div class="flex justify-between text-slate-500 dark:text-slate-400">
                             <span>Fechamento / Vencimento:</span>

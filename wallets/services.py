@@ -51,6 +51,44 @@ def recalculate_all_user_balances(user):
         recalculate_account_balance(account)
 
 
+def calculate_expected_balance(account, end_date=None):
+    """
+    Calculates the expected balance by adding pending transactions to the current balance.
+    """
+    from transactions.models import Transaction, Transfer
+    from moneta.common import TransactionType
+    
+    pending_txs = Transaction.objects.filter(
+        account=account,
+        status=Transaction.Statuses.PENDING,
+    ).exclude(category__type=TransactionType.TRANSFER)
+    
+    if end_date:
+        pending_txs = pending_txs.filter(date__lte=end_date)
+        
+    incomes = pending_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+    expenses = pending_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+    
+    transfers_out_qs = Transfer.objects.filter(
+        out_transaction__account=account,
+        out_transaction__status=Transaction.Statuses.PENDING,
+    )
+    if end_date:
+        transfers_out_qs = transfers_out_qs.filter(out_transaction__date__lte=end_date)
+    transfers_out = transfers_out_qs.aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
+
+    transfers_in_qs = Transfer.objects.filter(
+        in_transaction__account=account,
+        in_transaction__status=Transaction.Statuses.PENDING,
+    )
+    if end_date:
+        transfers_in_qs = transfers_in_qs.filter(in_transaction__date__lte=end_date)
+    transfers_in = transfers_in_qs.aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
+    
+    return account.balance + incomes - expenses - transfers_out + transfers_in
+
+
+
 def get_or_create_bill_for_transaction(account, transaction_date):
     import datetime
     from wallets.models import CreditCardBill

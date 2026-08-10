@@ -28,17 +28,29 @@ def dashboard_view(request):
 
     # Recalcula o saldo real de todas as contas
     recalculate_all_user_balances(user)
-    accounts = Account.objects.filter(user=user, active=True)
+    accounts_qs = Account.objects.filter(user=user, active=True).select_related('credit_card_details')
+    from wallets.services import calculate_expected_balance
+    
+    accounts = []
+    total_balance = Decimal('0.00')
+    total_expected_balance = Decimal('0.00')
+    
+    for account in accounts_qs:
+        account.expected_balance = calculate_expected_balance(account, month_ctx['end_date'])
+        accounts.append(account)
+        total_balance += account.balance
+        total_expected_balance += account.expected_balance
 
     selected_account = None
     if account_id_param:
-        selected_account = accounts.filter(id=account_id_param).first()
+        selected_account = next((a for a in accounts if str(a.id) == account_id_param), None)
 
     if selected_account:
         total_balance = selected_account.balance
+        total_expected_balance = selected_account.expected_balance
         base_tx_qs = Transaction.objects.filter(user=user, account=selected_account)
     else:
-        total_balance = accounts.aggregate(total=Coalesce(Sum('balance'), Decimal('0.00')))['total']
+        # total_balance and total_expected_balance already summed
         base_tx_qs = Transaction.objects.filter(user=user)
 
     monthly_income = base_tx_qs.filter(
@@ -54,6 +66,23 @@ def dashboard_view(request):
     ).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
 
     monthly_net_balance = monthly_income - monthly_expense
+
+    economy_pct = Decimal('0.00')
+    if monthly_income > 0:
+        economy_pct = (monthly_expense / monthly_income) * 100
+    elif monthly_expense > 0:
+        economy_pct = Decimal('100.00')
+        
+    economy_pct_clamped = min(economy_pct, Decimal('100.00'))
+    if economy_pct >= 100:
+        economy_status = 'danger'
+        economy_message = f"Cuidado! Este mês você gastou R$ {monthly_expense - monthly_income:.2f} a mais do que ganhou."
+    elif economy_pct >= 80:
+        economy_status = 'warning'
+        economy_message = "Atenção! Você já gastou a maior parte da sua renda neste mês."
+    else:
+        economy_status = 'success'
+        economy_message = "Você está no verde! Seus gastos estão controlados."
 
     recent_transactions = base_tx_qs.filter(
         date__range=(month_ctx['start_date'], month_ctx['end_date'])
@@ -108,6 +137,7 @@ def dashboard_view(request):
     chart_labels = []
     chart_incomes = []
     chart_expenses = []
+    chart_balances = []
 
     for i in range(5, -1, -1):
         m_num = current_month_num - i
@@ -120,14 +150,22 @@ def dashboard_view(request):
         chart_labels.append(m_ctx['month_label'])
         m_key = f"{y_num}-{m_num:02d}"
         
-        chart_incomes.append(float(stats_dict.get(m_key, {}).get('income', 0)))
-        chart_expenses.append(float(stats_dict.get(m_key, {}).get('expense', 0)))
+        inc = float(stats_dict.get(m_key, {}).get('income', 0))
+        exp = float(stats_dict.get(m_key, {}).get('expense', 0))
+        chart_incomes.append(inc)
+        chart_expenses.append(exp)
+        chart_balances.append(inc - exp)
 
     context = {
         'total_balance': total_balance,
+        'total_expected_balance': total_expected_balance,
         'monthly_income': monthly_income,
         'monthly_expense': monthly_expense,
         'monthly_net_balance': monthly_net_balance,
+        'economy_pct': economy_pct,
+        'economy_pct_clamped': economy_pct_clamped,
+        'economy_status': economy_status,
+        'economy_message': economy_message,
         'accounts': accounts,
         'selected_account_id': str(selected_account.id) if selected_account else '',
         'recent_transactions': recent_transactions,
@@ -140,6 +178,7 @@ def dashboard_view(request):
         'chart_labels': chart_labels,
         'chart_incomes': [float(v) for v in chart_incomes],
         'chart_expenses': [float(v) for v in chart_expenses],
+        'chart_balances': [float(v) for v in chart_balances],
     }
     return render(request, 'dashboard.html', context)
 

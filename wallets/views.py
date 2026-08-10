@@ -9,7 +9,14 @@ from .models import Account, CreditCardDetails
 @login_required(login_url='users_web:login')
 def account_list_view(request):
 
-    accounts = Account.objects.filter(user=request.user).select_related('credit_card_details')
+    accounts_qs = Account.objects.filter(user=request.user).select_related('credit_card_details')
+    from wallets.services import calculate_expected_balance
+    
+    accounts = []
+    for account in accounts_qs:
+        account.expected_balance = calculate_expected_balance(account)
+        accounts.append(account)
+        
     context = {
         'accounts': accounts,
     }
@@ -42,6 +49,7 @@ def account_create_view(request):
                     closing_day=cd['closing_day'],
                     due_day=cd['due_day'],
                 )
+            messages.success(request, "Conta criada com sucesso!")
             return redirect('wallets_web:list')
         else:
             messages.error(request, f"Erro ao criar conta: {form.errors.as_text()}")
@@ -55,7 +63,7 @@ def account_confirm_delete_view(request, pk):
     account = get_object_or_404(Account, pk=pk, user=request.user)
     context = {
         'title': 'Excluir Conta',
-        'message': f"Tem certeza que deseja excluir a conta '{account.name}'? Todas as transações associadas a esta conta também serão afetadas.",
+        'message': f"Tem certeza que deseja excluir a conta '{account.name}'? Isso vai excluir TODAS as transações relacionadas a essa conta.",
         'action_url': reverse('wallets_web:delete', args=[account.id]),
     }
     return render(request, 'partials/confirm_modal.html', context)
@@ -63,11 +71,13 @@ def account_confirm_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def account_delete_view(request, pk):
+    from django.contrib import messages
     account = get_object_or_404(Account, pk=pk, user=request.user)
     if request.method == 'POST' or request.headers.get('HX-Request'):
+        account_name = account.name
         account.delete()
+        messages.success(request, f"Conta '{account_name}' e todas as suas transações foram excluídas.")
     return redirect('wallets_web:list')
-
 
 @login_required(login_url='users_web:login')
 def bill_detail_view(request, pk):

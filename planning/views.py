@@ -19,7 +19,8 @@ def planning_list_view(request):
     for goal in raw_goals:
         pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0
         goal.percentage = round(pct, 1)
-        goal.bounded_pct = min(100, int(pct))
+        goal.bounded_pct = min(100, pct)
+        goal.bounded_pct_str = str(round(goal.bounded_pct, 2))
         goals.append(goal)
 
     budgets = []
@@ -28,6 +29,7 @@ def planning_list_view(request):
         budget.spent = prog['spent']
         budget.percentage = round(prog['real_percentage'], 1)
         budget.bounded_pct = prog['percentage']
+        budget.bounded_pct_str = str(round(prog['percentage'], 2))
         budget.remaining = prog['remaining']
         budgets.append(budget)
 
@@ -55,6 +57,9 @@ def budget_create_view(request):
             start_date=start_date,
             end_date=end_date,
         )
+        if request.headers.get('HX-Request'):
+            from django.http import HttpResponse
+            return HttpResponse("")
         return redirect('planning_web:list')
 
     return render(request, 'planning/partials/budget_form.html', {'categories': categories})
@@ -76,7 +81,10 @@ def budget_delete_view(request, pk):
     budget = get_object_or_404(Budget, pk=pk, user=request.user)
     if request.method == 'POST' or request.headers.get('HX-Request'):
         budget.delete()
-    return redirect('planning_web:list')
+        if request.headers.get('HX-Request'):
+            from django.http import HttpResponse
+            return HttpResponse("")
+        return redirect('planning_web:list')
 
 
 @login_required(login_url='users_web:login')
@@ -96,6 +104,9 @@ def goal_create_view(request):
             start_date=start_date,
             end_date=end_date,
         )
+        if request.headers.get('HX-Request'):
+            from django.http import HttpResponse
+            return HttpResponse("")
         return redirect('planning_web:list')
 
     return render(request, 'planning/partials/goal_form.html')
@@ -110,6 +121,9 @@ def goal_deposit_view(request, pk):
             Goal.objects.filter(pk=goal.pk).update(
                 current_amount=models.F('current_amount') + amount
             )
+        if request.headers.get('HX-Request'):
+            from django.http import HttpResponse
+            return HttpResponse("")
         return redirect('planning_web:list')
 
     return render(request, 'planning/partials/goal_deposit_form.html', {'goal': goal})
@@ -131,4 +145,7 @@ def goal_delete_view(request, pk):
     goal = get_object_or_404(Goal, pk=pk, user=request.user)
     if request.method == 'POST' or request.headers.get('HX-Request'):
         goal.delete()
-    return redirect('planning_web:list')
+        if request.headers.get('HX-Request'):
+            from django.http import HttpResponse
+            return HttpResponse("")
+        return redirect('planning_web:list')

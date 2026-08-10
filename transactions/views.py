@@ -40,7 +40,13 @@ def transaction_list_view(request):
     if status:
         qs = qs.filter(status=status)
     if search:
-        qs = qs.filter(description__icontains=search)
+        from django.db.models import Q
+        qs = qs.filter(
+            Q(description__icontains=search) | 
+            Q(tags__name__icontains=search) |
+            Q(category__name__icontains=search) |
+            Q(account__name__icontains=search)
+        ).distinct()
 
     if start_date or end_date:
         if start_date:
@@ -100,9 +106,14 @@ def transaction_create_view(request):
                     recurring_end_date=cd['recurring_end_date']
                 )
                 if request.headers.get('HX-Request'):
+                    import json
                     response = HttpResponse(status=204)
-                    response['HX-Trigger'] = 'reload-transactions'
+                    response['HX-Trigger'] = json.dumps({
+                        'reload-transactions': '',
+                        'show-toast': {'message': 'Transferência criada com sucesso!', 'type': 'success'}
+                    })
                     return response
+                messages.success(request, "Transferência criada com sucesso!")
                 return redirect('transactions_web:list')
             else:
                 messages.error(request, f"Erro na transferência: {form.errors.as_text()}")
@@ -126,9 +137,14 @@ def transaction_create_view(request):
                 recurring_end_date=cd['recurring_end_date']
             )
             if request.headers.get('HX-Request'):
+                import json
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = 'reload-transactions'
+                response['HX-Trigger'] = json.dumps({
+                    'reload-transactions': '',
+                    'show-toast': {'message': 'Transação criada com sucesso!', 'type': 'success'}
+                })
                 return response
+            messages.success(request, "Transação criada com sucesso!")
             return redirect('transactions_web:list')
         else:
             messages.error(request, f"Erro ao criar transação: {form.errors.as_text()}")
@@ -168,14 +184,25 @@ def transaction_delete_view(request, pk):
     delete_mode = request.POST.get('delete_mode', 'single')
     
     if tx.recurring:
+        import datetime
         if delete_mode == 'future':
             Transaction.objects.filter(recurring=tx.recurring, date__gte=tx.date).delete()
+            tx.recurring.end_date = tx.date - datetime.timedelta(days=1)
+            tx.recurring.save(update_fields=['end_date'])
         elif delete_mode == 'all':
             Transaction.objects.filter(recurring=tx.recurring).delete()
+            tx.recurring.active = False
+            tx.recurring.save(update_fields=['active'])
         else:
+            date_str = str(tx.date)
+            if date_str not in tx.recurring.ignored_dates:
+                tx.recurring.ignored_dates.append(date_str)
+                tx.recurring.save(update_fields=['ignored_dates'])
             tx.delete()
     else:
         tx.delete()
+        
+    messages.success(request, "Transação excluída com sucesso.")
 
     if request.headers.get('HX-Request'):
         return HttpResponse("")
@@ -205,6 +232,7 @@ def category_create_view(request):
             cat = form.save(commit=False)
             cat.user = request.user
             cat.save()
+            messages.success(request, "Categoria criada com sucesso!")
             return redirect('transactions_web:category_list')
         else:
             messages.error(request, f"Erro ao criar categoria: {form.errors.as_text()}")
@@ -218,7 +246,7 @@ def category_confirm_delete_view(request, pk):
     cat = get_object_or_404(Category, pk=pk, user=request.user)
     context = {
         'title': 'Excluir Categoria',
-        'message': f"Tem certeza que deseja excluir a categoria '{cat.name}'?",
+        'message': f"Tem certeza que deseja excluir a categoria '{cat.name}'? Isso vai excluir TODAS as transações relacionadas a essa categoria.",
         'action_url': reverse('transactions_web:category_delete', args=[cat.id]),
     }
     return render(request, 'partials/confirm_modal.html', context)
@@ -226,9 +254,12 @@ def category_confirm_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def category_delete_view(request, pk):
+    from django.contrib import messages
     cat = get_object_or_404(Category, pk=pk, user=request.user)
     if request.method == 'POST' or request.headers.get('HX-Request'):
+        cat_name = cat.name
         cat.delete()
+        messages.success(request, f"Categoria '{cat_name}' e todas as suas transações foram excluídas.")
     return redirect('transactions_web:category_list')
 
 
@@ -242,6 +273,7 @@ def tag_create_view(request):
             tag = form.save(commit=False)
             tag.user = request.user
             tag.save()
+            messages.success(request, "Tag criada com sucesso!")
             return redirect('transactions_web:category_list')
         else:
             messages.error(request, f"Erro ao criar tag: {form.errors.as_text()}")
@@ -265,7 +297,10 @@ def tag_confirm_delete_view(request, pk):
 def tag_delete_view(request, pk):
     tag = get_object_or_404(Tag, pk=pk, user=request.user)
     if request.method == 'POST' or request.headers.get('HX-Request'):
+        tag_name = tag.name
         tag.delete()
+        from django.contrib import messages
+        messages.success(request, f"Tag '{tag_name}' excluída com sucesso.")
     return redirect('transactions_web:category_list')
 
 
@@ -322,6 +357,8 @@ def recurring_create_view(request):
                 recurring=recurring,
             )
 
+        from django.contrib import messages
+        messages.success(request, "Transação recorrente criada com sucesso!")
         return redirect('transactions_web:recurring_list')
 
     context = {
@@ -393,108 +430,3 @@ def transfer_create_view(request):
         return redirect('transactions_web:list')
 
     return render(request, 'transactions/partials/transfer_form.html', {'accounts': accounts})
-
-# Import Views
-@login_required(login_url='users_web:login')
-def import_upload_view(request):
-    if request.method == 'POST':
-        account_id = request.POST.get('account_id')
-        file = request.FILES.get('file')
-        if not file or not account_id:
-            messages.error(request, 'Por favor, selecione uma conta e um arquivo.')
-            return redirect('transactions_web:import_upload')
-            
-        from transactions.services import parse_statement_file
-        try:
-            transactions = parse_statement_file(file.read(), file.name)
-            request.session['import_data'] = transactions
-            request.session['import_account_id'] = account_id
-            return redirect('transactions_web:import_preview')
-        except Exception as e:
-            messages.error(request, f'Erro ao ler o arquivo: {str(e)}')
-            return redirect('transactions_web:import_upload')
-            
-    accounts = Account.objects.filter(user=request.user)
-    return render(request, 'transactions/import_upload.html', {'accounts': accounts})
-
-@login_required(login_url='users_web:login')
-def import_preview_view(request):
-    import_data = request.session.get('import_data')
-    account_id = request.session.get('import_account_id')
-    
-    if not import_data or not account_id:
-        return redirect('transactions_web:import_upload')
-        
-    account = get_object_or_404(Account, id=account_id, user=request.user)
-    categories = Category.objects.filter(user=request.user)
-    
-    from transactions.services import guess_category
-    
-    for tx in import_data:
-        if 'category_id' not in tx:
-            tx['category_id'] = guess_category(tx['description'], request.user)
-            
-    # save back to session with guesses
-    request.session['import_data'] = import_data
-    
-    context = {
-        'account': account,
-        'transactions': import_data,
-        'categories': categories,
-    }
-    return render(request, 'transactions/import_preview.html', context)
-
-@login_required(login_url='users_web:login')
-def import_process_view(request):
-    import_data = request.session.get('import_data')
-    account_id = request.session.get('import_account_id')
-    
-    if not import_data or not account_id:
-        return redirect('transactions_web:import_upload')
-        
-    account = get_object_or_404(Account, id=account_id, user=request.user)
-    
-    if request.method == 'POST':
-        selected_ids = request.POST.getlist('selected_transactions')
-        
-        imported_count = 0
-        from django.db import transaction as db_transaction
-        
-        with db_transaction.atomic():
-            for tx in import_data:
-                orig_id = str(tx.get('original_id'))
-                if orig_id in selected_ids:
-                    cat_id_str = request.POST.get(f"category_{orig_id}")
-                    cat = None
-                    if cat_id_str:
-                        cat = Category.objects.filter(id=cat_id_str, user=request.user).first()
-                    
-                    if not cat:
-                        cat, _ = Category.objects.get_or_create(
-                            user=request.user,
-                            name="Outros (Importado)",
-                            defaults={"type": tx['type'], "color": "#9ca3af"}
-                        )
-                        
-                    Transaction.objects.create(
-                        user=request.user,
-                        account=account,
-                        category=cat,
-                        description=tx['description'],
-                        amount=Decimal(tx['amount']),
-                        date=tx['date'],
-                        status=Transaction.Statuses.COMPLETED
-                    )
-                    imported_count += 1
-                    
-        # Recalculate balance is now handled by signals
-
-        
-        # Clear session
-        del request.session['import_data']
-        del request.session['import_account_id']
-        
-        messages.success(request, f'{imported_count} transações importadas com sucesso!')
-        return redirect('transactions_web:list')
-        
-    return redirect('transactions_web:import_preview')

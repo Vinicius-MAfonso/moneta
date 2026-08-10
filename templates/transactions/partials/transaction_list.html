@@ -23,24 +23,34 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 dark:divide-slate-800/60">
-                {% for tx in transactions %}
+                {% regroup transactions by date as tx_by_date %}
+                {% for day in tx_by_date %}
+                    <tr class="bg-slate-50 dark:bg-slate-800/30">
+                        <td colspan="8" class="px-4 py-2 text-[11px] uppercase tracking-wider font-extrabold text-slate-500 dark:text-slate-400">
+                            {{ day.grouper|date:"d M Y" }}
+                        </td>
+                    </tr>
+                    {% for tx in day.list %}
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition id-tx-{{ tx.id }}">
                         <td class="px-4 py-3.5 font-medium text-slate-900 dark:text-slate-200">{{ tx.description }}</td>
                         <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">
                             <span class="px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50" style="border-left: 3px solid {{ tx.category.color }};">
-                                {{ tx.category.name }}
+                                {% if tx.category.icon %}{{ tx.category.icon }} {% endif %}{{ tx.category.name }}
                             </span>
                         </td>
                         <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">
                             <div class="flex items-center space-x-2">
-                                <div class="w-2 h-2 rounded-full" style="background-color: {{ tx.account.color }};"></div>
+                                <div class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ tx.account.color }};"></div>
                                 <span>{{ tx.account.name }}</span>
                             </div>
                         </td>
                         <td class="px-4 py-3.5 text-xs">
                             <div class="flex flex-wrap gap-1">
                                 {% for tag in tx.tags.all %}
-                                    <span class="px-2 py-0.5 rounded-md text-[11px] font-semibold border" style="background-color: {{ tag.color }}15; border-color: {{ tag.color }}40; color: {{ tag.color }};">{{ tag.name }}</span>
+                                    <span class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border text-slate-800 dark:text-slate-200 shadow-sm" style="background-color: {{ tag.color }}20; border-color: {{ tag.color }}50;">
+                                        <span class="w-1.5 h-1.5 rounded-full shadow-sm" style="background-color: {{ tag.color }}; border: 1px solid {{ tag.color }}80;"></span>
+                                        <span>{{ tag.name }}</span>
+                                    </span>
                                 {% empty %}
                                     <span class="text-slate-400 dark:text-slate-600">-</span>
                                 {% endfor %}
@@ -61,6 +71,7 @@
                             </button>
                         </td>
                     </tr>
+                    {% endfor %}
                 {% empty %}
                     <tr>
                         <td colspan="8" class="px-4 py-12 text-center text-slate-500">Nenhuma transação encontrada para os filtros selecionados.</td>

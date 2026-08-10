@@ -9,7 +9,7 @@ class AccountForm(forms.ModelForm):
 
     class Meta:
         model = Account
-        fields = ['name', 'type', 'institution', 'balance', 'color']
+        fields = ['name', 'type', 'institution', 'balance', 'color', 'icon']
 
     def clean(self):
         cleaned_data = super().clean()

@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -19,6 +20,7 @@ class Account(models.Model):
     balance = models.DecimalField(max_digits=20, decimal_places=2, default=0.00, verbose_name='saldo')
     initial_balance = models.DecimalField(max_digits=20, decimal_places=2, default=0.00, verbose_name='saldo inicial')
     color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
+    icon = models.CharField(max_length=5, blank=True, null=True, verbose_name='ícone')
     active = models.BooleanField(default=True, verbose_name='ativa')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
@@ -54,6 +56,20 @@ class CreditCardDetails(models.Model):
     class Meta:
         verbose_name = 'detalhes do cartão de crédito'
         verbose_name_plural = 'detalhes dos cartões de crédito'
+
+    @property
+    def used_limit(self):
+        return max(Decimal('0.00'), self.limit - self.available_limit)
+
+    @property
+    def limit_usage_pct(self):
+        if self.limit > 0:
+            return round((self.used_limit / self.limit) * 100, 2)
+        return Decimal('0.00')
+        
+    @property
+    def limit_usage_pct_str(self):
+        return str(self.limit_usage_pct)
 
     def clean(self):
         super().clean()

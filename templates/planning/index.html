@@ -46,7 +46,7 @@
                                 <span class="font-bold text-indigo-600 dark:text-indigo-400">R$ {{ goal.current_amount|floatformat:2 }} / R$ {{ goal.target_amount|floatformat:2 }}</span>
                             </div>
                             <div class="w-full bg-slate-200 dark:bg-slate-900 h-2.5 rounded-full overflow-hidden border border-slate-300 dark:border-slate-800">
-                                <div class="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full transition-all duration-300" style="width: {{ goal.bounded_pct }}%;"></div>
+                                <div class="bg-gradient-to-r from-indigo-500 to-violet-500 h-full rounded-full transition-all duration-300" style="width: {{ goal.bounded_pct_str }}%;"></div>
                             </div>
                         </div>
                     </div>
@@ -91,7 +91,7 @@
                             <span class="text-xs font-bold text-slate-500 dark:text-slate-400">Teto: R$ {{ budget.amount|floatformat:2 }}</span>
                         </div>
                         <div class="w-full bg-slate-200 dark:bg-slate-900 h-2 rounded-full overflow-hidden border border-slate-300 dark:border-slate-800">
-                            <div class="h-full rounded-full transition-all duration-300 {% if budget.bounded_pct >= 100 %}bg-rose-500{% elif budget.bounded_pct >= 80 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ budget.bounded_pct }}%;"></div>
+                            <div class="h-full rounded-full transition-all duration-300 {% if budget.bounded_pct >= 100 %}bg-rose-500{% elif budget.bounded_pct >= 80 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ budget.bounded_pct_str }}%;"></div>
                         </div>
                         <div class="flex justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                             <span>{{ budget.percentage }}% utilizado</span>
