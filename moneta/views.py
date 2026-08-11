@@ -54,16 +54,19 @@ def dashboard_view(request):
         # total_balance and total_expected_balance already summed
         base_tx_qs = Transaction.objects.filter(user=user)
 
+    from django.db.models import Q
+    status_q = Q(status=Transaction.Statuses.COMPLETED) | (Q(status=Transaction.Statuses.PENDING) & Q(account__type=Account.Types.CREDIT_CARD))
+
     monthly_income = base_tx_qs.filter(
+        status_q,
         category__type=TransactionType.INCOME,
         date__range=(month_ctx['start_date'], month_ctx['end_date']),
-        status=Transaction.Statuses.COMPLETED
     ).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
 
     monthly_expense = base_tx_qs.filter(
+        status_q,
         category__type=TransactionType.EXPENSE,
         date__range=(month_ctx['start_date'], month_ctx['end_date']),
-        status=Transaction.Statuses.COMPLETED
     ).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
 
     monthly_net_balance = monthly_income - monthly_expense
@@ -117,8 +120,8 @@ def dashboard_view(request):
     six_months_start = get_month_context(f"{start_y_num}-{start_m_num:02d}")['start_date']
     
     monthly_stats = base_tx_qs.filter(
+        status_q,
         date__range=(six_months_start, month_ctx['end_date']),
-        status=Transaction.Statuses.COMPLETED
     ).annotate(
         month=TruncMonth('date')
     ).values('month', 'category__type').annotate(

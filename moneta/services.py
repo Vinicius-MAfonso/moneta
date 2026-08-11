@@ -4,10 +4,13 @@ from django.db.models import Sum
 def get_category_breakdown(base_tx_qs, tx_type, start_date, end_date):
     from transactions.models import Transaction
 
+    from django.db.models import Q
+    status_q = Q(status=Transaction.Statuses.COMPLETED) | (Q(status=Transaction.Statuses.PENDING) & Q(account__type='credit_card'))
+
     qs = base_tx_qs.filter(
+        status_q,
         category__type=tx_type,
         date__range=(start_date, end_date),
-        status=Transaction.Statuses.COMPLETED
     ).values('category__name', 'category__color').annotate(total=Sum('amount')).order_by('-total')
     
     total_amount = sum(item['total'] for item in qs)
@@ -36,18 +39,21 @@ def get_report_data(user, start_date, end_date):
         date__lte=end_date,
     ).select_related('category', 'account')
 
-    completed_txs = transactions.filter(status=Transaction.Statuses.COMPLETED)
+    from django.db.models import Q
+    status_q = Q(status=Transaction.Statuses.COMPLETED) | (Q(status=Transaction.Statuses.PENDING) & Q(account__type='credit_card'))
 
-    total_income = completed_txs.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    total_expense = completed_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    completed_or_cc_txs = transactions.filter(status_q).exclude(category__type=TransactionType.TRANSFER)
+
+    total_income = completed_or_cc_txs.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    total_expense = completed_or_cc_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     net_savings = total_income - total_expense
 
-    expenses_by_category = get_category_breakdown(completed_txs, TransactionType.EXPENSE, start_date, end_date)
+    expenses_by_category = get_category_breakdown(completed_or_cc_txs, TransactionType.EXPENSE, start_date, end_date)
 
     delta_days = (end_date - start_date).days
     
     timeline_dict = {}
-    for tx in completed_txs:
+    for tx in completed_or_cc_txs:
         tx_date = tx.date
         if delta_days <= 60:
             p_key = tx_date.strftime('%Y-%m-%d')
@@ -82,7 +88,7 @@ def get_report_data(user, start_date, end_date):
             timeline_incomes.append(float(timeline_dict[p_key]['income']))
             timeline_expenses.append(float(timeline_dict[p_key]['expense']))
 
-    top_transactions = completed_txs.filter(category__type=TransactionType.EXPENSE).order_by('-amount')[:10]
+    top_transactions = completed_or_cc_txs.filter(category__type=TransactionType.EXPENSE).order_by('-amount')[:10]
 
     return {
         'total_income': total_income,

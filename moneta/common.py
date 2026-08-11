@@ -81,10 +81,13 @@ def get_month_calendar_grid(user, start_date, end_date, account=None):
 
     from transactions.models import Transaction
 
+    from django.db.models import Q
+    status_q = Q(status=Transaction.Statuses.COMPLETED) | (Q(status=Transaction.Statuses.PENDING) & Q(account__type='credit_card'))
+
     qs = Transaction.objects.filter(
+        status_q,
         user=user,
         date__range=(start_date, end_date),
-        status=Transaction.Statuses.COMPLETED
     )
     if account:
         qs = qs.filter(account=account)

@@ -1,7 +1,9 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.core.mail import send_mail
+from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 
 from planning.models import Goal
 from wallets.models import CreditCardBill
@@ -25,20 +27,27 @@ def check_and_send_alerts():
     for bill in bills_due_tomorrow:
         user = bill.account.user
         if user.email:
+            context = {
+                'user_name': user.first_name or user.username,
+                'account_name': bill.account.name,
+                'due_date': bill.due_date.strftime('%d/%m/%Y'),
+                'login_url': f"{settings.SITE_URL.rstrip('/')}/users/login/"
+            }
             subject = f"Alerta Moneta: Fatura do cartão {bill.account.name} vence amanhã!"
-            message = (
-                f"Olá {user.first_name or user.username},\n\n"
-                f"A sua fatura do cartão {bill.account.name} vence amanhã ({bill.due_date.strftime('%d/%m/%Y')}).\n"
-                f"Não se esqueça de pagar para evitar juros!\n\n"
-                f"Equipe Moneta"
-            )
-            send_mail(
+            text_content = render_to_string('moneta/emails/bill_due_body.txt', context)
+            html_content = render_to_string('moneta/emails/bill_due_body_html.html', context)
+            
+            msg = EmailMultiAlternatives(
                 subject,
-                message,
-                'naoresponda@moneta.com.br',
-                [user.email],
-                fail_silently=True,
+                text_content,
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email]
             )
+            msg.attach_alternative(html_content, "text/html")
+            try:
+                msg.send(fail_silently=True)
+            except Exception:
+                pass
         # Marca como notificado mesmo se não tiver e-mail, para não tentarmos novamente
         bill.is_due_tomorrow_notified = True
         bill.save(update_fields=['is_due_tomorrow_notified'])
@@ -51,19 +60,27 @@ def check_and_send_alerts():
         if goal.target_amount > 0 and goal.current_amount >= (goal.target_amount * Decimal('0.9')) and goal.current_amount < goal.target_amount:
             user = goal.user
             if user.email:
+                context = {
+                    'user_name': user.first_name or user.username,
+                    'goal_name': goal.name,
+                    'current_amount': f"{goal.current_amount:.2f}".replace('.', ','),
+                    'target_amount': f"{goal.target_amount:.2f}".replace('.', ','),
+                    'login_url': f"{settings.SITE_URL.rstrip('/')}/users/login/"
+                }
                 subject = f"Alerta Moneta: Sua meta '{goal.name}' está quase lá!"
-                message = (
-                    f"Olá {user.first_name or user.username},\n\n"
-                    f"Parabéns! Você já atingiu {goal.current_amount} de {goal.target_amount} na sua meta '{goal.name}'.\n"
-                    f"Falta muito pouco para você completar esse objetivo!\n\n"
-                    f"Equipe Moneta"
-                )
-                send_mail(
+                text_content = render_to_string('moneta/emails/goal_near_body.txt', context)
+                html_content = render_to_string('moneta/emails/goal_near_body_html.html', context)
+                
+                msg = EmailMultiAlternatives(
                     subject,
-                    message,
-                    'naoresponda@moneta.com.br',
-                    [user.email],
-                    fail_silently=True,
+                    text_content,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email]
                 )
+                msg.attach_alternative(html_content, "text/html")
+                try:
+                    msg.send(fail_silently=True)
+                except Exception:
+                    pass
             goal.is_near_target_notified = True
             goal.save(update_fields=['is_near_target_notified'])

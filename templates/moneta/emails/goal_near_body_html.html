@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bem-vindo ao Moneta</title>
+    <title>Meta quase lá!</title>
 </head>
 
 <body
@@ -18,7 +18,7 @@
 
                     <!-- Header -->
                     <tr>
-                        <td align="center" style="background-color: #4f46e5; padding: 40px 20px;">
+                        <td align="center" style="background-color: #10b981; padding: 40px 20px;">
                             <h1
                                 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">
                                 Moneta</h1>
@@ -30,14 +30,12 @@
                         <td style="padding: 40px 40px 20px 40px;">
                             <h2
                                 style="color: #0f172a; font-size: 20px; margin-top: 0; margin-bottom: 20px; font-weight: 700;">
-                                Olá, {{ user_name }}! 🎉</h2>
+                                Olá, {{ user_name }}! 🎯</h2>
                             <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                                Temos uma ótima notícia: a sua conta no <strong>Moneta</strong> acabou de ser aprovada
-                                pelo administrador!
+                                Parabéns! Você já atingiu <strong>R$ {{ current_amount }}</strong> de <strong>R$ {{ target_amount }}</strong> na sua meta <strong>"{{ goal_name }}"</strong>.
                             </p>
                             <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                                Você já pode acessar a plataforma, adicionar suas contas bancárias e começar a
-                                acompanhar de perto para onde vai o seu dinheiro.
+                                Falta muito pouco para você completar esse objetivo! Continue assim e logo você chegará lá.
                             </p>
 
                             <table width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -45,16 +43,11 @@
                                     <td align="center" style="padding-bottom: 32px;">
                                         <a href="{{ login_url }}"
                                             style="display: inline-block; background-color: #4f46e5; color: #ffffff; font-weight: bold; font-size: 16px; text-decoration: none; padding: 14px 32px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
-                                            Acessar Minha Conta
+                                            Ver Minhas Metas
                                         </a>
                                     </td>
                                 </tr>
                             </table>
-
-                            <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin-bottom: 0;">
-                                Dica: Assim que fizer o login pelo celular, não se esqueça de ativar as Notificações nas
-                                configurações para não perder o vencimento de nenhuma fatura!
-                            </p>
                         </td>
                     </tr>
 

@@ -12,25 +12,29 @@ def recalculate_account_balance(account):
     from transactions.models import Transaction, Transfer
     from wallets.models import Account
 
-    # 1. Transações concluídas normais (não-transferências)
+    status_filter = [Transaction.Statuses.COMPLETED]
+    if account.type == Account.Types.CREDIT_CARD:
+        status_filter.append(Transaction.Statuses.PENDING)
+
+    # 1. Transações normais (não-transferências)
     completed_txs = Transaction.objects.filter(
         account=account,
-        status=Transaction.Statuses.COMPLETED,
+        status__in=status_filter,
     ).exclude(category__type=TransactionType.TRANSFER)
 
     incomes = completed_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     expenses = completed_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
 
-    # 2. Transferências de saída concluídas
+    # 2. Transferências de saída (reduzem saldo / aumentam dívida do cartão)
     transfers_out = Transfer.objects.filter(
         out_transaction__account=account,
-        out_transaction__status=Transaction.Statuses.COMPLETED,
+        out_transaction__status__in=status_filter,
     ).aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
 
-    # 3. Transferências de entrada concluídas
+    # 3. Transferências de entrada (pagamentos da fatura, aumentam saldo / reduzem dívida)
     transfers_in = Transfer.objects.filter(
         in_transaction__account=account,
-        in_transaction__status=Transaction.Statuses.COMPLETED,
+        in_transaction__status__in=status_filter,
     ).aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
 
     new_balance = account.initial_balance + incomes - expenses - transfers_out + transfers_in
@@ -87,6 +91,42 @@ def calculate_expected_balance(account, end_date=None):
     transfers_in = transfers_in_qs.aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
 
     return account.balance + incomes - expenses - transfers_out + transfers_in
+
+
+def calculate_balance_at_date(user, target_date, account_id=None):
+    """
+    Calcula o saldo real cumulativo (todas contas ou conta específica) até uma data,
+    incluindo transações concluídas e pendentes ('saldo previsto' daquele dia).
+    """
+    from moneta.common import TransactionType
+    from transactions.models import Transaction, Transfer
+    from wallets.models import Account
+
+    accounts = Account.objects.filter(user=user).exclude(type=Account.Types.CREDIT_CARD)
+    if account_id:
+        accounts = accounts.filter(id=account_id)
+        
+    initial_balance = accounts.aggregate(total=models.Sum('initial_balance'))['total'] or Decimal('0.00')
+
+    txs = Transaction.objects.filter(
+        account__in=accounts,
+        date__lte=target_date
+    ).exclude(category__type=TransactionType.TRANSFER)
+
+    incomes = txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+    expenses = txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+
+    transfers_out = Transfer.objects.filter(
+        out_transaction__account__in=accounts,
+        out_transaction__date__lte=target_date
+    ).aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
+
+    transfers_in = Transfer.objects.filter(
+        in_transaction__account__in=accounts,
+        in_transaction__date__lte=target_date
+    ).aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
+
+    return initial_balance + incomes - expenses - transfers_out + transfers_in
 
 
 

@@ -1,0 +1,8 @@
+Olá, {{ user_name }}!
+
+A sua fatura do cartão {{ account_name }} vence amanhã ({{ due_date }}).
+Não se esqueça de acessar o Moneta para registrar o pagamento e evitar cobranças de juros!
+
+Acesse: {{ login_url }}
+
+Equipe Moneta

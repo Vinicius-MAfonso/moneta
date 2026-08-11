@@ -65,8 +65,26 @@ def transaction_list_view(request):
     month_expense = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
     month_net_balance = month_income - month_expense
 
+    # Agrupar transações por data e calcular saldos
+    from collections import defaultdict
+    from wallets.services import calculate_balance_at_date
+    
+    tx_dict = defaultdict(list)
+    for tx in transactions:
+        tx_dict[tx.date].append(tx)
+        
+    tx_by_date = []
+    # tx_dict is ordered if transactions are ordered? Wait, dicts keep insertion order in Python 3.7+
+    for date, tx_list in tx_dict.items():
+        tx_by_date.append({
+            'date': date,
+            'list': tx_list,
+            'balance': calculate_balance_at_date(request.user, date, account_id)
+        })
+
     context = {
-        'transactions': transactions,
+        'transactions': transactions,  # Mantemos pra compatibilidade caso algum JS ou outra parte precise
+        'tx_by_date': tx_by_date,
         'accounts': Account.objects.filter(user=request.user),
         'categories': Category.objects.filter(user=request.user),
         'month_info': month_ctx,
