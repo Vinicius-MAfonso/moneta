@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from wallets.models import Account
 
+
 @login_required(login_url='users_web:login')
 def account_list_view(request):
 
@@ -52,10 +53,21 @@ def account_create_view(request):
                     closing_day=cd['closing_day'],
                     due_day=cd['due_day'],
                 )
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Conta criada com sucesso!', 'type': 'success'}})
+                return response
             messages.success(request, "Conta criada com sucesso!")
             return redirect('wallets_web:list')
         else:
-            messages.error(request, f"Erro ao criar conta: {form.errors.as_text()}")
+            error_msg = form.errors.as_text()
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})
+                return response
+            messages.error(request, f"Erro ao criar conta: {error_msg}")
             return redirect('wallets_web:list')
 
     return render(request, 'wallets/partials/account_form.html')
@@ -64,6 +76,7 @@ def account_create_view(request):
 @login_required(login_url='users_web:login')
 def account_update_view(request, pk):
     from django.contrib import messages
+
     from .forms import AccountForm
 
     account = get_object_or_404(Account, pk=pk, user=request.user)
@@ -96,11 +109,20 @@ def account_update_view(request, pk):
             from wallets.services import recalculate_account_balance
             recalculate_account_balance(account)
 
-            messages.success(request, "Conta atualizada com sucesso!")
             if request.headers.get('HX-Request'):
-                return HttpResponse()
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Conta atualizada com sucesso!', 'type': 'success'}})
+                return response
+            messages.success(request, "Conta atualizada com sucesso!")
             return redirect('wallets_web:list')
         else:
+            error_msg = form.errors.as_text()
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})
+                return response
             context = {'account': account, 'form': form}
             return render(request, 'wallets/partials/account_form.html', context)
 
@@ -112,10 +134,11 @@ def account_update_view(request, pk):
 @login_required(login_url='users_web:login')
 def account_balance_adjustment_view(request, pk):
     from django.contrib import messages
-    from wallets.services import recalculate_account_balance
-    from transactions.models import Category, Transaction
-    from moneta.common import TransactionType
     from django.utils import timezone
+
+    from moneta.common import TransactionType
+    from transactions.models import Category, Transaction
+    from wallets.services import recalculate_account_balance
 
     account = get_object_or_404(Account, pk=pk, user=request.user)
 

@@ -37,6 +37,7 @@
             </div>
 
 
+
             <!-- Submit Button -->
             <div class="flex justify-end pt-4">
                 <button type="submit" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-600/25">
@@ -44,6 +45,27 @@
                 </button>
             </div>
         </form>
+    </div>
+
+    <!-- Notifications Panel -->
+    <div class="glass-panel p-6 rounded-2xl">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                <span>Notificações de Vencimento</span>
+            </h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Receba alertas no seu celular quando uma conta estiver prestes a vencer.</p>
+        </div>
+        
+        <div class="mt-5 flex justify-between items-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl">
+            <div>
+                <p class="text-sm font-semibold text-slate-900 dark:text-slate-100" id="push-status">Status: Não Configurado</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Clique em ativar para dar permissão ao navegador.</p>
+            </div>
+            <button type="button" id="btn-subscribe" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all shadow-lg shadow-emerald-600/25">
+                Ativar Notificações
+            </button>
+        </div>
     </div>
 
     <!-- OFX Import Panel -->
@@ -70,4 +92,106 @@
     </div>
 
 </div>
+
+<script>
+    const vapidPublicKey = '{{ vapid_public_key }}';
+    const btnSubscribe = document.getElementById('btn-subscribe');
+    const statusText = document.getElementById('push-status');
+
+    function urlB64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+
+    async function subscribeUser() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            alert('Push Notifications não são suportadas neste navegador.');
+            return;
+        }
+
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                alert('Você precisa permitir as notificações no seu navegador clicando no ícone de cadeado na barra de endereços.');
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.ready;
+            
+            let subscription = await registration.pushManager.getSubscription();
+            if (subscription) {
+                // Já está inscrito - VAMOS DESINSCREVER
+                await subscription.unsubscribe();
+                
+                // Envia para o backend para apagar
+                const response = await fetch("{% url 'users_web:delete_push_subscription' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({ endpoint: subscription.endpoint })
+                });
+
+                if (response.ok) {
+                    statusText.innerText = 'Status: Não Configurado';
+                    statusText.className = 'text-sm font-semibold text-slate-900 dark:text-slate-100';
+                    btnSubscribe.innerText = 'Ativar Notificações';
+                    btnSubscribe.className = 'px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all shadow-lg shadow-emerald-600/25';
+                } else {
+                    alert('Erro ao remover inscrição no servidor.');
+                }
+                return;
+            }
+
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlB64ToUint8Array(vapidPublicKey)
+            });
+
+            // Envia para o backend
+            const response = await fetch("{% url 'users_web:save_push_subscription' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(subscription)
+            });
+
+            if (response.ok) {
+                statusText.innerText = 'Status: Ativo';
+                statusText.className = 'text-sm font-semibold text-emerald-600 dark:text-emerald-400';
+                btnSubscribe.innerText = 'Desativar Notificações';
+                btnSubscribe.className = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition-all shadow-lg shadow-rose-600/25';
+            } else {
+                alert('Erro ao salvar inscrição no servidor.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Falha ao processar notificações: ' + error.message);
+        }
+    }
+
+    btnSubscribe.addEventListener('click', subscribeUser);
+    
+    // Check initial status
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+        navigator.serviceWorker.ready.then(async (reg) => {
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                statusText.innerText = 'Status: Ativo';
+                statusText.className = 'text-sm font-semibold text-emerald-600 dark:text-emerald-400';
+                btnSubscribe.innerText = 'Desativar Notificações';
+                btnSubscribe.className = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition-all shadow-lg shadow-rose-600/25';
+            }
+        });
+    }
+</script>
 {% endblock %}

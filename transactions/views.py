@@ -95,19 +95,32 @@ def transaction_create_view(request):
             form = TransferForm(request.POST, user=request.user)
             if form.is_valid():
                 cd = form.cleaned_data
-                create_transfer(
-                    user=request.user,
-                    out_account_id=cd['out_account'],
-                    in_account_id=cd['in_account'],
-                    description=cd['description'],
-                    amount=cd['amount'],
-                    tx_date=cd['date'],
-                    status=cd.get('status', 'concluída'),
-                    tag_ids=[t.id for t in cd['tags']],
-                    is_recurring=cd['is_recurring'],
-                    frequency=cd['frequency'],
-                    recurring_end_date=cd['recurring_end_date']
-                )
+                from django.core.exceptions import ValidationError
+                try:
+                    create_transfer(
+                        user=request.user,
+                        out_account_id=cd['out_account'],
+                        in_account_id=cd['in_account'],
+                        description=cd['description'],
+                        amount=cd['amount'],
+                        tx_date=cd['date'],
+                        status=cd.get('status', 'concluída'),
+                        tag_ids=[t.id for t in cd['tags']],
+                        is_recurring=cd['is_recurring'],
+                        frequency=cd['frequency'],
+                        recurring_end_date=cd['recurring_end_date']
+                    )
+                except ValidationError as e:
+                    error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
+                    if request.headers.get('HX-Request'):
+                        import json
+                        response = HttpResponse(status=204)
+                        response['HX-Trigger'] = json.dumps({
+                            'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                        })
+                        return response
+                    messages.error(request, f"Erro na transferência: {error_msg}")
+                    return redirect('transactions_web:list')
                 if request.headers.get('HX-Request'):
                     import json
                     response = HttpResponse(status=204)
@@ -134,20 +147,32 @@ def transaction_create_view(request):
         form = TransactionForm(request.POST, user=request.user)
         if form.is_valid():
             cd = form.cleaned_data
-            create_regular_transaction(
-                user=request.user,
-                account_id=cd['account'],
-                category_id=cd['category'],
-                description=cd['description'],
-                amount=cd['amount'],
-                tx_date=cd['date'],
-                status=cd['status'],
-                tag_ids=[t.id for t in cd['tags']],
-                is_recurring=cd['is_recurring'],
-                frequency=cd['frequency'],
-                recurring_end_date=cd['recurring_end_date'],
-                installments=cd.get('installments') or 1
-            )
+            try:
+                create_regular_transaction(
+                    user=request.user,
+                    account_id=cd['account'],
+                    category_id=cd['category'],
+                    description=cd['description'],
+                    amount=cd['amount'],
+                    tx_date=cd['date'],
+                    status=cd['status'],
+                    tag_ids=[t.id for t in cd['tags']],
+                    is_recurring=cd['is_recurring'],
+                    frequency=cd['frequency'],
+                    recurring_end_date=cd['recurring_end_date'],
+                    installments=cd.get('installments') or 1
+                )
+            except ValueError as e:
+                error_msg = str(e)
+                if request.headers.get('HX-Request'):
+                    import json
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({
+                        'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                    })
+                    return response
+                messages.error(request, f"Erro ao criar transação: {error_msg}")
+                return redirect('transactions_web:list')
             if request.headers.get('HX-Request'):
                 import json
                 response = HttpResponse(status=204)
@@ -340,10 +365,21 @@ def category_create_view(request):
             cat = form.save(commit=False)
             cat.user = request.user
             cat.save()
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Categoria criada com sucesso!', 'type': 'success'}})
+                return response
             messages.success(request, "Categoria criada com sucesso!")
             return redirect('transactions_web:category_list')
         else:
-            messages.error(request, f"Erro ao criar categoria: {form.errors.as_text()}")
+            error_msg = form.errors.as_text()
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})
+                return response
+            messages.error(request, f"Erro ao criar categoria: {error_msg}")
             return redirect('transactions_web:category_list')
 
     return render(request, 'categories/partials/category_form.html')
@@ -396,10 +432,21 @@ def tag_create_view(request):
             tag = form.save(commit=False)
             tag.user = request.user
             tag.save()
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Tag criada com sucesso!', 'type': 'success'}})
+                return response
             messages.success(request, "Tag criada com sucesso!")
             return redirect('transactions_web:category_list')
         else:
-            messages.error(request, f"Erro ao criar tag: {form.errors.as_text()}")
+            error_msg = form.errors.as_text()
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})
+                return response
+            messages.error(request, f"Erro ao criar tag: {error_msg}")
             return redirect('transactions_web:category_list')
 
     return render(request, 'categories/partials/tag_form.html')
@@ -540,15 +587,20 @@ def transfer_create_view(request):
         date = request.POST.get('date')
         status = Transaction.Statuses.COMPLETED
 
-        create_transfer(
-            user=request.user,
-            out_account_id=out_account_id,
-            in_account_id=in_account_id,
-            description=description,
-            amount=amount,
-            tx_date=date,
-            status=status
-        )
+        from django.core.exceptions import ValidationError
+        try:
+            create_transfer(
+                user=request.user,
+                out_account_id=out_account_id,
+                in_account_id=in_account_id,
+                description=description,
+                amount=amount,
+                tx_date=date,
+                status=status
+            )
+        except ValidationError as e:
+            messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
+            return redirect('transactions_web:list')
 
         return redirect('transactions_web:list')
 

@@ -198,7 +198,11 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
     with db_transaction.atomic():
         if installments > 1:
             base_amount = (amount / Decimal(installments)).quantize(Decimal('.01'))
+            if base_amount < Decimal('0.01'):
+                raise ValueError("O valor é muito pequeno para essa quantidade de parcelas.")
             remaining_amount = amount - (base_amount * (installments - 1))
+            if remaining_amount < Decimal('0.01'):
+                raise ValueError("O valor restante da última parcela seria inválido.")
             
             for i in range(1, installments + 1):
                 current_amount = base_amount if i < installments else remaining_amount

@@ -74,12 +74,25 @@ def investment_create_view(request):
         account_id = request.POST.get('account')
         name = request.POST.get('name')
         inv_type = request.POST.get('type')
-        quantity = Decimal(request.POST.get('quantity', '0'))
-        average_price = Decimal(request.POST.get('average_price', '0'))
-        current_price = Decimal(request.POST.get('current_price', '0'))
+        
+        from decimal import InvalidOperation
+        from django.core.exceptions import ValidationError
+        
+        try:
+            quantity_str = request.POST.get('quantity')
+            avg_price_str = request.POST.get('average_price')
+            cur_price_str = request.POST.get('current_price')
+            
+            quantity = Decimal(quantity_str if quantity_str else '0')
+            average_price = Decimal(avg_price_str if avg_price_str else '0')
+            current_price = Decimal(cur_price_str if cur_price_str else '0')
 
-        # Security check: ensure account belongs to user and is an investment account
-        account = get_object_or_404(Account, pk=account_id, user=request.user)
+            # Security check: ensure account belongs to user and is an investment account
+            account = get_object_or_404(Account, pk=account_id, user=request.user)
+        except (InvalidOperation, ValidationError, ValueError):
+            messages.error(request, "Valores numéricos ou conta inválidos.")
+            return redirect('investments_web:list')
+            
         if account.type != Account.Types.INVESTMENT:
             messages.error(request, "Conta inválida. Selecione uma conta de investimento.")
             return redirect('investments_web:list')

@@ -45,7 +45,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'moneta.middleware.DailyNotificationsMiddleware',
 ]
 
 ROOT_URLCONF = 'moneta.urls'
@@ -136,5 +135,11 @@ Q_CLUSTER = {
     'label': 'Django Q',
     'orm': 'default',
 }
+
+# Web Push Notifications (VAPID)
+VAPID_PRIVATE_KEY = BASE_DIR / 'private_key.pem'
+VAPID_PUBLIC_KEY = 'BP-Qh5cC00t1SidlwM99RkrqNFzOd3o_DgmEZl9TS2Z_gu6NbWVL_JbCkdZODu7j_vsnKRLL1aePwdDaeK39UbU'
+VAPID_ADMIN_EMAIL = 'mailto:admin@moneta.com'
+
 # Configuração de e-mail (Console para desenvolvimento)
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

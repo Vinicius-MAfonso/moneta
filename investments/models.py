@@ -28,6 +28,15 @@ class Investment(models.Model):
         verbose_name = 'investimento'
         verbose_name_plural = 'investimentos'
         ordering = ['-created_at']
+        constraints = [
+            models.CheckConstraint(check=models.Q(quantity__gte=0), name='investment_quantity_positive'),
+            models.CheckConstraint(check=models.Q(average_price__gte=0), name='investment_average_price_positive'),
+            models.CheckConstraint(check=models.Q(current_price__gte=0), name='investment_current_price_positive'),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} - {self.get_type_display()} ({self.quantity} @ {self.average_price})"

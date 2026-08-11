@@ -1,13 +1,20 @@
+import json
+import uuid
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render, get_object_or_404
-import uuid
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.csrf import csrf_exempt
+from ofxparse import OfxParser
 
 from moneta.common import TransactionType
 from transactions.models import Category, Transaction
 from wallets.models import Account
-from ofxparse import OfxParser
+
+from .models import PushSubscription
 
 User = get_user_model()
 
@@ -46,7 +53,6 @@ def register_view(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         password_confirm = request.POST.get('password_confirm')
-        currency = request.POST.get('currency', 'BRL')
 
         if password != password_confirm:
             messages.error(request, 'As senhas não coincidem.')
@@ -59,10 +65,8 @@ def register_view(request):
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
-                currency=currency,
-                is_active=False,  # Requer aprovação do admin
+                is_active=False,
             )
-            # Cria as categorias padrão para o novo usuário
             default_categories = [
                 ('Alimentação', TransactionType.EXPENSE, '#ef4444'),
                 ('Moradia', TransactionType.EXPENSE, '#f59e0b'),
@@ -94,16 +98,14 @@ def settings_view(request):
         user.first_name = request.POST.get('first_name', user.first_name)
         user.last_name = request.POST.get('last_name', user.last_name)
         user.email = request.POST.get('email', user.email)
-        user.currency = request.POST.get('currency', user.currency)
-        user.timezone = request.POST.get('timezone', user.timezone)
-
-
-
         user.save()
         messages.success(request, 'Perfil e preferências atualizados com sucesso!')
         return redirect('users_web:settings')
 
-    return render(request, 'users/settings.html')
+    context = {
+        'vapid_public_key': settings.VAPID_PUBLIC_KEY
+    }
+    return render(request, 'users/settings.html', context)
 
 
 @login_required(login_url='users_web:login')
@@ -129,7 +131,7 @@ def import_ofx_view(request):
             return redirect('users_web:import_review')
             
         except Exception as e:
-            messages.error(request, f'Erro ao ler arquivo OFX: {str(e)}')
+            messages.error(request, f'Erro ao ler arquivo OFX: {e!s}')
             return redirect('users_web:settings')
             
     return redirect('users_web:settings')
@@ -152,20 +154,30 @@ def import_review_view(request):
         account = get_object_or_404(Account, id=account_id, user=request.user)
         saved_count = 0
         
-        for tx in transactions:
-            cat_id = request.POST.get(f"category_{tx['id']}")
-            if cat_id and cat_id != 'ignore':
-                category = get_object_or_404(Category, id=cat_id, user=request.user)
-                Transaction.objects.create(
-                    user=request.user,
-                    account=account,
-                    category=category,
-                    amount=abs(float(tx['amount'])),
-                    date=tx['date_iso'],
-                    description=tx['payee'][:255],
-                    status=Transaction.Statuses.COMPLETED
-                )
-                saved_count += 1
+        from django.db import transaction as db_transaction
+        
+        try:
+            with db_transaction.atomic():
+                for tx in transactions:
+                    cat_id = request.POST.get(f"category_{tx['id']}")
+                    if cat_id and cat_id != 'ignore':
+                        category = Category.objects.filter(id=cat_id, user=request.user).first()
+                        if not category:
+                            raise ValueError(f"Categoria selecionada inválida para a transação '{tx['payee']}'.")
+                            
+                        Transaction.objects.create(
+                            user=request.user,
+                            account=account,
+                            category=category,
+                            amount=abs(float(tx['amount'])),
+                            date=tx['date_iso'],
+                            description=tx['payee'][:255],
+                            status=Transaction.Statuses.COMPLETED
+                        )
+                        saved_count += 1
+        except Exception as e:
+            messages.error(request, f"Erro ao importar transações: {str(e)}")
+            return redirect('users_web:import_review')
                 
         # Clear session
         if 'ofx_transactions' in request.session:
@@ -183,3 +195,50 @@ def import_review_view(request):
         'categories': categories,
     }
     return render(request, 'users/import_review.html', context)
+
+
+@login_required
+def save_push_subscription(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            endpoint = data.get('endpoint')
+            keys = data.get('keys', {})
+            p256dh = keys.get('p256dh')
+            auth = keys.get('auth')
+
+            if not endpoint or not p256dh or not auth:
+                return JsonResponse({'status': 'error', 'message': 'Invalid data'}, status=400)
+
+            subscription, created = PushSubscription.objects.get_or_create(
+                user=request.user,
+                endpoint=endpoint,
+                defaults={
+                    'p256dh': p256dh,
+                    'auth': auth
+                }
+            )
+            
+            if not created:
+                subscription.p256dh = p256dh
+                subscription.auth = auth
+                subscription.save()
+
+            return JsonResponse({'status': 'success', 'message': 'Subscription saved'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+
+
+@login_required
+def delete_push_subscription(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            endpoint = data.get('endpoint')
+            if endpoint:
+                PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
+            return JsonResponse({'status': 'success', 'message': 'Subscription deleted'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)

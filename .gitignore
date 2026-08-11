@@ -265,3 +265,6 @@ pyrightconfig.json
 
 # Test files
 *.ofx
+
+# Secrets
+*.pem

@@ -1,5 +1,6 @@
 import uuid
 
+from decimal import Decimal
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
@@ -84,6 +85,9 @@ class Transaction(models.Model):
         ordering = ['-date', '-created_at']
         indexes = [
             models.Index(fields=['user', '-date'], name='transaction_user_date_idx'),
+        ]
+        constraints = [
+            models.CheckConstraint(check=models.Q(amount__gte=Decimal('0.01')), name='transaction_amount_positive'),
         ]
 
     @property
@@ -173,6 +177,7 @@ class RecurringTransaction(models.Model):
                 condition=models.Q(end_date__isnull=True) | models.Q(end_date__gte=models.F('start_date')),
                 name='recurringtransaction_end_date_after_start_date',
             ),
+            models.CheckConstraint(check=models.Q(amount__gte=Decimal('0.01')), name='recurringtransaction_amount_positive'),
         ]
 
     @property

@@ -32,7 +32,11 @@ class Account(models.Model):
         verbose_name_plural = 'contas'
         ordering = ['name']
         constraints = [
-            models.UniqueConstraint(fields=['user', 'name'], name='unique_account_name_per_user')
+            models.UniqueConstraint(fields=['user', 'name'], name='unique_account_name_per_user'),
+            models.CheckConstraint(
+                check=models.Q(type='credit_card') | models.Q(balance__gte=0),
+                name='prevent_negative_balance_on_checking_accounts'
+            )
         ]
 
     def clean(self):

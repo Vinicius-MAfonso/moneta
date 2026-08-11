@@ -47,22 +47,36 @@ def budget_create_view(request):
     categories = Category.objects.filter(user=request.user)
 
     if request.method == 'POST':
-        category_id = request.POST.get('category')
-        amount = Decimal(request.POST.get('amount', '0'))
-        start_date = request.POST.get('start_date')
-        end_date = request.POST.get('end_date')
+        try:
+            category_id = request.POST.get('category')
+            amount = Decimal(request.POST.get('amount') or '0')
+            start_date = request.POST.get('start_date')
+            end_date = request.POST.get('end_date') or None
 
-        Budget.objects.create(
-            user=request.user,
-            category_id=category_id,
-            amount=amount,
-            start_date=start_date,
-            end_date=end_date,
-        )
-        if request.headers.get('HX-Request'):
-            from django.http import HttpResponse
-            return HttpResponse("")
-        return redirect('planning_web:list')
+            Budget.objects.create(
+                user=request.user,
+                category_id=category_id,
+                amount=amount,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            if request.headers.get('HX-Request'):
+                from django.http import HttpResponse
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Orçamento criado com sucesso!', 'type': 'success'}})
+                return response
+            return redirect('planning_web:list')
+        except Exception as e:
+            if request.headers.get('HX-Request'):
+                from django.http import HttpResponse
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {str(e)}', 'type': 'error'}})
+                return response
+            from django.contrib import messages
+            messages.error(request, f"Erro: {str(e)}")
+            return redirect('planning_web:list')
 
     return render(request, 'planning/partials/budget_form.html', {'categories': categories})
 
@@ -92,24 +106,38 @@ def budget_delete_view(request, pk):
 @login_required(login_url='users_web:login')
 def goal_create_view(request):
     if request.method == 'POST':
-        name = request.POST.get('name')
-        target_amount = Decimal(request.POST.get('target_amount', '0'))
-        current_amount = Decimal(request.POST.get('current_amount', '0'))
-        start_date = request.POST.get('start_date')
-        end_date = request.POST.get('end_date')
+        try:
+            name = request.POST.get('name')
+            target_amount = Decimal(request.POST.get('target_amount') or '0')
+            current_amount = Decimal(request.POST.get('current_amount') or '0')
+            start_date = request.POST.get('start_date')
+            end_date = request.POST.get('end_date') or None
 
-        Goal.objects.create(
-            user=request.user,
-            name=name,
-            target_amount=target_amount,
-            current_amount=current_amount,
-            start_date=start_date,
-            end_date=end_date,
-        )
-        if request.headers.get('HX-Request'):
-            from django.http import HttpResponse
-            return HttpResponse("")
-        return redirect('planning_web:list')
+            Goal.objects.create(
+                user=request.user,
+                name=name,
+                target_amount=target_amount,
+                current_amount=current_amount,
+                start_date=start_date,
+                end_date=end_date,
+            )
+            if request.headers.get('HX-Request'):
+                from django.http import HttpResponse
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Objetivo criado com sucesso!', 'type': 'success'}})
+                return response
+            return redirect('planning_web:list')
+        except Exception as e:
+            if request.headers.get('HX-Request'):
+                from django.http import HttpResponse
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {str(e)}', 'type': 'error'}})
+                return response
+            from django.contrib import messages
+            messages.error(request, f"Erro: {str(e)}")
+            return redirect('planning_web:list')
 
     return render(request, 'planning/partials/goal_form.html')
 
@@ -118,15 +146,29 @@ def goal_create_view(request):
 def goal_deposit_view(request, pk):
     goal = get_object_or_404(Goal, pk=pk, user=request.user)
     if request.method == 'POST':
-        amount = Decimal(request.POST.get('amount', '0'))
-        if amount > 0:
-            Goal.objects.filter(pk=goal.pk).update(
-                current_amount=models.F('current_amount') + amount
-            )
-        if request.headers.get('HX-Request'):
-            from django.http import HttpResponse
-            return HttpResponse("")
-        return redirect('planning_web:list')
+        try:
+            amount = Decimal(request.POST.get('amount') or '0')
+            if amount > 0:
+                Goal.objects.filter(pk=goal.pk).update(
+                    current_amount=models.F('current_amount') + amount
+                )
+            if request.headers.get('HX-Request'):
+                from django.http import HttpResponse
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Depósito realizado!', 'type': 'success'}})
+                return response
+            return redirect('planning_web:list')
+        except Exception as e:
+            if request.headers.get('HX-Request'):
+                from django.http import HttpResponse
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {str(e)}', 'type': 'error'}})
+                return response
+            from django.contrib import messages
+            messages.error(request, f"Erro: {str(e)}")
+            return redirect('planning_web:list')
 
     return render(request, 'planning/partials/goal_deposit_form.html', {'goal': goal})
 

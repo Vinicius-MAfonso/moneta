@@ -11,4 +11,6 @@ urlpatterns = [
     path('settings/', views.settings_view, name='settings'),
     path('import/', views.import_ofx_view, name='import_ofx'),
     path('import/review/', views.import_review_view, name='import_review'),
+    path('push/subscribe/', views.save_push_subscription, name='save_push_subscription'),
+    path('push/unsubscribe/', views.delete_push_subscription, name='delete_push_subscription'),
 ]

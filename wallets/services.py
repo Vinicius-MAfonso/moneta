@@ -38,7 +38,7 @@ def recalculate_account_balance(account):
     # Atualiza o limite disponível caso seja Cartão de Crédito
     if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
         cc = account.credit_card_details
-        cc.available_limit = max(Decimal('0.00'), cc.limit - expenses + incomes)
+        cc.available_limit = max(Decimal('0.00'), cc.limit + new_balance)
         cc.save()
 
     Account.objects.filter(id=account.id).update(balance=new_balance)
@@ -113,7 +113,12 @@ def get_or_create_bill_for_transaction(account, transaction_date):
             cycle_month = 1
             cycle_year += 1
 
-    closing_date = datetime.date(cycle_year, cycle_month, closing_day)
+    import calendar
+    def get_valid_date(year, month, day):
+        _, max_day = calendar.monthrange(year, month)
+        return datetime.date(year, month, min(day, max_day))
+
+    closing_date = get_valid_date(cycle_year, cycle_month, closing_day)
 
     if due_day > closing_day:
         due_month = cycle_month
@@ -125,10 +130,10 @@ def get_or_create_bill_for_transaction(account, transaction_date):
             due_month = 1
             due_year += 1
 
-    due_date = datetime.date(due_year, due_month, due_day)
+    due_date = get_valid_date(due_year, due_month, due_day)
     period_date = datetime.date(due_year, due_month, 1)
 
-    bill, created = CreditCardBill.objects.get_or_create(
+    bill, _created = CreditCardBill.objects.get_or_create(
         account=account,
         period_date=period_date,
         defaults={
@@ -141,9 +146,11 @@ def get_or_create_bill_for_transaction(account, transaction_date):
 
 
 def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
-    from django.db import transaction as db_transaction
-    from django.db import models
     from decimal import Decimal
+    from django.utils import timezone
+
+    from django.db import models
+    from django.db import transaction as db_transaction
 
     from moneta.common import TransactionType
     from transactions.services import create_transfer
@@ -159,16 +166,21 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
 
     total_amount = expenses - incomes - transfers_in + transfers_out
     amount_to_pay = Decimal(payment_amount) if payment_amount is not None else total_amount
-    if amount_to_pay > total_amount:
-        amount_to_pay = total_amount
+    amount_to_pay = min(amount_to_pay, total_amount)
 
     if amount_to_pay <= 0:
         if total_amount <= 0:
             bill.status = CreditCardBill.Statuses.PAID
             bill.save()
+        else:
+            raise ValueError("O valor do pagamento deve ser estritamente maior que zero.")
         return bill
 
     with db_transaction.atomic():
+        bill = CreditCardBill.objects.select_for_update().get(id=bill.id)
+        if bill.status == CreditCardBill.Statuses.PAID:
+            raise ValueError("Esta fatura já está paga.")
+
         import datetime
         transfer = create_transfer(
             user=bill.account.user,
@@ -176,7 +188,7 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
             in_account_id=bill.account.id,
             description=f"Pagamento Fatura {bill.period_date.strftime('%m/%Y')}",
             amount=amount_to_pay,
-            tx_date=datetime.date.today(),
+            tx_date=timezone.now().date(),
             status='concluída'
         )
 
