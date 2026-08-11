@@ -125,10 +125,7 @@ VAPID_PRIVATE_KEY = BASE_DIR / 'private_key.pem'
 VAPID_PUBLIC_KEY = 'BP-Qh5cC00t1SidlwM99RkrqNFzOd3o_DgmEZl9TS2Z_gu6NbWVL_JbCkdZODu7j_vsnKRLL1aePwdDaeK39UbU'
 VAPID_ADMIN_EMAIL = 'mailto:admin@moneta.com'
 
-EMAIL_BACKEND = env(
-    'EMAIL_BACKEND',
-    default='django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend'
-)
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend' if DEBUG else 'django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = env('EMAIL_HOST', default='smtp.resend.com')
 EMAIL_PORT = env.int('EMAIL_PORT', default=587)
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
