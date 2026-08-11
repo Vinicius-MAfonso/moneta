@@ -119,7 +119,7 @@ def import_ofx_view(request):
                         'id': str(uuid.uuid4()),
                         'date': tx.date.strftime('%d/%m/%Y'),
                         'date_iso': tx.date.strftime('%Y-%m-%d'),
-                        'payee': tx.payee,
+                        'payee': getattr(tx, 'payee', '') or getattr(tx, 'memo', '') or getattr(tx, 'name', '') or "Transação sem descrição",
                         'amount': str(tx.amount),
                         'type': 'despesa' if tx.amount < 0 else 'receita'
                     })
