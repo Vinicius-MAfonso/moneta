@@ -1,4 +1,4 @@
-{% load tailwind_tags %}
+{% load static tailwind_tags %}
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full"
     x-data="{ darkMode: document.documentElement.classList.contains('dark') }"
@@ -20,6 +20,9 @@
 
     <!-- Ícone do Cofre (Favicon) -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M19 11a5 5 0 01-5 5H9.5a5.5 5.5 0 01-5.5-5.5V10A5.5 5.5 0 019.5 4.5h2A5.5 5.5 0 0117 10v1z'/><circle cx='14' cy='9' r='1' fill='%236366f1'/><path d='M19 10l2 1v2l-2 1M11 4.5V3M7.5 16.5V19M15.5 16.5V19'/></svg>">
+    
+    <!-- Ícones PWA para iOS (Apple Touch Icon) -->
+    <link rel="apple-touch-icon" href="{% static 'apple-touch-icon.png' %}">
 
     <!-- Configuração do HTMX para Transições -->
     <meta name="htmx-config" content='{"globalViewTransitions":true}'>
