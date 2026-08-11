@@ -11,9 +11,7 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.12 # Ensure compatibility
       - key: DATABASE_URL
-        fromDatabase:
-          name: moneta-db
-          property: connectionString
+        sync: false # Set this in Render dashboard (Supabase URL)
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
@@ -27,10 +25,4 @@ services:
       - key: NODE_VERSION
         value: "20.11.1"
 
-  # Database Service
-  - type: psql
-    name: moneta-db
-    region: ohio
-    plan: free
-    databaseName: moneta
-    user: moneta_user
+

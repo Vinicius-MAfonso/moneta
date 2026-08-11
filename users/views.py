@@ -7,7 +7,6 @@ from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.csrf import csrf_exempt
 from ofxparse import OfxParser
 
 from moneta.common import TransactionType
@@ -176,7 +175,7 @@ def import_review_view(request):
                         )
                         saved_count += 1
         except Exception as e:
-            messages.error(request, f"Erro ao importar transações: {str(e)}")
+            messages.error(request, f"Erro ao importar transações: {e!s}")
             return redirect('users_web:import_review')
                 
         # Clear session

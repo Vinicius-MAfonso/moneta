@@ -1,12 +1,9 @@
-import json
-from datetime import date
-
-from django.conf import settings
 from django.contrib.auth import get_user_model
-from pywebpush import WebPushException, webpush
+from django.utils import timezone
 
 from transactions.models import Transaction
 from transactions.services import process_recurring_transactions
+from users.services import send_push_notification
 
 User = get_user_model()
 
@@ -24,7 +21,7 @@ def notify_due_transactions():
     """
     Background task to send Web Push notifications for bills due today.
     """
-    today = date.today()
+    today = timezone.now().date()
     
     due_transactions = Transaction.objects.filter(
         date=today,
@@ -53,29 +50,4 @@ def notify_due_transactions():
             title = f"{count} Contas Vencendo Hoje!"
             body = f"Você tem {count} transações pendentes para hoje. Acesse o Moneta para conferir."
             
-        payload = json.dumps({
-            'title': title,
-            'body': body,
-            'url': '/dashboard/'
-        })
-        
-        for sub in subscriptions:
-            try:
-                webpush(
-                    subscription_info={
-                        "endpoint": sub.endpoint,
-                        "keys": {
-                            "p256dh": sub.p256dh,
-                            "auth": sub.auth
-                        }
-                    },
-                    data=payload,
-                    vapid_private_key=str(settings.VAPID_PRIVATE_KEY),
-                    vapid_claims={
-                        "sub": settings.VAPID_ADMIN_EMAIL
-                    }
-                )
-            except WebPushException as ex:
-                if ex.response and ex.response.status_code in [404, 410]:
-                    sub.delete()
-                print("Web Push Error:", repr(ex))
+        send_push_notification(user, title, body, url='/dashboard/')

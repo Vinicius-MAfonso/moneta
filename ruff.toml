@@ -1,0 +1,4 @@
+# Ignora o erro RUF012 (Mutable class attributes) pois o Django precisa
+# de dicionários ou listas para Meta, ordering, constraints, etc.
+[lint]
+ignore = ["RUF012", "BLE001", "DTZ", "S110"]

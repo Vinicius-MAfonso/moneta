@@ -61,21 +61,23 @@ def budget_create_view(request):
                 end_date=end_date,
             )
             if request.headers.get('HX-Request'):
-                from django.http import HttpResponse
                 import json
+
+                from django.http import HttpResponse
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Orçamento criado com sucesso!', 'type': 'success'}})
                 return response
             return redirect('planning_web:list')
         except Exception as e:
             if request.headers.get('HX-Request'):
-                from django.http import HttpResponse
                 import json
+
+                from django.http import HttpResponse
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {str(e)}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {e!s}', 'type': 'error'}})
                 return response
             from django.contrib import messages
-            messages.error(request, f"Erro: {str(e)}")
+            messages.error(request, f"Erro: {e!s}")
             return redirect('planning_web:list')
 
     return render(request, 'planning/partials/budget_form.html', {'categories': categories})
@@ -122,21 +124,23 @@ def goal_create_view(request):
                 end_date=end_date,
             )
             if request.headers.get('HX-Request'):
-                from django.http import HttpResponse
                 import json
+
+                from django.http import HttpResponse
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Objetivo criado com sucesso!', 'type': 'success'}})
                 return response
             return redirect('planning_web:list')
         except Exception as e:
             if request.headers.get('HX-Request'):
-                from django.http import HttpResponse
                 import json
+
+                from django.http import HttpResponse
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {str(e)}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {e!s}', 'type': 'error'}})
                 return response
             from django.contrib import messages
-            messages.error(request, f"Erro: {str(e)}")
+            messages.error(request, f"Erro: {e!s}")
             return redirect('planning_web:list')
 
     return render(request, 'planning/partials/goal_form.html')
@@ -153,21 +157,23 @@ def goal_deposit_view(request, pk):
                     current_amount=models.F('current_amount') + amount
                 )
             if request.headers.get('HX-Request'):
-                from django.http import HttpResponse
                 import json
+
+                from django.http import HttpResponse
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Depósito realizado!', 'type': 'success'}})
                 return response
             return redirect('planning_web:list')
         except Exception as e:
             if request.headers.get('HX-Request'):
-                from django.http import HttpResponse
                 import json
+
+                from django.http import HttpResponse
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {str(e)}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {e!s}', 'type': 'error'}})
                 return response
             from django.contrib import messages
-            messages.error(request, f"Erro: {str(e)}")
+            messages.error(request, f"Erro: {e!s}")
             return redirect('planning_web:list')
 
     return render(request, 'planning/partials/goal_deposit_form.html', {'goal': goal})

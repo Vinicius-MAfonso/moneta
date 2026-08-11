@@ -18,8 +18,6 @@ class UsersWebTestCase(TestCase):
             'first_name': 'João',
             'last_name': 'Silva',
             'email': 'joao@example.com',
-            'currency': 'USD',
-            'timezone': 'UTC'
         }
         res = self.client.post('/users/settings/', data=update_payload)
         self.assertEqual(res.status_code, 302)
@@ -27,7 +25,6 @@ class UsersWebTestCase(TestCase):
         self.user.refresh_from_db()
         self.assertEqual(self.user.first_name, 'João')
         self.assertEqual(self.user.last_name, 'Silva')
-        self.assertEqual(self.user.currency, 'USD')
 
     def test_login_and_register_views(self):
         self.client.logout()
@@ -49,8 +46,7 @@ class UsersWebTestCase(TestCase):
             'last_name': 'Afonso',
             'email': 'new@example.com',
             'password': 'password123',
-            'password_confirm': 'password123',
-            'currency': 'BRL'
+            'password_confirm': 'password123'
         })
         self.assertEqual(res.status_code, 302)
         new_user = User.objects.get(username='newuser')

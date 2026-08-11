@@ -76,6 +76,7 @@ def investment_create_view(request):
         inv_type = request.POST.get('type')
         
         from decimal import InvalidOperation
+
         from django.core.exceptions import ValidationError
         
         try:

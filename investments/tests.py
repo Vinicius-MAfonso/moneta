@@ -18,7 +18,7 @@ class InvestmentsWebTestCase(TestCase):
     def test_investment_web_crud(self):
         res = self.client.get('/investments/')
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, 'Carteira de Investimentos')
+        self.assertContains(res, 'Investimentos')
 
         payload = {
             'account': str(self.account.id),

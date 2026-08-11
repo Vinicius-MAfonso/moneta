@@ -139,3 +139,18 @@ class TransactionsWebTestCase(TestCase):
         self.assertEqual(transfer.out_transaction.amount, Decimal('300.00'))
         self.assertIsNotNone(transfer.out_transaction.recurring)
         self.assertEqual(transfer.out_transaction.recurring.target_account, self.account2)
+
+    def test_create_transfer_same_account(self):
+        from django.core.exceptions import ValidationError
+
+        from transactions.services import create_transfer
+        with self.assertRaises(ValidationError):
+            create_transfer(
+                user=self.user,
+                out_account_id=self.account1.id,
+                in_account_id=self.account1.id,
+                description='Mesma conta',
+                amount=Decimal('100.00'),
+                tx_date='2026-08-01',
+                status='concluída'
+            )

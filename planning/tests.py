@@ -61,3 +61,31 @@ class PlanningWebTestCase(TestCase):
         res = self.client.post(f'/planning/goal/{goal.id}/delete/')
         self.assertEqual(res.status_code, 302)
         self.assertFalse(Goal.objects.filter(id=goal.id).exists())
+
+    def test_calculate_budget_progress(self):
+        from planning.services import calculate_budget_progress
+        from transactions.models import Transaction
+        from wallets.models import Account
+
+        account = Account.objects.create(
+            user=self.user, name='Conta', type=Account.Types.CHECKING,
+            balance=Decimal('1000.00'), initial_balance=Decimal('1000.00')
+        )
+        
+        budget = Budget.objects.create(
+            user=self.user, category=self.category, amount=Decimal('500.00'),
+            start_date='2026-08-01', end_date='2026-08-31'
+        )
+        
+        Transaction.objects.create(
+            user=self.user, account=account, category=self.category,
+            description='Mercado', amount=Decimal('400.00'), date='2026-08-10',
+            status=Transaction.Statuses.COMPLETED
+        )
+
+        progress = calculate_budget_progress(budget)
+        self.assertEqual(progress['spent'], Decimal('400.00'))
+        self.assertEqual(progress['percentage'], Decimal('80.00'))
+        self.assertEqual(progress['remaining'], Decimal('100.00'))
+        self.assertTrue(progress['is_warning'])
+        self.assertFalse(progress['is_over_budget'])

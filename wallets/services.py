@@ -147,10 +147,10 @@ def get_or_create_bill_for_transaction(account, transaction_date):
 
 def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
     from decimal import Decimal
-    from django.utils import timezone
 
     from django.db import models
     from django.db import transaction as db_transaction
+    from django.utils import timezone
 
     from moneta.common import TransactionType
     from transactions.services import create_transfer
@@ -181,7 +181,6 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
         if bill.status == CreditCardBill.Statuses.PAID:
             raise ValueError("Esta fatura já está paga.")
 
-        import datetime
         transfer = create_transfer(
             user=bill.account.user,
             out_account_id=payment_account_id,

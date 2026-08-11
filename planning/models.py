@@ -14,6 +14,7 @@ class Budget(models.Model):
     amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(verbose_name='data de término')
+    is_warning_notified = models.BooleanField(default=False, verbose_name='notificado aviso')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizado em')
 
