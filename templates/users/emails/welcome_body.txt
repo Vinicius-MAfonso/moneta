@@ -1,0 +1,11 @@
+Olá {{ user_name }},
+
+Sua conta no Moneta acabou de ser aprovada pelo administrador!
+
+Você já pode acessar o aplicativo e começar a registrar suas finanças.
+Clique no link abaixo para fazer o login:
+{{ login_url }}
+
+Seja bem-vindo(a) à sua nova vida financeira.
+
+Equipe Moneta

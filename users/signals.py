@@ -1,6 +1,8 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_init
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
+from django_q.tasks import async_task
+from django.db import transaction
 
 from moneta.common import TransactionType
 from transactions.models import Category
@@ -25,3 +27,19 @@ def create_default_categories(sender, instance, created, **kwargs):
             for name, cat_type, color, icon in default_categories
         ]
         Category.objects.bulk_create(categories_to_create)
+
+
+@receiver(post_init, sender=User)
+def remember_user_state(sender, instance, **kwargs):
+    instance._original_is_active = instance.is_active
+
+@receiver(post_save, sender=User)
+def track_user_activation(sender, instance, created, **kwargs):
+    if created:
+        return
+
+    if hasattr(instance, '_original_is_active'):
+        if not instance._original_is_active and instance.is_active:
+            transaction.on_commit(lambda: async_task('users.emails.send_welcome_email', instance.pk))
+            
+    instance._original_is_active = instance.is_active
