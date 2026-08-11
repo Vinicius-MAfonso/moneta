@@ -2,6 +2,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 from .views import dashboard_view, export_transactions_csv_view, reports_view
 
@@ -17,6 +18,10 @@ urlpatterns = [
     path('planning/', include('planning.urls_web')),
     path('investments/', include('investments.urls_web')),
     path('users/', include('users.urls_web')),
+
+    # PWA files
+    path('manifest.json', TemplateView.as_view(template_name='manifest.json', content_type='application/json'), name='manifest'),
+    path('serviceworker.js', TemplateView.as_view(template_name='serviceworker.js', content_type='application/javascript'), name='serviceworker'),
 ]
 
 if settings.DEBUG:
