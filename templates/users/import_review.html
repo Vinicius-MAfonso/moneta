@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Revisar Importação - Moneta{% endblock %}
+
+{% block content %}
+<div class="space-y-6 max-w-5xl mx-auto">
+    
+    <div>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Revisar Importação</h2>
+        <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Selecione a conta de destino e categorize cada transação antes de salvar.</p>
+    </div>
+
+    <form method="POST" action="{% url 'users_web:import_review' %}" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Account Selection -->
+        <div class="glass-panel p-6 rounded-2xl">
+            <label class="block text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">Conta de Destino</label>
+            <select name="account_id" required class="w-full max-w-md bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                <option value="" disabled selected>Selecione a conta de destino</option>
+                {% for acc in accounts %}
+                    <option value="{{ acc.id }}">{{ acc.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="glass-panel overflow-hidden rounded-2xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            <th class="px-6 py-4">Data</th>
+                            <th class="px-6 py-4">Descrição Original</th>
+                            <th class="px-6 py-4 text-right">Valor</th>
+                            <th class="px-6 py-4">Categoria</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 dark:divide-slate-800/60">
+                        {% for tx in transactions %}
+                            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition">
+                                <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-300">
+                                    {{ tx.date }}
+                                </td>
+                                <td class="px-6 py-4 text-sm font-medium text-slate-900 dark:text-slate-300 truncate max-w-[250px]" title="{{ tx.payee }}">{{ tx.payee }}</td>
+                                <td class="px-6 py-4 text-sm font-bold text-right {% if tx.type == 'receita' %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                                    {% if tx.type == 'receita' %}+{% else %}-{% endif %} R$ {{ tx.amount|cut:"-" }}
+                                </td>
+                                <td class="px-6 py-4">
+                                    <select name="category_{{ tx.id }}" class="w-full min-w-[200px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                                        <option value="" disabled selected>Selecione...</option>
+                                        <optgroup label="Categorias ({{ tx.type|title }})">
+                                            {% for cat in categories %}
+                                                {% if cat.type == tx.type %}
+                                                    <option value="{{ cat.id }}">{% if cat.icon %}{{ cat.icon }} {% endif %}{{ cat.name }}</option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </optgroup>
+                                        <option value="ignore" class="text-rose-500 font-bold">❌ Ignorar Transação</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-3 sticky bottom-4">
+            <a href="{% url 'users_web:settings' %}" class="px-6 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm transition-all shadow-sm">
+                Cancelar
+            </a>
+            <button type="submit" class="px-8 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-600/25">
+                Salvar Importação
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -65,5 +65,28 @@
         </form>
     </div>
 
+    <!-- OFX Import Panel -->
+    <div class="glass-panel p-6 rounded-2xl">
+        <div>
+            <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <span>Importar Extrato Bancário</span>
+            </h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Faça upload do extrato em formato <strong>.OFX</strong> fornecido pelo seu banco para lançar as transações automaticamente.</p>
+        </div>
+        
+        <form method="POST" action="{% url 'users_web:import_ofx' %}" enctype="multipart/form-data" class="mt-5 space-y-4">
+            {% csrf_token %}
+            <div>
+                <input type="file" name="ofx_file" accept=".ofx" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-500/20 dark:file:text-indigo-400 hover:file:bg-indigo-100 cursor-pointer transition">
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-semibold text-sm transition-all shadow-lg">
+                    Ler Extrato
+                </button>
+            </div>
+        </form>
+    </div>
+
 </div>
 {% endblock %}
