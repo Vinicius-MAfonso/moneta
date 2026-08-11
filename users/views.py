@@ -66,18 +66,6 @@ def register_view(request):
                 last_name=last_name,
                 is_active=False,
             )
-            default_categories = [
-                ('Alimentação', TransactionType.EXPENSE, '#ef4444'),
-                ('Moradia', TransactionType.EXPENSE, '#f59e0b'),
-                ('Transporte', TransactionType.EXPENSE, '#3b82f6'),
-                ('Lazer', TransactionType.EXPENSE, '#8b5cf6'),
-                ('Salário', TransactionType.INCOME, '#10b981'),
-                ('Investimentos', TransactionType.INCOME, '#06b6d4'),
-                ('Transferência', TransactionType.TRANSFER, '#737373'),
-            ]
-            for name, cat_type, color in default_categories:
-                Category.objects.create(user=user, name=name, type=cat_type, color=color)
-
             messages.success(request, 'Conta criada com sucesso! Aguarde a aprovação do administrador para acessar.')
             return redirect('users_web:login')
 
