@@ -86,7 +86,7 @@ def transaction_list_view(request):
         'transactions': transactions,  # Mantemos pra compatibilidade caso algum JS ou outra parte precise
         'tx_by_date': tx_by_date,
         'accounts': Account.objects.filter(user=request.user),
-        'categories': Category.objects.filter(user=request.user),
+        'categories': Category.objects.filter(user=request.user, is_system=False),
         'month_info': month_ctx,
         'month_net_balance': month_net_balance,
     }
@@ -101,7 +101,7 @@ def transaction_list_view(request):
 def transaction_create_view(request):
     accounts = Account.objects.filter(user=request.user, active=True)
     transfer_accounts = accounts.exclude(type='credit_card')
-    categories = Category.objects.filter(user=request.user)
+    categories = Category.objects.filter(user=request.user, is_system=False)
     tags = Tag.objects.filter(user=request.user)
 
     from .forms import TransactionForm, TransferForm
@@ -241,7 +241,7 @@ def transaction_update_view(request, pk):
         return redirect('transactions_web:list')
 
     accounts = Account.objects.filter(user=request.user, active=True)
-    categories = Category.objects.filter(user=request.user)
+    categories = Category.objects.filter(user=request.user, is_system=False)
     tags = Tag.objects.filter(user=request.user)
 
     if request.method == 'POST':
@@ -362,7 +362,7 @@ def transaction_delete_view(request, pk):
 # Categories & Tags Views
 @login_required(login_url='users_web:login')
 def category_list_view(request):
-    categories = Category.objects.filter(user=request.user)
+    categories = Category.objects.filter(user=request.user, is_system=False)
     tags = Tag.objects.filter(user=request.user)
 
     context = {
@@ -409,7 +409,7 @@ def category_confirm_delete_view(request, pk):
     cat = get_object_or_404(Category, pk=pk, user=request.user)
 
     if cat.transactions.exists():
-        fallback_categories = Category.objects.filter(user=request.user, type=cat.type).exclude(id=cat.id)
+        fallback_categories = Category.objects.filter(user=request.user, type=cat.type, is_system=False).exclude(id=cat.id)
         context = {
             'category': cat,
             'transactions_count': cat.transactions.count(),
@@ -523,7 +523,7 @@ from django.db import transaction as db_transaction
 @login_required(login_url='users_web:login')
 def recurring_create_view(request):
     accounts = Account.objects.filter(user=request.user)
-    categories = Category.objects.filter(user=request.user)
+    categories = Category.objects.filter(user=request.user, is_system=False)
 
     if request.method == 'POST':
         category_id = request.POST.get('category')

@@ -18,6 +18,7 @@ class Category(models.Model):
     type = models.CharField(max_length=15, choices=TransactionType.choices, verbose_name='tipo')
     icon = models.CharField(max_length=100, blank=True, null=True, verbose_name='ícone')
     color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
+    is_system = models.BooleanField(default=False, verbose_name='categoria do sistema')
     parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='subcategories', verbose_name='categoria pai')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')

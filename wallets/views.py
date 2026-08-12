@@ -166,16 +166,20 @@ def account_balance_adjustment_view(request, pk):
                 tx_type = TransactionType.INCOME if delta > 0 else TransactionType.EXPENSE
 
                 category_name = "Reajuste de Saldo Positivo" if delta > 0 else "Reajuste de Saldo Negativo"
-                # Obtém ou cria a categoria para reajuste
+                # Busca ou cria a categoria do sistema para reajuste
                 category, _ = Category.objects.get_or_create(
                     user=request.user,
                     name=category_name,
                     defaults={
                         'type': tx_type,
-                        'color': '#64748B', # Slate 500
-                        'icon': '⚖️'
+                        'color': '#64748B',
+                        'icon': '⚖️',
+                        'is_system': True,
                     }
                 )
+                # Garante is_system=True para categorias criadas antes desta feature
+                if not category.is_system:
+                    Category.objects.filter(pk=category.pk).update(is_system=True)
 
                 Transaction.objects.create(
                     user=request.user,
@@ -254,9 +258,11 @@ def bill_detail_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def pay_bill_view(request, pk):
+    from decimal import Decimal
+
     from django.contrib import messages
 
-    from wallets.models import CreditCardBill
+    from wallets.models import Account, CreditCardBill
     from wallets.services import pay_credit_card_bill
 
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
@@ -265,6 +271,15 @@ def pay_bill_view(request, pk):
         payment_account_id = request.POST.get('payment_account')
         payment_amount = request.POST.get('payment_amount')
         try:
+            payment_account = get_object_or_404(Account, pk=payment_account_id, user=request.user)
+            amount_decimal = Decimal(str(payment_amount))
+
+            if payment_account.type != Account.Types.CREDIT_CARD and payment_account.balance < amount_decimal:
+                raise ValueError(
+                    f"Saldo insuficiente na conta '{payment_account.name}'. "
+                    f"Saldo disponível: R$ {payment_account.balance:.2f}."
+                )
+
             pay_credit_card_bill(bill, payment_account_id, payment_amount)
             messages.success(request, f"Pagamento da fatura de {bill.period_date.strftime('%m/%Y')} registrado com sucesso!")
         except Exception as e:

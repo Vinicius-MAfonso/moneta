@@ -44,7 +44,7 @@ def planning_list_view(request):
 
 @login_required(login_url='users_web:login')
 def budget_create_view(request):
-    categories = Category.objects.filter(user=request.user)
+    categories = Category.objects.filter(user=request.user, is_system=False)
 
     if request.method == 'POST':
         try:

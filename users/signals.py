@@ -14,17 +14,28 @@ User = get_user_model()
 def create_default_categories(sender, instance, created, **kwargs):
     if created:
         default_categories = [
-            ('Alimentação', TransactionType.EXPENSE, '#ef4444', '🍔'),
-            ('Moradia', TransactionType.EXPENSE, '#f59e0b', '🏠'),
-            ('Transporte', TransactionType.EXPENSE, '#3b82f6', '🚌'),
-            ('Lazer', TransactionType.EXPENSE, '#8b5cf6', '🎉'),
-            ('Salário', TransactionType.INCOME, '#10b981', '💰'),
-            ('Investimentos', TransactionType.INCOME, '#06b6d4', '📈'),
-            ('Transferência', TransactionType.TRANSFER, '#737373', '🔄'),
+            ('Alimentação',     TransactionType.EXPENSE, '#ef4444', '🍔', False),
+            ('Moradia',         TransactionType.EXPENSE, '#f59e0b', '🏠', False),
+            ('Transporte',      TransactionType.EXPENSE, '#3b82f6', '🚌', False),
+            ('Lazer',           TransactionType.EXPENSE, '#8b5cf6', '🎉', False),
+            ('Saúde',           TransactionType.EXPENSE, '#ec4899', '🏥', False),
+            ('Educação',        TransactionType.EXPENSE, '#06b6d4', '📚', False),
+            ('Vestuário',       TransactionType.EXPENSE, '#f97316', '👕', False),
+            ('Assinaturas',     TransactionType.EXPENSE, '#6366f1', '📱', False),
+            ('Pet',             TransactionType.EXPENSE, '#84cc16', '🐾', False),
+            ('Viagem',          TransactionType.EXPENSE, '#14b8a6', '✈️', False),
+            ('Outros',          TransactionType.EXPENSE, '#64748b', '📦', False),
+            ('Salário',         TransactionType.INCOME, '#10b981', '💰', False),
+            ('Freelance',       TransactionType.INCOME, '#22c55e', '💻', False),
+            ('Investimentos',   TransactionType.INCOME, '#06b6d4', '📈', False),
+            ('Outros',          TransactionType.INCOME, '#64748b', '📦', False),
+            ('Transferência',   TransactionType.TRANSFER, '#737373', '🔄', False),
+            ('Reajuste de Saldo Positivo', TransactionType.INCOME,  '#64748b', '⚖️', True),
+            ('Reajuste de Saldo Negativo', TransactionType.EXPENSE, '#64748b', '⚖️', True),
         ]
         categories_to_create = [
-            Category(user=instance, name=name, type=cat_type, color=color, icon=icon)
-            for name, cat_type, color, icon in default_categories
+            Category(user=instance, name=name, type=cat_type, color=color, icon=icon, is_system=is_system)
+            for name, cat_type, color, icon, is_system in default_categories
         ]
         Category.objects.bulk_create(categories_to_create)
 

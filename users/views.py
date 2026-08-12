@@ -147,24 +147,46 @@ def import_review_view(request):
         from django.db import transaction as db_transaction
         
         try:
-            with db_transaction.atomic():
-                for tx in transactions:
-                    cat_id = request.POST.get(f"category_{tx['id']}")
-                    if cat_id and cat_id != 'ignore':
-                        category = Category.objects.filter(id=cat_id, user=request.user).first()
-                        if not category:
-                            raise ValueError(f"Categoria selecionada inválida para a transação '{tx['payee']}'.")
-                            
-                        Transaction.objects.create(
-                            user=request.user,
-                            account=account,
-                            category=category,
-                            amount=abs(float(tx['amount'])),
-                            date=tx['date_iso'],
-                            description=tx['payee'][:255],
-                            status=Transaction.Statuses.COMPLETED
-                        )
-                        saved_count += 1
+            from decimal import Decimal, ROUND_HALF_UP
+            from django.db.models.signals import post_save, post_delete
+            from transactions.signals import trigger_balance_recalculation
+            from wallets.services import recalculate_account_balance
+
+            # Desconectar o signal temporariamente para evitar recálculo de saldo
+            # a cada transação (evita violar a constraint de saldo negativo no meio do lote)
+            post_save.disconnect(trigger_balance_recalculation, sender=Transaction)
+            post_delete.disconnect(trigger_balance_recalculation, sender=Transaction)
+
+            try:
+                with db_transaction.atomic():
+                    for tx in transactions:
+                        cat_id = request.POST.get(f"category_{tx['id']}")
+                        if cat_id and cat_id != 'ignore':
+                            category = Category.objects.filter(id=cat_id, user=request.user).first()
+                            if not category:
+                                raise ValueError(f"Categoria selecionada inválida para a transação '{tx['payee']}'.")
+
+                            raw_amount = Decimal(str(abs(float(tx['amount'])))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                            custom_description = request.POST.get(f"description_{tx['id']}", tx['payee']).strip() or tx['payee']
+
+                            Transaction.objects.create(
+                                user=request.user,
+                                account=account,
+                                category=category,
+                                amount=raw_amount,
+                                date=tx['date_iso'],
+                                description=custom_description[:255],
+                                status=Transaction.Statuses.COMPLETED
+                            )
+                            saved_count += 1
+            finally:
+                # Reconectar o signal sempre (mesmo em caso de erro)
+                post_save.connect(trigger_balance_recalculation, sender=Transaction)
+                post_delete.connect(trigger_balance_recalculation, sender=Transaction)
+
+            # Recalcular o saldo uma única vez após salvar tudo
+            if saved_count > 0:
+                recalculate_account_balance(account)
         except Exception as e:
             messages.error(request, f"Erro ao importar transações: {e!s}")
             return redirect('users_web:import_review')
@@ -176,8 +198,8 @@ def import_review_view(request):
         messages.success(request, f'{saved_count} transações importadas com sucesso!')
         return redirect('dashboard')
 
-    accounts = Account.objects.filter(user=request.user)
-    categories = Category.objects.filter(user=request.user).order_by('type', 'name')
+    accounts = Account.objects.filter(user=request.user, type='checking')
+    categories = Category.objects.filter(user=request.user, is_system=False).order_by('type', 'name')
     
     context = {
         'transactions': transactions,

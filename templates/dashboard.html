@@ -58,10 +58,16 @@
                 R$ {{ total_balance|floatformat:2 }}
             </p>
             <div class="mt-1 flex items-center space-x-1.5 text-xs font-medium">
-                {% if total_expected_balance >= total_balance %}
-                    <span class="text-emerald-600 dark:text-emerald-400">↑ Previsto: R$ {{ total_expected_balance|floatformat:2 }}</span>
+                {% if total_expected_balance > 0 %}
+                    <span class="{% if total_expected_balance >= total_balance %}text-emerald-600 dark:text-emerald-400{% else %}text-amber-500 dark:text-amber-400{% endif %}">
+                        {% if total_expected_balance >= total_balance %}↑{% else %}↓{% endif %} Previsto: R$ {{ total_expected_balance|floatformat:2 }}
+                    </span>
+                {% elif total_expected_balance < 0 %}
+                    <span class="text-rose-600 dark:text-rose-400" title="Há despesas pendentes que reduzirão este saldo">
+                        ↓ Previsto: R$ {{ total_expected_balance|floatformat:2 }}
+                    </span>
                 {% else %}
-                    <span class="text-rose-600 dark:text-rose-400" title="Há despesas pendentes que reduzirão este saldo">↓ Previsto: R$ {{ total_expected_balance|floatformat:2 }}</span>
+                    <span class="text-slate-500 dark:text-slate-400">Previsto: R$ 0,00</span>
                 {% endif %}
             </div>
             <div class="mt-2 flex items-center text-[11px] text-slate-500 dark:text-slate-400">
