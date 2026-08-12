@@ -79,8 +79,7 @@
                                     <optgroup label="Categorias ({{ tx.type|title }})">
                                         {% for cat in categories %}
                                         {% if cat.type == tx.type %}
-                                        <option value="{{ cat.id }}">{% if cat.icon %}{{ cat.icon }} {% endif %}{{
-                                            cat.name }}</option>
+                                        <option value="{{ cat.id }}">{% if cat.icon %}{{ cat.icon }} {% endif %}{{ cat.name }}</option>
                                         {% endif %}
                                         {% endfor %}
                                     </optgroup>
@@ -94,7 +93,7 @@
             </div>
         </div>
 
-        <div class="flex justify-end gap-3 sticky bottom-4">
+        <div class="flex justify-end gap-3 mt-8">
             <a href="{% url 'users_web:settings' %}"
                 class="px-6 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-sm transition-all shadow-sm whitespace-nowrap">
                 Cancelar

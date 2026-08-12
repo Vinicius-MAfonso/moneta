@@ -409,11 +409,13 @@ def category_confirm_delete_view(request, pk):
     cat = get_object_or_404(Category, pk=pk, user=request.user)
 
     if cat.transactions.exists():
-        from django.contrib import messages
-        messages.error(request, f"Não é possível excluir a categoria '{cat.name}' pois existem transações atreladas a ela.")
-        response = HttpResponse("")
-        response['HX-Redirect'] = reverse('transactions_web:category_list')
-        return response
+        fallback_categories = Category.objects.filter(user=request.user, type=cat.type).exclude(id=cat.id)
+        context = {
+            'category': cat,
+            'transactions_count': cat.transactions.count(),
+            'fallback_categories': fallback_categories,
+        }
+        return render(request, 'categories/partials/category_delete_with_transactions.html', context)
 
     context = {
         'title': 'Excluir Categoria',
@@ -429,8 +431,20 @@ def category_delete_view(request, pk):
     cat = get_object_or_404(Category, pk=pk, user=request.user)
 
     if cat.transactions.exists():
-        messages.error(request, "Não é possível excluir esta categoria.")
-        return redirect('transactions_web:category_list')
+        delete_action = request.POST.get('delete_action')
+        if delete_action == 'move':
+            fallback_category_id = request.POST.get('fallback_category_id')
+            if not fallback_category_id:
+                messages.error(request, "Selecione uma categoria de destino válida.")
+                return redirect('transactions_web:category_list')
+            
+            fallback_category = get_object_or_404(Category, id=fallback_category_id, user=request.user)
+            cat.transactions.all().update(category=fallback_category)
+        elif delete_action == 'delete_all':
+            cat.transactions.all().delete()
+        else:
+            messages.error(request, "Ação de exclusão inválida.")
+            return redirect('transactions_web:category_list')
 
     if request.method == 'POST' or request.headers.get('HX-Request'):
         cat_name = cat.name

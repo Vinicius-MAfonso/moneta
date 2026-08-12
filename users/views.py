@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from ofxparse import OfxParser
@@ -95,6 +96,7 @@ def settings_view(request):
     return render(request, 'users/settings.html', context)
 
 
+@csrf_exempt
 @login_required(login_url='users_web:login')
 def import_ofx_view(request):
     if request.method == 'POST' and request.FILES.get('ofx_file'):
@@ -124,6 +126,7 @@ def import_ofx_view(request):
     return redirect('users_web:settings')
 
 
+@csrf_exempt
 @login_required(login_url='users_web:login')
 def import_review_view(request):
     transactions = request.session.get('ofx_transactions', [])
