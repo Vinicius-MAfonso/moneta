@@ -32,7 +32,7 @@ def _setup_schedules(sender, **kwargs):
             schedule(
                 'transactions.tasks.notify_due_transactions',
                 schedule_type=Schedule.DAILY,
-                time='08:00',
+                time='11:00',
             )
     except Exception:
         pass

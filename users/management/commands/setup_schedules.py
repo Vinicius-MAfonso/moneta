@@ -13,10 +13,10 @@ class Command(BaseCommand):
         self.stdout.write('Configurando agendamentos do Django-Q...')
 
         tasks = [
-            {'func': 'transactions.tasks.process_all_recurring_transactions', 'hour': 2, 'minute': 0},
-            {'func': 'wallets.tasks.notify_due_credit_card_bills', 'hour': 8, 'minute': 0},
-            {'func': 'planning.tasks.notify_budget_warnings', 'hour': 9, 'minute': 0},
-            {'func': 'transactions.tasks.notify_due_transactions', 'hour': 10, 'minute': 0},
+            {'func': 'transactions.tasks.process_all_recurring_transactions', 'hour': 0, 'minute': 0},
+            {'func': 'wallets.tasks.notify_due_credit_card_bills', 'hour': 9, 'minute': 0},
+            {'func': 'planning.tasks.notify_budget_warnings', 'hour': 10, 'minute': 0},
+            {'func': 'transactions.tasks.notify_due_transactions', 'hour': 11, 'minute': 0},
         ]
 
         now = timezone.now()
