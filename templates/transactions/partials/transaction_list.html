@@ -34,19 +34,19 @@
                     </tr>
                     {% for tx in day.list %}
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition id-tx-{{ tx.id }}">
-                        <td class="px-4 py-3.5 font-medium text-slate-900 dark:text-slate-200 whitespace-normal min-w-[200px]">{{ tx.description }}</td>
-                        <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">
+                        <td class="px-4 py-3.5 align-middle font-medium text-slate-900 dark:text-slate-200 whitespace-normal min-w-[200px]">{{ tx.description }}</td>
+                        <td class="px-4 py-3.5 align-middle text-xs text-slate-500 dark:text-slate-400">
                             <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50 whitespace-nowrap" style="border-left: 3px solid {{ tx.category.color }};">
                                 {% if tx.category.icon %}<span>{{ tx.category.icon }}</span>{% endif %}<span>{{ tx.category.name }}</span>
                             </span>
                         </td>
-                        <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">
+                        <td class="px-4 py-3.5 align-middle text-xs text-slate-500 dark:text-slate-400">
                             <div class="flex items-center space-x-2 whitespace-nowrap">
                                 <div class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ tx.account.color }};"></div>
                                 <span>{{ tx.account.name }}</span>
                             </div>
                         </td>
-                        <td class="px-4 py-3.5 text-xs">
+                        <td class="px-4 py-3.5 align-middle text-xs">
                             <div class="flex flex-wrap gap-1">
                                 {% for tag in tx.tags.all %}
                                     <span class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border text-slate-800 dark:text-slate-200 shadow-sm" style="background-color: {{ tag.color }}20; border-color: {{ tag.color }}50;">
@@ -58,22 +58,24 @@
                                 {% endfor %}
                             </div>
                         </td>
-                        <td class="px-4 py-3.5 text-xs text-slate-500 dark:text-slate-400">{{ tx.date|date:"d/m/Y" }}</td>
-                        <td class="px-4 py-3.5">
+                        <td class="px-4 py-3.5 align-middle text-xs text-slate-500 dark:text-slate-400">{{ tx.date|date:"d/m/Y" }}</td>
+                        <td class="px-4 py-3.5 align-middle">
                             <span class="px-2 py-0.5 text-xs rounded-full font-medium {% if tx.status == 'concluída' %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20{% else %}bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20{% endif %}">
                                 {{ tx.get_status_display }}
                             </span>
                         </td>
-                        <td class="px-4 py-3.5 text-right font-bold {% if tx.category.type == 'receita' %}text-emerald-600 dark:text-emerald-400{% elif tx.category.type == 'despesa' %}text-rose-600 dark:text-rose-400{% else %}text-indigo-600 dark:text-indigo-400{% endif %}">
+                        <td class="px-4 py-3.5 align-middle text-right font-bold whitespace-nowrap {% if tx.category.type == 'receita' %}text-emerald-600 dark:text-emerald-400{% elif tx.category.type == 'despesa' %}text-rose-600 dark:text-rose-400{% else %}text-indigo-600 dark:text-indigo-400{% endif %}">
                             {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
                         </td>
-                        <td class="px-4 py-3.5 text-center flex items-center justify-center space-x-1">
-                            <button hx-get="{% url 'transactions_web:edit' tx.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-indigo-500 transition rounded-lg hover:bg-indigo-500/10" title="Editar">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                            </button>
-                            <button hx-get="{% url 'transactions_web:confirm_delete' tx.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10" title="Excluir">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
+                        <td class="px-4 py-3.5 align-middle text-center">
+                            <div class="flex items-center justify-center space-x-1">
+                                <button hx-get="{% url 'transactions_web:edit' tx.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-indigo-500 transition rounded-lg hover:bg-indigo-500/10" title="Editar">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                </button>
+                                <button hx-get="{% url 'transactions_web:confirm_delete' tx.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10" title="Excluir">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

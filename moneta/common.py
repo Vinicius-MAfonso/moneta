@@ -75,36 +75,49 @@ def get_month_context(month_str=None):
 def get_month_calendar_grid(user, start_date, end_date, account=None):
     """
     Builds a 7-column calendar matrix (Sunday to Saturday) for the given month range
-    annotated with daily income and expense totals.
+    annotated with daily income and expense totals (both completed and pending).
+    Completed = realizado; Pending = previsto.
     """
     from django.db.models import Sum
 
     from transactions.models import Transaction
 
-    from django.db.models import Q
-    status_q = Q(status=Transaction.Statuses.COMPLETED) | (Q(status=Transaction.Statuses.PENDING) & Q(account__type='credit_card'))
-
+    # Busca TODAS as transações do mês, sem filtrar por status
     qs = Transaction.objects.filter(
-        status_q,
         user=user,
         date__range=(start_date, end_date),
-    )
+    ).exclude(category__type=TransactionType.TRANSFER)
+
     if account:
         qs = qs.filter(account=account)
 
     daily_txs = (
-        qs.values('date', 'category__type')
+        qs.values('date', 'category__type', 'status')
         .annotate(total=Sum('amount'))
     )
 
-    daily_totals = defaultdict(lambda: {'income': Decimal('0.00'), 'expense': Decimal('0.00')})
+    daily_totals = defaultdict(lambda: {
+        'income_done': Decimal('0.00'),
+        'expense_done': Decimal('0.00'),
+        'income_pending': Decimal('0.00'),
+        'expense_pending': Decimal('0.00'),
+    })
+
     for item in daily_txs:
         d_str = item['date'].strftime('%Y-%m-%d')
         c_type = item['category__type']
+        is_done = (item['status'] == Transaction.Statuses.COMPLETED)
+
         if c_type == TransactionType.INCOME:
-            daily_totals[d_str]['income'] += item['total']
+            if is_done:
+                daily_totals[d_str]['income_done'] += item['total']
+            else:
+                daily_totals[d_str]['income_pending'] += item['total']
         elif c_type == TransactionType.EXPENSE:
-            daily_totals[d_str]['expense'] += item['total']
+            if is_done:
+                daily_totals[d_str]['expense_done'] += item['total']
+            else:
+                daily_totals[d_str]['expense_pending'] += item['total']
 
     cal = calendar.Calendar(firstweekday=6)  # Domingo = 6
     month_days = list(cal.itermonthdays4(start_date.year, start_date.month))
@@ -115,16 +128,28 @@ def get_month_calendar_grid(user, start_date, end_date, account=None):
         day_date = date(year, month, day)
         d_str = day_date.strftime('%Y-%m-%d')
         is_current_month = (month == start_date.month)
-        totals = daily_totals.get(d_str, {'income': Decimal('0.00'), 'expense': Decimal('0.00')})
+        totals = daily_totals.get(d_str, {
+            'income_done': Decimal('0.00'),
+            'expense_done': Decimal('0.00'),
+            'income_pending': Decimal('0.00'),
+            'expense_pending': Decimal('0.00'),
+        })
+
+        has_data = any(v > 0 for v in totals.values())
 
         grid.append({
             'day': day,
             'date_str': d_str,
             'is_current_month': is_current_month,
             'is_today': (day_date == today_date),
-            'income': totals['income'],
-            'expense': totals['expense'],
-            'has_data': (totals['income'] > 0 or totals['expense'] > 0),
+            'income_done': totals['income_done'],
+            'expense_done': totals['expense_done'],
+            'income_pending': totals['income_pending'],
+            'expense_pending': totals['expense_pending'],
+            # totais combinados (para compatibilidade)
+            'income': totals['income_done'] + totals['income_pending'],
+            'expense': totals['expense_done'] + totals['expense_pending'],
+            'has_data': has_data,
         })
 
     return grid

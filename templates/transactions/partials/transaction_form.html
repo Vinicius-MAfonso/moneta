@@ -13,17 +13,30 @@
 
             <div class="mb-6 col-span-1 md:col-span-2">
                 <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Tipo de Movimentação</label>
-                <div class="flex gap-1 p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
-                    <button type="button" @click="txType = 'despesa'" :class="txType === 'despesa' ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold border border-rose-500/40 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'" class="flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all truncate" {% if transaction %}disabled{% endif %}>
-                        Despesa
-                    </button>
-                    <button type="button" @click="txType = 'receita'" :class="txType === 'receita' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/40 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'" class="flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all truncate" {% if transaction %}disabled{% endif %}>
-                        Receita
-                    </button>
-                    <button type="button" @click="txType = 'transferencia'" :class="txType === 'transferencia' ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/40 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'" class="flex-[1.2] py-2 rounded-lg text-[11px] font-semibold transition-all truncate" {% if transaction %}disabled{% endif %}>
-                        Transferência
-                    </button>
-                </div>
+                {% if transaction %}
+                    <div class="space-y-1.5 cursor-default select-none">
+                        <div class="w-full flex items-center justify-center py-2.5 rounded-xl text-sm font-bold border
+                            {% if transaction.category.type == 'despesa' %}bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/40
+                            {% elif transaction.category.type == 'receita' %}bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40
+                            {% else %}bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/40{% endif %}">
+                            {% if transaction.category.type == 'despesa' %}Despesa
+                            {% elif transaction.category.type == 'receita' %}Receita
+                            {% else %}Transferência{% endif %}
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="flex gap-1 p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
+                        <button type="button" @click="txType = 'despesa'" :class="txType === 'despesa' ? 'bg-rose-500/20 text-rose-600 dark:text-rose-400 font-bold border border-rose-500/40 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'" class="flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all truncate">
+                            Despesa
+                        </button>
+                        <button type="button" @click="txType = 'receita'" :class="txType === 'receita' ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/40 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'" class="flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all truncate">
+                            Receita
+                        </button>
+                        <button type="button" @click="txType = 'transferencia'" :class="txType === 'transferencia' ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/40 shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'" class="flex-[1.2] py-2 rounded-lg text-[11px] font-semibold transition-all truncate">
+                            Transferência
+                        </button>
+                    </div>
+                {% endif %}
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

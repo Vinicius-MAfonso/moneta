@@ -171,6 +171,7 @@ def dashboard_view(request):
         'economy_status': economy_status,
         'economy_message': economy_message,
         'accounts': accounts,
+        'selected_account': selected_account,
         'selected_account_id': str(selected_account.id) if selected_account else '',
         'recent_transactions': recent_transactions,
         'goals': goals,
