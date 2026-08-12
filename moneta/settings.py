@@ -134,18 +134,15 @@ VAPID_PRIVATE_KEY = BASE_DIR / 'private_key.pem'
 VAPID_PUBLIC_KEY = 'BP-Qh5cC00t1SidlwM99RkrqNFzOd3o_DgmEZl9TS2Z_gu6NbWVL_JbCkdZODu7j_vsnKRLL1aePwdDaeK39UbU'
 VAPID_ADMIN_EMAIL = 'mailto:admin@moneta.com'
 
-# E-mail via Resend HTTP API (funciona no Render, não depende de porta SMTP)
-# Em dev local (DEBUG=True): usa Console (sem precisar de nada configurado)
-# Em prod (DEBUG=False): usa Anymail que chama a API do Resend via HTTPS
 _default_email_backend = (
     'django.core.mail.backends.console.EmailBackend'
     if DEBUG
-    else 'anymail.backends.resend.EmailBackend'
+    else 'anymail.backends.brevo.EmailBackend'
 )
 EMAIL_BACKEND = env('EMAIL_BACKEND', default=_default_email_backend)
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='onboarding@resend.dev')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Moneta Bot <projetomoneta@gmail.com>')
 SITE_URL = env('SITE_URL', default='http://localhost:8000' if DEBUG else 'https://seusite.com')
 
 ANYMAIL = {
-    'RESEND_API_KEY': env('RESEND_API_KEY', default=''),
+    'BREVO_API_KEY': env('BREVO_API_KEY', default=''),
 }
