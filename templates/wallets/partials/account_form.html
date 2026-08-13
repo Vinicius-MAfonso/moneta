@@ -1,39 +1,35 @@
 <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
     x-data="{ isCreditCard: {% if account and account.type == 'credit_card' %}true{% else %}false{% endif %} }" @keydown.escape.window="$el.remove()">
     <div
-        class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 relative animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white">{% if account %}Editar Conta{% else %}Nova Conta{% endif %}</h3>
+        class="bg-white text-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4 relative animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+            <h3 class="text-lg font-bold text-slate-900">{% if account %}Editar Conta{% else %}Nova Conta{% endif %}</h3>
             <button @click="$el.closest('.fixed').remove()"
-                class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                     </path>
                 </svg>
             </button>
         </div>
-
         <form hx-post="{% if account %}{% url 'wallets_web:edit' account.id %}{% else %}{% url 'wallets_web:create' %}{% endif %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { window.location.reload(); }">
             {% csrf_token %}
             <div class="space-y-4">
                 <div>
                     <label
-                        class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Nome
+                        class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Nome
                         da Conta</label>
                     <input type="text" name="name" required placeholder="Ex: Conta Corrente Itaú" value="{{ account.name|default:'' }}"
-                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                        class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                 </div>
-
                 <div class="grid grid-cols-2 gap-4">
                     {% if not account %}
                     <div>
                         <label
-                            class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Tipo</label>
+                            class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Tipo</label>
                         <select name="type" x-on:change="isCreditCard = ($el.value === 'credit_card')" required
-                            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[position:right_1rem_center] bg-no-repeat disabled:opacity-100">
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 appearance-none pr-8 bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%236b7280%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[position:right_1rem_center] bg-no-repeat disabled:opacity-100">
                             <option value="checking" {% if account.type == 'checking' %}selected{% endif %}>Conta Corrente</option>
-                            <option value="savings" {% if account.type == 'savings' %}selected{% endif %}>Poupança</option>
-                            <option value="investment" {% if account.type == 'investment' %}selected{% endif %}>Investimento</option>
                             <option value="credit_card" {% if account.type == 'credit_card' %}selected{% endif %}>Cartão de Crédito</option>
                             <option value="other" {% if account.type == 'other' %}selected{% endif %}>Outro</option>
                         </select>
@@ -44,66 +40,61 @@
                     
                     <div {% if account %}class="col-span-1"{% endif %}>
                         <label
-                            class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Instituição</label>
+                            class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Instituição</label>
                         <input type="text" name="institution" placeholder="Ex: Nubank" value="{{ account.institution|default:'' }}"
-                            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                     </div>
-
                     {% if not account %}
                     <div x-show="!isCreditCard">
                         <label
-                            class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Saldo
+                            class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Saldo
                             Inicial (R$)</label>
                         <input type="number" step="0.01" name="balance" :min="!isCreditCard ? '0' : ''" :required="!isCreditCard" value="{{ account.initial_balance|default:'0.00' }}"
-                            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                     </div>
                     {% else %}
                     <input type="hidden" name="balance" value="{{ account.initial_balance|floatformat:2 }}">
                     {% endif %}
-
                     <div>
                         <label
-                            class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Cor
+                            class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Cor
                             de Identificação</label>
                         <input type="color" name="color" value="{{ account.color|default:'#6366f1' }}"
-                            class="w-full h-11 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl p-1 cursor-pointer">
+                            class="w-full h-11 bg-slate-50 border border-slate-300 rounded-xl p-1 cursor-pointer">
                     </div>
                 </div>
-
-                <!-- Detalhes do Cartão de Crédito (Condicional via Alpine) -->
                 <div x-show="isCreditCard" x-cloak
-                    class="space-y-4 pt-3 border-t border-slate-200 dark:border-slate-800">
-                    <h4 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Detalhes
+                    class="space-y-4 pt-3 border-t border-slate-200">
+                    <h4 class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Detalhes
                         do Cartão de Crédito</h4>
                     <div>
                         <label
-                            class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Limite
+                            class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Limite
                             Total (R$)</label>
                         <input type="number" step="0.01" min="0.01" name="limit" placeholder="5000.00" value="{{ account.credit_card_details.limit|default:'' }}"
-                            class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label
-                                class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Dia
+                                class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Dia
                                 Fechamento</label>
                             <input type="number" min="1" max="31" name="closing_day" value="{{ account.credit_card_details.closing_day|default:'1' }}"
-                                class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                         </div>
                         <div>
                             <label
-                                class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Dia
+                                class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Dia
                                 Vencimento</label>
                             <input type="number" min="1" max="31" name="due_day" value="{{ account.credit_card_details.due_day|default:'10' }}"
-                                class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div class="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-200 dark:border-slate-800">
+            <div class="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-200">
                 <button type="button" @click="$el.closest('.fixed').remove()"
-                    class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Cancelar</button>
+                    class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition">Cancelar</button>
                 <button type="submit"
                     class="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition">{% if account %}Atualizar Conta{% else %}Criar Conta{% endif %}</button>
             </div>

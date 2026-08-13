@@ -15,7 +15,6 @@ urlpatterns = [
     path('push/subscribe/', views.save_push_subscription, name='save_push_subscription'),
     path('push/unsubscribe/', views.delete_push_subscription, name='delete_push_subscription'),
 
-    # Recuperação de Senha
     path('password_reset/', auth_views.PasswordResetView.as_view(
         template_name='users/password_reset_form.html',
         email_template_name='users/password_reset_email.txt',

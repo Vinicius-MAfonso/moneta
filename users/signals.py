@@ -24,11 +24,11 @@ def create_default_categories(sender, instance, created, **kwargs):
             ('Assinaturas', TransactionType.EXPENSE, '#6366f1', '📱', False),
             ('Pet', TransactionType.EXPENSE, '#84cc16', '🐾', False),
             ('Viagem', TransactionType.EXPENSE, '#14b8a6', '✈️', False),
-            ('Outras Despesas', TransactionType.EXPENSE, '#64748b', '📦', False),  # <-- Nome alterado
+            ('Outras Despesas', TransactionType.EXPENSE, '#64748b', '📦', False),
             ('Salário', TransactionType.INCOME, '#10b981', '💰', False),
             ('Freelance', TransactionType.INCOME, '#22c55e', '💻', False),
             ('Investimentos', TransactionType.INCOME, '#06b6d4', '📈', False),
-            ('Outras Receitas', TransactionType.INCOME, '#64748b', '📦', False),    # <-- Nome alterado
+            ('Outras Receitas', TransactionType.INCOME, '#64748b', '📦', False),
             ('Transferência', TransactionType.TRANSFER, '#737373', '🔄', False),
             ('Reajuste de Saldo Positivo', TransactionType.INCOME, '#64748b', '⚖️', True),
             ('Reajuste de Saldo Negativo', TransactionType.EXPENSE, '#64748b', '⚖️', True),

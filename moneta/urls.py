@@ -16,7 +16,6 @@ urlpatterns = [
     path('transactions/', include('transactions.urls_web')),
     path('wallets/', include('wallets.urls_web')),
     path('planning/', include('planning.urls_web')),
-    path('investments/', include('investments.urls_web')),
     path('users/', include('users.urls_web')),
 
     # PWA files

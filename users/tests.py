@@ -29,17 +29,14 @@ class UsersWebTestCase(TestCase):
     def test_login_and_register_views(self):
         self.client.logout()
 
-        # Renderização da página de Login
         res = self.client.get('/users/login/')
         self.assertEqual(res.status_code, 200)
 
-        # Submissão do Login
         res = self.client.post('/users/login/', {'username': 'profileuser', 'password': 'password123'})
         self.assertEqual(res.status_code, 302)
 
         self.client.logout()
 
-        # Submissão de Registro
         res = self.client.post('/users/register/', {
             'username': 'newuser',
             'first_name': 'Vinicius',

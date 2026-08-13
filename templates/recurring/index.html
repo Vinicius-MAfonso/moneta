@@ -5,11 +5,10 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- Seção de Cabeçalho -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Transações Recorrentes</h2>
-            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Gerencie suas contas fixas, assinaturas e receitas automáticas</p>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900  tracking-tight">Transações Recorrentes</h2>
+            <p class="text-slate-500  text-sm mt-1">Gerencie suas contas fixas, assinaturas e receitas automáticas</p>
         </div>
         <button hx-get="{% url 'transactions_web:recurring_create' %}" hx-target="#modal-container" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/25">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -17,15 +16,14 @@
         </button>
     </div>
 
-    <!-- Grade de Recorrências -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for item in recurring_transactions %}
             <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between space-y-4">
                 <div>
                     <div class="flex items-center justify-between">
-                        <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">{{ item.get_frequency_display }}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-indigo-500/10 text-indigo-600  border border-indigo-500/20">{{ item.get_frequency_display }}</span>
                         <div class="flex items-center space-x-2">
-                            <span class="text-xs font-semibold {% if item.active %}text-emerald-600 dark:text-emerald-400{% else %}text-slate-400{% endif %}">
+                            <span class="text-xs font-semibold {% if item.active %}text-emerald-600  else %}text-slate-400{% endif %}">
                                 {% if item.active %}Ativa{% else %}Inativa{% endif %}
                             </span>
                             <button hx-get="{% url 'transactions_web:recurring_confirm_delete' item.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 p-1 rounded hover:bg-rose-500/10 transition">
@@ -34,22 +32,22 @@
                         </div>
                     </div>
 
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mt-3">{{ item.description }}</h3>
-                    <p class="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mt-1">R$ {{ item.amount|floatformat:2 }}</p>
+                    <h3 class="text-xl font-bold text-slate-900  mt-3">{{ item.description }}</h3>
+                    <p class="text-2xl font-extrabold text-slate-900  mt-1">R$ {{ item.amount|floatformat:2 }}</p>
                 </div>
 
-                <div class="pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                <div class="pt-3 border-t border-slate-200  text-xs text-slate-500  space-y-1">
                     <div class="flex justify-between">
                         <span>Categoria:</span>
-                        <span class="text-slate-900 dark:text-slate-200 font-medium">{{ item.category.name }}</span>
+                        <span class="text-slate-900  font-medium">{{ item.category.name }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Conta:</span>
-                        <span class="text-slate-900 dark:text-slate-200 font-medium">{{ item.account.name }}</span>
+                        <span class="text-slate-900  font-medium">{{ item.account.name }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Início:</span>
-                        <span class="text-slate-900 dark:text-slate-200 font-medium">{{ item.start_date|date:"d/m/Y" }}</span>
+                        <span class="text-slate-900  font-medium">{{ item.start_date|date:"d/m/Y" }}</span>
                     </div>
                 </div>
             </div>

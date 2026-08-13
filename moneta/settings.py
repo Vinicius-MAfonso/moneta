@@ -4,21 +4,14 @@ import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-env = environ.Env(DEBUG=(bool, False),)
+env = environ.Env()
 
 environ.Env.read_env(BASE_DIR / '.env')
 
+DEBUG = env.bool('DEBUG')
 SECRET_KEY = env('SECRET_KEY')
-DEBUG = env.bool('DEBUG', default=False)
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[
-    'http://localhost:8000', 
-    'http://127.0.0.1:8000',
-    'https://*.ngrok-free.app',
-    'https://*.ngrok.app',
-    'https://*.ngrok.io',
-    'https://*.loca.lt'
-])
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -29,7 +22,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'investments',
     'planning',
     'transactions',
     'users',
@@ -41,9 +33,7 @@ INSTALLED_APPS = [
 ]
 
 TAILWIND_APP_NAME = 'theme'
-INTERNAL_IPS = [
-    "127.0.0.1",
-]
+INTERNAL_IPS = ["127.0.0.1"]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -77,7 +67,7 @@ WSGI_APPLICATION = 'moneta.wsgi.application'
 
 
 DATABASES = {
-    'default': env.db('DATABASE_URL', default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")
+    'default': env.db('DATABASE_URL')
 }
 
 LANGUAGE_CODE = 'pt-br'
@@ -88,16 +78,11 @@ USE_I18N = True
 
 USE_TZ = True
 
-AUTH_USER_MODEL = 'users.User'
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
-MEDIA_URL = 'media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-# Usa o armazenamento de arquivos estáticos manifestos compactados em produção para servir de forma eficiente
 if not DEBUG:
     STORAGES = {
         "staticfiles": {
@@ -105,7 +90,10 @@ if not DEBUG:
         },
     }
 
-# Configurações de segurança com substituições controladas por ambiente
+VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY')
+VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY')
+VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL')
+
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=not DEBUG)
 CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=not DEBUG)
@@ -115,7 +103,6 @@ SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
 
-# Configurações do Django-Q2
 Q_CLUSTER = {
     'name': 'moneta_cluster',
     'workers': 2,
@@ -127,22 +114,12 @@ Q_CLUSTER = {
     'cpu_affinity': 1,
     'label': 'Django Q',
     'orm': 'default',
-    'sync': DEBUG, # Roda de forma síncrona em desenvolvimento local (sem precisar do qcluster rodando)
+    'sync': DEBUG,
 }
 
-VAPID_PRIVATE_KEY = BASE_DIR / 'private_key.pem'
-VAPID_PUBLIC_KEY = 'BP-Qh5cC00t1SidlwM99RkrqNFzOd3o_DgmEZl9TS2Z_gu6NbWVL_JbCkdZODu7j_vsnKRLL1aePwdDaeK39UbU'
-VAPID_ADMIN_EMAIL = 'mailto:admin@moneta.com'
-
-_default_email_backend = (
-    'django.core.mail.backends.console.EmailBackend'
-    if DEBUG
-    else 'anymail.backends.brevo.EmailBackend'
+EMAIL_BACKEND = (
+    'django.core.mail.backends.console.EmailBackend' if DEBUG else 'anymail.backends.brevo.EmailBackend'
 )
-EMAIL_BACKEND = env('EMAIL_BACKEND', default=_default_email_backend)
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Moneta Bot <projetomoneta@gmail.com>')
-SITE_URL = env('SITE_URL', default='http://localhost:8000' if DEBUG else 'https://seusite.com')
-
-ANYMAIL = {
-    'BREVO_API_KEY': env('BREVO_API_KEY', default=''),
-}
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+SITE_URL = env('SITE_URL')
+ANYMAIL = {'BREVO_API_KEY': env('BREVO_API_KEY')}

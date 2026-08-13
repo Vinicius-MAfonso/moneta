@@ -10,7 +10,6 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from ofxparse import OfxParser
 
-from moneta.common import TransactionType
 from transactions.models import Category, Transaction
 from wallets.models import Account
 
@@ -32,7 +31,6 @@ def login_view(request):
             next_url = request.GET.get('next') or 'dashboard'
             return redirect(next_url)
         else:
-            # Check if user exists but is inactive
             user_obj = User.objects.filter(username=username).first()
             if user_obj and user_obj.check_password(password) and not user_obj.is_active:
                 messages.warning(request, 'Sua conta ainda está em análise pelo administrador. Aguarde a aprovação.')
@@ -152,8 +150,6 @@ def import_review_view(request):
             from transactions.signals import trigger_balance_recalculation
             from wallets.services import recalculate_account_balance
 
-            # Desconectar o signal temporariamente para evitar recálculo de saldo
-            # a cada transação (evita violar a constraint de saldo negativo no meio do lote)
             post_save.disconnect(trigger_balance_recalculation, sender=Transaction)
             post_delete.disconnect(trigger_balance_recalculation, sender=Transaction)
 
@@ -180,18 +176,15 @@ def import_review_view(request):
                             )
                             saved_count += 1
             finally:
-                # Reconectar o signal sempre (mesmo em caso de erro)
                 post_save.connect(trigger_balance_recalculation, sender=Transaction)
                 post_delete.connect(trigger_balance_recalculation, sender=Transaction)
 
-            # Recalcular o saldo uma única vez após salvar tudo
             if saved_count > 0:
                 recalculate_account_balance(account)
         except Exception as e:
             messages.error(request, f"Erro ao importar transações: {e!s}")
             return redirect('users_web:import_review')
                 
-        # Clear session
         if 'ofx_transactions' in request.session:
             del request.session['ofx_transactions']
             

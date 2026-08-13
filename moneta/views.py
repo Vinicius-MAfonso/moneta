@@ -22,12 +22,9 @@ def dashboard_view(request):
     account_id_param = request.GET.get('account_id')
     month_ctx = get_month_context(month_param)
 
-    # Processa transações recorrentes em background para não travar o carregamento
     from django_q.tasks import async_task
     async_task('transactions.services.process_recurring_transactions', user, month_ctx['end_date'])
 
-    # Nota: Não chamamos mais recalculate_all_user_balances(user) de forma síncrona,
-    # pois os signals em transactions/signals.py já mantêm o saldo atualizado.
     accounts_qs = Account.objects.filter(user=user, active=True).select_related('credit_card_details')
     from wallets.services import calculate_expected_balance
     
@@ -51,7 +48,6 @@ def dashboard_view(request):
         total_expected_balance = selected_account.expected_balance
         base_tx_qs = Transaction.objects.filter(user=user, account=selected_account)
     else:
-        # total_balance and total_expected_balance already summed
         base_tx_qs = Transaction.objects.filter(user=user)
 
     from django.db.models import Q
@@ -94,20 +90,15 @@ def dashboard_view(request):
 
     goals = Goal.objects.filter(user=user)[:3]
 
-    # Budgets Overview
     active_budgets = get_active_budgets(user, month_ctx['start_date'])
     top_budgets = active_budgets[:3]
 
-    # Category Breakdown for Expenses
     expenses_by_category = get_category_breakdown(base_tx_qs, TransactionType.EXPENSE, month_ctx['start_date'], month_ctx['end_date'])
 
-    # Category Breakdown for Incomes
     incomes_by_category = get_category_breakdown(base_tx_qs, TransactionType.INCOME, month_ctx['start_date'], month_ctx['end_date'])
 
-    # Monthly Calendar Grid
     calendar_grid = get_month_calendar_grid(user, month_ctx['start_date'], month_ctx['end_date'], account=selected_account)
 
-    # 6-Month Cashflow Chart Data
     current_year = month_ctx['year']
     current_month_num = month_ctx['month_num']
     
@@ -212,7 +203,6 @@ def reports_view(request):
 
     report_data = get_report_data(user, start_date, end_date)
     
-    # Use floats for pie_data_json serialization
     pie_data = [float(item['total']) for item in report_data['expenses_by_category']]
     
     context = {

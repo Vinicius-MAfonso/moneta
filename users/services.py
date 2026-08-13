@@ -5,9 +5,6 @@ from pywebpush import WebPushException, webpush
 
 
 def send_push_notification(user, title, body, url='/dashboard/'):
-    """
-    Sends a Web Push notification to all active subscriptions of a user.
-    """
     subscriptions = user.push_subscriptions.all()
     if not subscriptions.exists():
         return

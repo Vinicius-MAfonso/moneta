@@ -1,27 +1,26 @@
 #!/bin/bash
 set -e
 
-# Garante que o diretório data exista (para o sqlite)
 mkdir -p /app/data
 
 if [ "$PROCESS_TYPE" = "web" ]; then
-    echo "Aplicando migrações do banco de dados..."
+    echo "Applying database migrations..."
     python manage.py migrate --noinput
     
-    echo "Configurando agendamentos do Django-Q..."
+    echo "Configuring Django-Q schedules..."
     python manage.py setup_schedules
 
-    echo "Criando super usuário (se variáveis estiverem setadas)..."
+    echo "Creating superuser (if variables are set)..."
     python manage.py createsuperuser --noinput || true
 
-    echo "Iniciando Gunicorn (Servidor Web)..."
+    echo "Starting Gunicorn (Web Server)..."
     exec gunicorn moneta.wsgi:application --bind 0.0.0.0:8000 --workers 3
     
 elif [ "$PROCESS_TYPE" = "worker" ]; then
-    echo "Iniciando worker do Django-Q (Background Tasks)..."
+    echo "Starting Django-Q worker (Background Tasks)..."
     exec python manage.py qcluster
     
 else
-    echo "Erro: PROCESS_TYPE não definido ou inválido. Use 'web' ou 'worker'."
+    echo "Error: PROCESS_TYPE not defined or invalid. Use 'web' or 'worker'."
     exit 1
 fi

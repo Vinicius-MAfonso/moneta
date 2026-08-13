@@ -19,7 +19,6 @@ from .services import create_regular_transaction, create_transfer
 def transaction_list_view(request):
     qs = Transaction.objects.filter(user=request.user)
 
-    # Query Filters
     month_param = request.GET.get('month')
     month_ctx = get_month_context(month_param)
 
@@ -60,12 +59,10 @@ def transaction_list_view(request):
 
     transactions = qs.select_related('account', 'category').prefetch_related('tags').order_by('-date', '-created_at')
 
-    # Net balance calculation for selected period
     month_income = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
     month_expense = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
     month_net_balance = month_income - month_expense
 
-    # Agrupar transações por data e calcular saldos
     from collections import defaultdict
     from wallets.services import calculate_balance_at_date
     
@@ -74,7 +71,6 @@ def transaction_list_view(request):
         tx_dict[tx.date].append(tx)
         
     tx_by_date = []
-    # tx_dict is ordered if transactions are ordered? Wait, dicts keep insertion order in Python 3.7+
     for date, tx_list in tx_dict.items():
         tx_by_date.append({
             'date': date,
@@ -83,7 +79,7 @@ def transaction_list_view(request):
         })
 
     context = {
-        'transactions': transactions,  # Mantemos pra compatibilidade caso algum JS ou outra parte precise
+        'transactions': transactions,
         'tx_by_date': tx_by_date,
         'accounts': Account.objects.filter(user=request.user),
         'categories': Category.objects.filter(user=request.user, is_system=False),
@@ -161,7 +157,6 @@ def transaction_create_view(request):
                 messages.error(request, f"Erro na transferência: {error_msg}")
                 return redirect('transactions_web:list')
 
-        # Normal Despesa or Receita
         form = TransactionForm(request.POST, user=request.user)
         if form.is_valid():
             cd = form.cleaned_data
@@ -228,7 +223,6 @@ def transaction_update_view(request, pk):
 
     transaction = get_object_or_404(Transaction, pk=pk, user=request.user)
 
-    # Do not allow editing transfers in this version
     if transaction.category.type == TransactionType.TRANSFER:
         if request.headers.get('HX-Request'):
             import json
@@ -262,7 +256,6 @@ def transaction_update_view(request, pk):
 
             transaction.tags.set(cd['tags'])
 
-            # Recalculate balances
             recalculate_account_balance(transaction.account)
             if old_account_id != transaction.account_id:
                 old_account = Account.objects.get(id=old_account_id)
@@ -359,7 +352,6 @@ def transaction_delete_view(request, pk):
     return redirect('transactions_web:list')
 
 
-# Categories & Tags Views
 @login_required(login_url='users_web:login')
 def category_list_view(request):
     categories = Category.objects.filter(user=request.user, is_system=False)
@@ -506,7 +498,6 @@ def tag_delete_view(request, pk):
     return redirect('transactions_web:category_list')
 
 
-# Recurring Transactions Views
 @login_required(login_url='users_web:login')
 def recurring_list_view(request):
     recurring = RecurringTransaction.objects.filter(user=request.user).select_related('account', 'category')
@@ -547,7 +538,6 @@ def recurring_create_view(request):
                 active=True,
             )
 
-            # Seed initial transaction for start date
             Transaction.objects.create(
                 user=request.user,
                 account_id=account_id,
@@ -605,7 +595,6 @@ def recurring_delete_view(request, pk):
     return redirect('transactions_web:recurring_list')
 
 
-# Transfer View
 @login_required(login_url='users_web:login')
 def transfer_create_view(request):
     from transactions.services import create_transfer

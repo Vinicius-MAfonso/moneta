@@ -9,8 +9,6 @@ from django.db import models
 class Account(models.Model):
     class Types(models.TextChoices):
         CHECKING = 'checking', 'Conta Corrente'
-        SAVINGS = 'savings', 'Conta Poupança'
-        INVESTMENT = 'investment', 'Investimento'
         CREDIT_CARD = 'credit_card', 'Cartão de Crédito'
         OTHER = 'other', 'Outro'
 

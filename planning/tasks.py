@@ -6,9 +6,6 @@ from users.services import send_push_notification
 
 
 def notify_budget_warnings():
-    """
-    Background task to notify users when their budget is near its limit (>= 80%).
-    """
     today = timezone.now().date()
     
     active_budgets = Budget.objects.filter(

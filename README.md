@@ -1,6 +1,6 @@
 # Moneta
 
-Moneta é uma aplicação web de gestão financeira pessoal desenvolvida para ajudar você a controlar suas contas, despesas, receitas, cartões de crédito e investimentos de forma intuitiva e eficiente.
+Moneta é uma aplicação web de gestão financeira pessoal desenvolvida para ajudar você a controlar suas contas, despesas, receitas, cartões de crédito de forma intuitiva e eficiente.
 
 ## 🚀 Tecnologias Utilizadas
 
@@ -16,15 +16,13 @@ O projeto foi construído utilizando as seguintes tecnologias:
 
 - **Dashboard:** Resumo da sua vida financeira, incluindo saldos, gráficos de fluxo de caixa e listagem de transações recentes.
 - **Gestão de Contas (Wallets):**
-  - Contas Correntes, Poupanças e Investimentos com suporte a edição de saldo inicial e reajuste dinâmico de saldo.
+  - Contas Correntes com suporte a edição de saldo inicial e reajuste dinâmico de saldo.
   - Cartões de Crédito com acompanhamento de limite usado, faturas e fechamento de faturas.
 - **Transações:** 
   - Controle completo de Receitas, Despesas e Transferências.
   - Categorização com suporte a cores e ícones personalizados.
   - Filtros avançados para navegação entre meses e tipos de contas.
 - **Transações Recorrentes:** Automação de registros que se repetem todo mês.
-- **Investimentos:** Acompanhe a valorização ou desvalorização do seu portfólio.
-- **Interface Moderna:** Suporte a Light/Dark mode e layout responsivo.
 
 ## 🛠️ Como Executar o Projeto
 

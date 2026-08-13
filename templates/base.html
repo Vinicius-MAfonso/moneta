@@ -1,40 +1,22 @@
 {% load static tailwind_tags %}
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full"
-    x-data="{ darkMode: document.documentElement.classList.contains('dark') }"
-    x-init="
-        $watch('darkMode', val => {
-            localStorage.setItem('theme', val ? 'dark' : 'light');
-            if (val) { document.documentElement.classList.add('dark'); } else { document.documentElement.classList.remove('dark'); }
-        })
-    ">
+<html lang="pt-br" class="h-full">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- PWA Tags -->
     <link rel="manifest" href="{% url 'manifest' %}">
     <meta name="theme-color" content="#4f46e5">
 
     <title>{% block title %}Moneta - Gestão Financeira{% endblock %}</title>
 
-    <!-- Ícone do Cofre (Favicon) -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M19 11a5 5 0 01-5 5H9.5a5.5 5.5 0 01-5.5-5.5V10A5.5 5.5 0 019.5 4.5h2A5.5 5.5 0 0117 10v1z'/><circle cx='14' cy='9' r='1' fill='%236366f1'/><path d='M19 10l2 1v2l-2 1M11 4.5V3M7.5 16.5V19M15.5 16.5V19'/></svg>">
     
-    <!-- Ícones PWA para iOS (Apple Touch Icon) -->
     <link rel="apple-touch-icon" href="{% static 'apple-touch-icon.png' %}">
 
-    <!-- Configuração do HTMX para Transições -->
     <meta name="htmx-config" content='{"globalViewTransitions":true}'>
 
     <script>
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-
-        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register("{% url 'serviceworker' %}").then(function(registration) {
@@ -46,14 +28,12 @@
         }
     </script>
 
-    <!-- Fonte Google Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     {% tailwind_css %}
 
-    <!-- HTMX & AlpineJS & ChartJS CDN -->
     <script defer src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" integrity="sha384-Rpe/8orFUm5Q1GplYBHxbuA8Az8O8C5sAoOsdbRWkqPjKFaxPgGZipj4zeHL7lxX" crossorigin="anonymous"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
@@ -72,20 +52,14 @@
         .animate-stagger-3 { animation: slideDownFade 0.3s ease-out forwards; animation-delay: 0.15s; opacity: 0; }
         .animate-stagger-4 { animation: slideDownFade 0.3s ease-out forwards; animation-delay: 0.2s; opacity: 0; }
 
-        html.dark .glass-panel {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        html:not(.dark) .glass-panel {
+        .glass-panel {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(226, 232, 240, 0.8);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
-        html:not(.dark) body {
+        body {
             background-color: #f8fafc;
             color: #0f172a;
         }
@@ -94,12 +68,12 @@
 </head>
 
 <body
-    class="h-full font-sans overflow-x-hidden flex flex-col md:flex-row bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100"
+    class="h-full font-sans overflow-x-hidden flex flex-col md:flex-row bg-slate-100 text-slate-900"
     x-data="{ sidebarOpen: false, modalOpen: false }">
 
-    <!-- Cabeçalho Mobile -->
+    <!-- Mobile Header -->
     <header
-        class="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 z-30">
+        class="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 text-slate-900 z-30">
         <div class="flex items-center space-x-2">
             <div
                 class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-500 via-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-md">
@@ -111,10 +85,10 @@
                         d="M19 10l2 1v2l-2 1M11 4.5V3M7.5 16.5V19M15.5 16.5V19" />
                 </svg>
             </div>
-            <span class="font-bold text-xl tracking-tight text-slate-900 dark:text-white">Moneta</span>
+            <span class="font-bold text-xl tracking-tight text-slate-900">Moneta</span>
         </div>
         <button @click="sidebarOpen = !sidebarOpen"
-            class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+            class="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
                 </path>
@@ -122,15 +96,14 @@
         </button>
     </header>
 
-    <!-- Sidebar Overlay -->
+    <!-- Mobile Backdrop -->
     <div x-show="sidebarOpen" x-cloak @click="sidebarOpen = false"
-        class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 md:hidden transition-opacity"></div>
+        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden transition-opacity"></div>
 
-    <!-- Sidebar Navigation -->
+    <!-- Sidebar -->
     <aside :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-        class="-translate-x-full fixed md:static inset-y-0 left-0 w-64 bg-white/90 dark:bg-slate-900/90 border-r border-slate-200 dark:border-slate-800/80 z-50 transform md:translate-x-0 transition-transform duration-200 ease-in-out flex flex-col justify-between p-4 glass-panel">
+        class="-translate-x-full fixed md:static inset-y-0 left-0 w-64 bg-white/90 border-r border-slate-200 z-50 transform md:translate-x-0 transition-transform duration-200 ease-in-out flex flex-col justify-between p-4 glass-panel">
         <div>
-            <!-- Brand Logo with Piggy Bank Icon -->
             <div class="hidden md:flex items-center space-x-3 px-2 py-4 mb-4">
                 <div
                     class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
@@ -143,15 +116,14 @@
                     </svg>
                 </div>
                 <div>
-                    <h1 class="font-bold text-xl text-slate-900 dark:text-slate-100 tracking-tight">Moneta</h1>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Controle Financeiro</p>
+                    <h1 class="font-bold text-xl text-slate-900 tracking-tight">Moneta</h1>
+                    <p class="text-xs text-slate-500">Controle Financeiro</p>
                 </div>
             </div>
 
-            <!-- Navigation Links -->
             <nav class="space-y-1">
                 <a href="{% url 'dashboard' %}"
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.url_name == 'dashboard' %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.url_name == 'dashboard' %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
@@ -160,11 +132,10 @@
                     <span>Dashboard</span>
                 </a>
 
-                <!-- Transações Parent Menu with Submenu -->
                 <div
                     x-data="{ txOpen: {% if 'transactions' in request.path or 'categories' in request.path %}true{% else %}false{% endif %}, clicked: false }">
                     <button @click="txOpen = !txOpen; clicked = true"
-                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'transactions' in request.path or 'categories' in request.path %}bg-indigo-600/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'transactions' in request.path or 'categories' in request.path %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/20{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -182,19 +153,19 @@
                     <div x-show="txOpen" x-collapse {% if 'transactions' not in request.path and 'categories' not in request.path %}x-cloak{% endif %} class="mt-1 pl-8 space-y-1">
                         <a href="{% url 'transactions_web:list' %}"
                             :class="clicked ? 'animate-stagger-1' : ''"
-                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'list' and 'transactions' in request.path and 'categories' not in request.path %}text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/40{% endif %}">
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'list' and 'transactions' in request.path and 'categories' not in request.path %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                             Todas as Transações
                         </a>
                         <a href="{% url 'transactions_web:category_list' %}"
                             :class="clicked ? 'animate-stagger-2' : ''"
-                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if 'categories' in request.path %}text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 font-bold{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/40{% endif %}">
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if 'categories' in request.path %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                             Categorias & Tags
                         </a>
                     </div>
                 </div>
 
                 <a href="{% url 'wallets_web:list' %}"
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'wallets' in request.path %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'wallets' in request.path %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
@@ -204,7 +175,7 @@
                 </a>
 
                 <a href="{% url 'planning_web:list' %}"
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'planning' in request.path %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'planning' in request.path %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
@@ -214,7 +185,7 @@
                 </a>
 
                 <a href="{% url 'reports' %}"
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.url_name == 'reports' %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.url_name == 'reports' %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
@@ -222,61 +193,29 @@
                     </svg>
                     <span>Relatórios</span>
                 </a>
-
-                <a href="{% url 'investments_web:list' %}"
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'investments' in request.path %}bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30{% else %}text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/50{% endif %}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                    </svg>
-                    <span>Investimentos</span>
-                </a>
             </nav>
         </div>
 
-        <!-- User Info & Theme Switcher / Bottom Section -->
-        <div class="pt-4 border-t border-slate-200 dark:border-slate-800/80 space-y-2">
-
-            <!-- Dark / Light Theme Toggle -->
-            <button @click="darkMode = !darkMode"
-                class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/60 dark:hover:bg-slate-800/50 transition">
-                <div class="flex items-center space-x-2">
-                    <!-- Moon Icon (visible in dark mode) -->
-                    <svg class="w-4 h-4 text-amber-400 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
-                        </path>
-                    </svg>
-                    <!-- Sun Icon (visible in light mode) -->
-                    <svg class="w-4 h-4 text-indigo-500 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
-                        </path>
-                    </svg>
-                    <span class="hidden dark:inline">Modo Escuro</span>
-                    <span class="dark:hidden">Modo Claro</span>
-                </div>
-            </button>
-
+        <div class="pt-4 border-t border-slate-200 space-y-2">
             <a href="{% url 'users_web:settings' %}"
-                class="flex items-center justify-between px-2 py-1.5 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800/50 transition">
+                class="flex items-center justify-between px-2 py-1.5 rounded-xl hover:bg-slate-200/60 transition">
                 <div class="flex items-center space-x-3">
-                    <div class="w-9 h-9 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400">
+                    <div class="w-9 h-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center font-bold text-indigo-600">
                         {{ user.first_name|default:user.username|slice:":1"|upper }}
                     </div>
                     <div>
-                        <p class="text-sm font-semibold text-slate-900 dark:text-slate-200 leading-none">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</p>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ user.currency|default:"BRL" }} (R$)</p>
+                        <p class="text-sm font-semibold text-slate-900 leading-none">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</p>
+                        <p class="text-xs text-slate-500 mt-1">{{ user.currency|default:"BRL" }} (R$)</p>
                     </div>
                 </div>
-                <svg class="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
                     </path>
                 </svg>
             </a>
             <a href="{% url 'users_web:logout' %}"
-                class="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 dark:text-rose-400 hover:bg-rose-500/10 transition">
+                class="flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
@@ -287,37 +226,33 @@
         </div>
     </aside>
 
-    <!-- Área Principal de Conteúdo -->
+    <!-- Main Content -->
     <main class="flex-1 min-w-0 overflow-y-auto p-4 md:p-8 space-y-6">
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Global Toast Container (Alpine.js) -->
+    <!-- Toasts Container -->
     <div x-data="{
             toasts: [],
             addToast(message, type = 'success') {
                 const id = Date.now();
-                // Ensure type is one of the supported types
                 const validTypes = ['success', 'error', 'danger', 'warning', 'info'];
                 const safeType = validTypes.includes(type) ? type : 'info';
                 
                 const toast = { id, message, type: safeType, show: false };
                 this.toasts.push(toast);
                 
-                // Trigger enter animation in next tick
                 setTimeout(() => {
                     const t = this.toasts.find(t => t.id === id);
                     if (t) t.show = true;
                 }, 50);
 
-                // Auto remove after 5 seconds
                 setTimeout(() => this.removeToast(id), 5000);
             },
             removeToast(id) {
                 const toast = this.toasts.find(t => t.id === id);
                 if (toast) {
-                    toast.show = false; // Trigger leave animation
-                    // Remove from array after transition completes
+                    toast.show = false;
                     setTimeout(() => {
                         this.toasts = this.toasts.filter(t => t.id !== id);
                     }, 300);
@@ -327,7 +262,6 @@
         @show-toast.window="addToast($event.detail.message, $event.detail.type)"
         class="fixed top-6 right-4 md:top-8 md:right-8 z-[100] flex flex-col gap-3 w-[320px] pointer-events-none px-4 md:px-0">
         
-        <!-- Render Django Messages on Load -->
         {% if messages %}
             <script>
                 document.addEventListener('DOMContentLoaded', () => {
@@ -350,10 +284,10 @@
                 x-transition:leave-end="opacity-0 translate-x-12 scale-95"
                 class="pointer-events-auto p-4 rounded-2xl shadow-2xl flex items-start space-x-3 backdrop-blur-xl"
                 :class="{
-                    'bg-emerald-50/90 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/50': toast.type === 'success',
-                    'bg-rose-50/90 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 border border-rose-200/50 dark:border-rose-800/50': toast.type === 'error' || toast.type === 'danger',
-                    'bg-amber-50/90 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200/50 dark:border-amber-800/50': toast.type === 'warning',
-                    'bg-sky-50/90 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border border-sky-200/50 dark:border-sky-800/50': toast.type === 'info'
+                    'bg-emerald-50/90 text-emerald-800 border border-emerald-200/50': toast.type === 'success',
+                    'bg-rose-50/90 text-rose-800 border border-rose-200/50': toast.type === 'error' || toast.type === 'danger',
+                    'bg-amber-50/90 text-amber-800 border border-amber-200/50': toast.type === 'warning',
+                    'bg-sky-50/90 text-sky-800 border border-sky-200/50': toast.type === 'info'
                 }">
                 
                 <div class="shrink-0 mt-0.5">
@@ -375,14 +309,13 @@
                     <span x-text="toast.message"></span>
                 </div>
                 
-                <button @click="removeToast(toast.id)" class="shrink-0 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition">
+                <button @click="removeToast(toast.id)" class="shrink-0 text-slate-400 hover:text-slate-700 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
         </template>
     </div>
 
-    <!-- Modal Container for HTMX -->
     <div id="modal-container"></div>
 
 </body>

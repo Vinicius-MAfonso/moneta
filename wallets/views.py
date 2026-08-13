@@ -88,7 +88,6 @@ def account_update_view(request, pk):
             account.name = cd['name']
             account.institution = cd['institution']
             account.color = cd['color']
-            # Não atualizamos o tipo para evitar recálculos complexos
             if 'balance' in cd:
                 account.initial_balance = cd['balance']
 
@@ -97,7 +96,6 @@ def account_update_view(request, pk):
             if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
                 cc = account.credit_card_details
 
-                # Se o limite aumentou, o limite disponível também deve aumentar
                 diff = cd['limit'] - cc.limit
                 cc.limit = cd['limit']
                 cc.available_limit = max(Decimal('0.00'), cc.available_limit + diff)
@@ -147,7 +145,6 @@ def account_balance_adjustment_view(request, pk):
         adjustment_type = request.POST.get('adjustment_type')
 
         try:
-            # Troca vírgula por ponto para fazer o parse de decimal se necessário
             new_balance = Decimal(new_balance_str.replace(',', '.'))
         except Exception:
             messages.error(request, "Valor de saldo inválido.")
@@ -166,7 +163,6 @@ def account_balance_adjustment_view(request, pk):
                 tx_type = TransactionType.INCOME if delta > 0 else TransactionType.EXPENSE
 
                 category_name = "Reajuste de Saldo Positivo" if delta > 0 else "Reajuste de Saldo Negativo"
-                # Busca ou cria a categoria do sistema para reajuste
                 category, _ = Category.objects.get_or_create(
                     user=request.user,
                     name=category_name,
@@ -177,7 +173,6 @@ def account_balance_adjustment_view(request, pk):
                         'is_system': True,
                     }
                 )
-                # Garante is_system=True para categorias criadas antes desta feature
                 if not category.is_system:
                     Category.objects.filter(pk=category.pk).update(is_system=True)
 

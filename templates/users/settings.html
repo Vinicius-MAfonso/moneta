@@ -5,40 +5,35 @@
 {% block content %}
 <div class="space-y-6 max-w-4xl">
 
-    <!-- Header -->
     <div>
-        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Perfil & Configurações</h2>
-        <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Gerencie suas informações pessoais, foto de perfil, moeda padrão e fuso horário</p>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900  tracking-tight">Perfil & Configurações</h2>
+        <p class="text-slate-500  text-sm mt-1">Gerencie suas informações pessoais, foto de perfil, moeda padrão e fuso horário</p>
     </div>
 
-    <!-- Form Panel -->
     <div class="glass-panel p-6 rounded-2xl">
         <form method="POST" action="{% url 'users_web:settings' %}" enctype="multipart/form-data" class="space-y-6">
             {% csrf_token %}
 
 
 
-            <!-- Name and Surname -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Nome</label>
-                    <input type="text" name="first_name" value="{{ user.first_name }}" placeholder="Seu nome" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                    <label class="block text-xs font-semibold text-slate-600  uppercase tracking-wider mb-1.5">Nome</label>
+                    <input type="text" name="first_name" value="{{ user.first_name }}" placeholder="Seu nome" class="w-full bg-slate-50  border border-slate-300  rounded-xl px-4 py-2.5 text-sm text-slate-900  focus:outline-none focus:border-indigo-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Sobrenome</label>
-                    <input type="text" name="last_name" value="{{ user.last_name }}" placeholder="Seu sobrenome" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                    <label class="block text-xs font-semibold text-slate-600  uppercase tracking-wider mb-1.5">Sobrenome</label>
+                    <input type="text" name="last_name" value="{{ user.last_name }}" placeholder="Seu sobrenome" class="w-full bg-slate-50  border border-slate-300  rounded-xl px-4 py-2.5 text-sm text-slate-900  focus:outline-none focus:border-indigo-500">
                 </div>
             </div>
 
-            <!-- Email -->
             <div>
-                <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">E-mail</label>
-                <input type="email" name="email" value="{{ user.email }}" class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500">
+                <label class="block text-xs font-semibold text-slate-600  uppercase tracking-wider mb-1.5">E-mail</label>
+                <input type="email" name="email" value="{{ user.email }}" class="w-full bg-slate-50  border border-slate-300  rounded-xl px-4 py-2.5 text-sm text-slate-900  focus:outline-none focus:border-indigo-500">
             </div>
 
 
 
-            <!-- Submit Button -->
             <div class="flex justify-end pt-4">
                 <button type="submit" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-600/25">
                     Salvar Alterações
@@ -47,20 +42,19 @@
         </form>
     </div>
 
-    <!-- Notifications Panel -->
     <div class="glass-panel p-6 rounded-2xl">
         <div>
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+            <h3 class="text-lg font-bold text-slate-900  flex items-center space-x-2">
                 <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                 <span>Notificações de Vencimento</span>
             </h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Receba alertas no seu celular quando uma conta estiver prestes a vencer.</p>
+            <p class="text-sm text-slate-500  mt-1">Receba alertas no seu celular quando uma conta estiver prestes a vencer.</p>
         </div>
         
-        <div class="mt-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl">
+        <div class="mt-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50  border border-slate-200  p-4 rounded-xl">
             <div>
-                <p class="text-sm font-semibold text-slate-900 dark:text-slate-100" id="push-status">Status: Não Configurado</p>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Clique em ativar para dar permissão ao navegador.</p>
+                <p class="text-sm font-semibold text-slate-900 " id="push-status">Status: Não Configurado</p>
+                <p class="text-xs text-slate-500  mt-0.5">Clique em ativar para dar permissão ao navegador.</p>
             </div>
             <button type="button" id="btn-subscribe" class="w-full sm:w-auto px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all shadow-lg shadow-emerald-600/25 shrink-0">
                 Ativar Notificações
@@ -68,23 +62,22 @@
         </div>
     </div>
 
-    <!-- OFX Import Panel -->
     <div class="glass-panel p-6 rounded-2xl">
         <div>
-            <h3 class="text-lg font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+            <h3 class="text-lg font-bold text-slate-900  flex items-center space-x-2">
                 <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                 <span>Importar Extrato Bancário</span>
             </h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Faça upload do extrato em formato <strong>.OFX</strong> fornecido pelo seu banco para lançar as transações automaticamente.</p>
+            <p class="text-sm text-slate-500  mt-1">Faça upload do extrato em formato <strong>.OFX</strong> fornecido pelo seu banco para lançar as transações automaticamente.</p>
         </div>
         
         <form method="POST" action="{% url 'users_web:import_ofx' %}" enctype="multipart/form-data" class="mt-5 space-y-4">
             {% csrf_token %}
             <div>
-                <input type="file" name="ofx_file" accept=".ofx" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 dark:file:bg-indigo-500/20 dark:file:text-indigo-400 hover:file:bg-indigo-100 cursor-pointer transition">
+                <input type="file" name="ofx_file" accept=".ofx" required class="w-full bg-slate-50  border border-slate-300  rounded-xl px-4 py-2.5 text-sm text-slate-900  focus:outline-none focus:border-indigo-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700   hover:file:bg-indigo-100 cursor-pointer transition">
             </div>
             <div class="flex justify-end">
-                <button type="submit" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-semibold text-sm transition-all shadow-lg">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700   text-white font-semibold text-sm transition-all shadow-lg">
                     Ler Extrato
                 </button>
             </div>
@@ -126,10 +119,8 @@
             
             let subscription = await registration.pushManager.getSubscription();
             if (subscription) {
-                // Já está inscrito - VAMOS DESINSCREVER
                 await subscription.unsubscribe();
                 
-                // Envia para o backend para apagar
                 const response = await fetch("{% url 'users_web:delete_push_subscription' %}", {
                     method: 'POST',
                     headers: {
@@ -141,7 +132,7 @@
 
                 if (response.ok) {
                     statusText.innerText = 'Status: Não Configurado';
-                    statusText.className = 'text-sm font-semibold text-slate-900 dark:text-slate-100';
+                    statusText.className = 'text-sm font-semibold text-slate-900 ';
                     btnSubscribe.innerText = 'Ativar Notificações';
                     btnSubscribe.className = 'px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all shadow-lg shadow-emerald-600/25';
                 } else {
@@ -155,7 +146,6 @@
                 applicationServerKey: urlB64ToUint8Array(vapidPublicKey)
             });
 
-            // Envia para o backend
             const response = await fetch("{% url 'users_web:save_push_subscription' %}", {
                 method: 'POST',
                 headers: {
@@ -167,7 +157,7 @@
 
             if (response.ok) {
                 statusText.innerText = 'Status: Ativo';
-                statusText.className = 'text-sm font-semibold text-emerald-600 dark:text-emerald-400';
+                statusText.className = 'text-sm font-semibold text-emerald-600 ';
                 btnSubscribe.innerText = 'Desativar Notificações';
                 btnSubscribe.className = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition-all shadow-lg shadow-rose-600/25';
             } else {
@@ -181,13 +171,12 @@
 
     btnSubscribe.addEventListener('click', subscribeUser);
     
-    // Check initial status
     if ('serviceWorker' in navigator && 'PushManager' in window) {
         navigator.serviceWorker.ready.then(async (reg) => {
             const sub = await reg.pushManager.getSubscription();
             if (sub) {
                 statusText.innerText = 'Status: Ativo';
-                statusText.className = 'text-sm font-semibold text-emerald-600 dark:text-emerald-400';
+                statusText.className = 'text-sm font-semibold text-emerald-600 ';
                 btnSubscribe.innerText = 'Desativar Notificações';
                 btnSubscribe.className = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition-all shadow-lg shadow-rose-600/25';
             }

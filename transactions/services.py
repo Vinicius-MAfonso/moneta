@@ -20,10 +20,6 @@ def add_years(orig_date, years=1):
 
 
 def process_recurring_transactions(user, target_end_date=None):
-    """
-    Automatically generates missing scheduled transaction or transfer instances for all active
-    recurring rules of the user up to target_end_date.
-    """
     from moneta.common import TransactionType
     from transactions.models import RecurringTransaction, Transaction, Transfer
     from wallets.models import Account
@@ -90,7 +86,6 @@ def process_recurring_transactions(user, target_end_date=None):
                         bill=bill,
                     )
 
-            # Avança a data baseada na frequência da recorrência
             if rec.frequency == RecurringTransaction.Frequencies.DAILY:
                 current_date += timedelta(days=1)
             elif rec.frequency == RecurringTransaction.Frequencies.WEEKLY:

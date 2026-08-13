@@ -1,36 +1,30 @@
 {% extends "base.html" %}
-
 {% block title %}Contas & Cartões - Moneta{% endblock %}
-
 {% block content %}
 <div class="space-y-6">
-
-    <!-- Seção de Cabeçalho -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Contas & Cartões</h2>
-            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Gerencie suas contas bancárias, limites e cartões de crédito</p>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Contas & Cartões</h2>
+            <p class="text-slate-500 text-sm mt-1">Gerencie suas contas bancárias, limites e cartões de crédito</p>
         </div>
         <button hx-get="{% url 'wallets_web:create' %}" hx-target="#modal-container" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/25">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             <span>Nova Conta</span>
         </button>
     </div>
-
-    <!-- Accounts Cards Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {% for account in accounts %}
             <div class="glass-panel p-6 rounded-2xl relative overflow-hidden flex flex-col justify-between border-t-4" style="border-top-color: {{ account.color }};">
                 <div>
                     <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">{{ account.get_type_display }}</span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ account.get_type_display }}</span>
                         <div class="flex items-center space-x-2">
                             {% if account.institution %}
-                                <span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium border border-slate-200 dark:border-slate-700">{{ account.institution }}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 font-medium border border-slate-200">{{ account.institution }}</span>
                             {% endif %}
                             {% if account.type != 'credit_card' %}
                             <button hx-get="{% url 'wallets_web:balance_adjustment' account.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-emerald-500 p-1 rounded hover:bg-emerald-500/10 transition" title="Reajustar Saldo">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08-.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </button>
                             {% endif %}
                             <button hx-get="{% url 'wallets_web:edit' account.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-indigo-500 p-1 rounded hover:bg-indigo-500/10 transition" title="Editar">
@@ -42,34 +36,33 @@
                         </div>
                     </div>
                     
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mt-3">
+                    <h3 class="text-xl font-bold text-slate-900 mt-3">
                         {{ account.name }}
                     </h3>
                     {% if account.type != 'credit_card' %}
-                        <p class="text-3xl font-extrabold {% if account.balance > 0 %}text-emerald-600 dark:text-emerald-400{% elif account.balance < 0 %}text-rose-600 dark:text-rose-400{% else %}text-slate-900 dark:text-slate-100{% endif %} mt-2">R$ {{ account.balance|floatformat:2 }}</p>
-                        <div class="mt-1 flex items-center space-x-1.5 text-xs font-medium {% if account.expected_balance >= account.balance %}text-emerald-600 dark:text-emerald-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                        <p class="text-3xl font-extrabold {% if account.balance > 0 %}text-emerald-600{% elif account.balance < 0 %}text-rose-600{% else %}text-slate-900{% endif %} mt-2">R$ {{ account.balance|floatformat:2 }}</p>
+                        <div class="mt-1 flex items-center space-x-1.5 text-xs font-medium {% if account.expected_balance >= account.balance %}text-emerald-600{% else %}text-rose-600{% endif %}">
                             <span>Previsto: R$ {{ account.expected_balance|floatformat:2 }}</span>
                         </div>
                     {% endif %}
                 </div>
-
                 {% if account.type == 'credit_card' and account.credit_card_details %}
-                    <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                    <div class="mt-6 pt-4 border-t border-slate-200 space-y-2 text-xs">
                         <div class="space-y-1.5">
                             <div class="flex justify-between font-medium">
                                 <span>Limite Usado: R$ {{ account.credit_card_details.used_limit|floatformat:2 }} ({{ account.credit_card_details.limit_usage_pct|floatformat:0 }}%)</span>
-                                <span class="text-slate-900 dark:text-slate-200">De R$ {{ account.credit_card_details.limit|floatformat:2 }}</span>
+                                <span class="text-slate-900">De R$ {{ account.credit_card_details.limit|floatformat:2 }}</span>
                             </div>
-                            <div class="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                                <div class="h-full rounded-full transition-all duration-300 {% if account.credit_card_details.limit_usage_pct >= 90 %}bg-rose-500{% elif account.credit_card_details.limit_usage_pct >= 75 %}bg-amber-500{% else %}bg-indigo-500{% endif %}" style="width: {{ account.credit_card_details.limit_usage_pct_str }}%; max-width: 100%;"></div>
+                            <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-300 {% if account.credit_card_details.limit_usage_pct >= 90 %}bg-rose-500{% elif account.credit_card_details.limit_usage_pct >= 75 %}bg-amber-500{% else %}bg-indigo-500{% endif %}" style="width: min({{ account.credit_card_details.limit_usage_pct_str }}%, 100%);"></div>
                             </div>
                         </div>
-                        <div class="flex justify-between text-slate-500 dark:text-slate-400">
+                        <div class="flex justify-between text-slate-500">
                             <span>Fechamento / Vencimento:</span>
-                            <span class="font-bold text-slate-900 dark:text-slate-200">Dia {{ account.credit_card_details.closing_day }} / Dia {{ account.credit_card_details.due_day }}</span>
+                            <span class="font-bold text-slate-900">Dia {{ account.credit_card_details.closing_day }} / Dia {{ account.credit_card_details.due_day }}</span>
                         </div>
-                        <div class="pt-3 mt-1 flex justify-end border-t border-slate-100 dark:border-slate-800/50">
-                            <a href="{% url 'wallets_web:bill_list' account.id %}" class="inline-flex items-center space-x-1 text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 transition text-sm">
+                        <div class="pt-3 mt-1 flex justify-end border-t border-slate-100">
+                            <a href="{% url 'wallets_web:bill_list' account.id %}" class="inline-flex items-center space-x-1 text-indigo-600 font-semibold hover:text-indigo-700 transition text-sm">
                                 <span>Ver Faturas</span>
                                 <span>&rarr;</span>
                             </a>
@@ -83,6 +76,5 @@
             </div>
         {% endfor %}
     </div>
-
 </div>
 {% endblock %}

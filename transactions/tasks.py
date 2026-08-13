@@ -8,19 +8,12 @@ from users.services import send_push_notification
 User = get_user_model()
 
 def process_all_recurring_transactions():
-    """
-    Background task to process recurring transactions for all users.
-    Should be scheduled to run daily at midnight.
-    """
     users = User.objects.all()
     for user in users:
         process_recurring_transactions(user)
 
 
 def notify_due_transactions():
-    """
-    Background task to send Web Push notifications for bills due today.
-    """
     today = timezone.now().date()
     
     due_transactions = Transaction.objects.filter(

@@ -73,16 +73,10 @@ def get_month_context(month_str=None):
 
 
 def get_month_calendar_grid(user, start_date, end_date, account=None):
-    """
-    Builds a 7-column calendar matrix (Sunday to Saturday) for the given month range
-    annotated with daily income and expense totals (both completed and pending).
-    Completed = realizado; Pending = previsto.
-    """
     from django.db.models import Sum
 
     from transactions.models import Transaction
 
-    # Busca TODAS as transações do mês, sem filtrar por status
     qs = Transaction.objects.filter(
         user=user,
         date__range=(start_date, end_date),
@@ -119,7 +113,7 @@ def get_month_calendar_grid(user, start_date, end_date, account=None):
             else:
                 daily_totals[d_str]['expense_pending'] += item['total']
 
-    cal = calendar.Calendar(firstweekday=6)  # Domingo = 6
+    cal = calendar.Calendar(firstweekday=6)
     month_days = list(cal.itermonthdays4(start_date.year, start_date.month))
 
     grid = []
@@ -146,7 +140,6 @@ def get_month_calendar_grid(user, start_date, end_date, account=None):
             'expense_done': totals['expense_done'],
             'income_pending': totals['income_pending'],
             'expense_pending': totals['expense_pending'],
-            # totais combinados (para compatibilidade)
             'income': totals['income_done'] + totals['income_pending'],
             'expense': totals['expense_done'] + totals['expense_pending'],
             'has_data': has_data,

@@ -12,10 +12,8 @@ class TransactionForm(forms.Form):
     status = forms.ChoiceField(choices=Transaction.Statuses.choices, required=False, initial=Transaction.Statuses.COMPLETED)
     tags = forms.ModelMultipleChoiceField(queryset=Tag.objects.none(), required=False)
 
-    # Installments field
     installments = forms.IntegerField(min_value=1, required=False, initial=1)
 
-    # Recurring fields
     is_recurring = forms.BooleanField(required=False)
     frequency = forms.ChoiceField(choices=[('daily', 'Diária'), ('weekly', 'Semanal'), ('monthly', 'Mensal'), ('yearly', 'Anual')], required=False)
     recurring_end_date = forms.DateField(required=False)

@@ -1,20 +1,7 @@
-import uuid
-
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import User
 from django.db import models
 
 
-class User(AbstractUser):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
-
-    class Meta:
-        verbose_name = 'usuário'
-        verbose_name_plural = 'usuários'
-
-    def __str__(self):
-        return self.username
 
 
 class PushSubscription(models.Model):

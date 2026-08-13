@@ -1,19 +1,17 @@
 {% extends "base.html" %}
-
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
-
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
                 Fatura - {{ bill.period_date|date:"F Y" }}
             </h1>
-            <p class="text-slate-500 dark:text-slate-400 mt-1">
+            <p class="text-slate-500 mt-1">
                 Cartão: {{ bill.account.name }}
             </p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{% url 'wallets_web:list' %}" class="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition shadow-sm">
+            <a href="{% url 'wallets_web:list' %}" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition shadow-sm">
                 Voltar
             </a>
             {% if bill.status != 'paid' and total > 0 %}
@@ -23,23 +21,10 @@
             {% endif %}
         </div>
     </div>
-
-    <!-- Messages -->
-    {% if messages %}
-    <div class="space-y-2">
-        {% for message in messages %}
-        <div class="p-3.5 rounded-xl text-xs font-semibold border shadow-sm {% if message.tags == 'error' %}bg-rose-500/10 text-rose-600 border-rose-500/30{% else %}bg-emerald-500/10 text-emerald-600 border-emerald-500/30{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
-    </div>
-    {% endif %}
-
-    <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Status</p>
-            <p class="text-xl font-bold mt-1 text-slate-900 dark:text-white">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-sm font-medium text-slate-500">Status</p>
+            <p class="text-xl font-bold mt-1 text-slate-900">
                 {% if bill.status == 'paid' %}
                     <span class="text-emerald-500">Paga</span>
                 {% elif bill.status == 'closed' %}
@@ -49,49 +34,46 @@
                 {% endif %}
             </p>
         </div>
-        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Total da Fatura</p>
-            <p class="text-xl font-bold mt-1 text-slate-900 dark:text-white">R$ {{ total|floatformat:2 }}</p>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-sm font-medium text-slate-500">Total da Fatura</p>
+            <p class="text-xl font-bold mt-1 text-slate-900">R$ {{ total|floatformat:2 }}</p>
         </div>
-        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Fechamento</p>
-            <p class="text-xl font-bold mt-1 text-slate-900 dark:text-white">{{ bill.closing_date|date:"d/m/Y" }}</p>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-sm font-medium text-slate-500">Fechamento</p>
+            <p class="text-xl font-bold mt-1 text-slate-900">{{ bill.closing_date|date:"d/m/Y" }}</p>
         </div>
-        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Vencimento</p>
-            <p class="text-xl font-bold mt-1 text-rose-500 dark:text-rose-400">{{ bill.due_date|date:"d/m/Y" }}</p>
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-sm font-medium text-slate-500">Vencimento</p>
+            <p class="text-xl font-bold mt-1 text-rose-500">{{ bill.due_date|date:"d/m/Y" }}</p>
         </div>
     </div>
-
-    <!-- Lista de Transações -->
-    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-            <h3 class="font-bold text-slate-900 dark:text-white">Lançamentos</h3>
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+            <h3 class="font-bold text-slate-900">Lançamentos</h3>
         </div>
-        <div class="divide-y divide-slate-100 dark:divide-slate-800/60">
+        <div class="divide-y divide-slate-100">
             {% for tx in transactions %}
-                <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition group">
+                <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition group">
                     <div class="flex items-center gap-4 min-w-0">
                         <div class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-white shadow-sm" style="background-color: {{ tx.category.color }}">
-                            <span class="text-lg">{{ tx.category.icon|default:"🏷️" }}</span>
+                            <span class="text-lg">{{ tx.category.icon|default:"" }}</span>
                         </div>
                         <div class="min-w-0">
-                            <p class="font-semibold text-slate-900 dark:text-white text-sm truncate">{{ tx.description }}</p>
+                            <p class="font-semibold text-slate-900 text-sm truncate">{{ tx.description }}</p>
                             <div class="flex items-center gap-2 mt-0.5 overflow-hidden flex-wrap">
                                 <span class="text-xs text-slate-500 whitespace-nowrap">{{ tx.date|date:"d M, Y" }}</span>
-                                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium truncate max-w-full">{{ tx.category.name }}</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium truncate max-w-full">{{ tx.category.name }}</span>
                             </div>
                         </div>
                     </div>
                     <div class="text-right max-w-[45%] break-all">
                         {% if hasattr and tx.transfer_in or tx.type == 'receita' or tx.description|slice:":17" == "Transferência de " %}
-                        <p class="font-bold text-emerald-600 dark:text-emerald-400">
+                        <p class="font-bold text-emerald-600">
                             +R$ {{ tx.amount|floatformat:2 }}
                         </p>
                         {% else %}
-                        <p class="font-bold text-rose-600 dark:text-rose-400">
+                        <p class="font-bold text-rose-600">
                             -R$ {{ tx.amount|floatformat:2 }}
-                        </p>
                         </p>
                         {% endif %}
                         <div class="flex items-center justify-end gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -106,51 +88,42 @@
                 </div>
             {% empty %}
                 <div class="px-6 py-12 text-center">
-                    <p class="text-slate-500 dark:text-slate-400">Nenhum lançamento nesta fatura ainda.</p>
+                    <p class="text-slate-500">Nenhum lançamento nesta fatura ainda.</p>
                 </div>
             {% endfor %}
         </div>
     </div>
 </div>
-
-<!-- Pay Bill Modal -->
 <div x-data="{ open: false }" @open-pay-modal.window="open = true" @keydown.esc.window="open = false">
     <template x-teleport="body">
         <div x-show="open" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-transition.opacity style="display: none;" x-cloak>
-            <div @click.away="open = false" x-show="open" x-transition.scale class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 relative max-h-[90vh] overflow-y-auto">
-                
-                <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Pagar Fatura</h3>
-                    <button @click="open = false" class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+            <div @click.away="open = false" x-show="open" x-transition.scale class="bg-white text-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4 relative max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                    <h3 class="text-lg font-bold text-slate-900">Pagar Fatura</h3>
+                    <button @click="open = false" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
-
                 <form method="POST" action="{% url 'wallets_web:pay_bill' pk=bill.pk %}" class="space-y-4" x-data="{ selectedAccountBalance: null, paymentAmount: {{ total|stringformat:'.2f' }} }">
                     {% csrf_token %}
-                    <p class="text-sm text-slate-600 dark:text-slate-400">
-                        O valor total de <strong class="text-slate-900 dark:text-white">R$ {{ total|floatformat:2 }}</strong> será pago. Selecione a conta de origem:
+                    <p class="text-sm text-slate-600">
+                        O valor total de <strong class="text-slate-900">R$ {{ total|floatformat:2 }}</strong> será pago. Selecione a conta de origem:
                     </p>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Valor a Pagar (R$)</label>
-                        <input type="number" step="0.01" min="0.01" max="{{ total|stringformat:'.2f' }}" name="payment_amount" x-model.number="paymentAmount" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Valor a Pagar (R$)</label>
+                        <input type="number" step="0.01" min="0.01" max="{{ total|stringformat:'.2f' }}" name="payment_amount" x-model.number="paymentAmount" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 transition">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5">Conta de Origem</label>
-                        <select name="payment_account" @change="selectedAccountBalance = parseFloat($event.target.options[$event.target.selectedIndex].dataset.balance || 0)" required class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition">
+                        <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Conta de Origem</label>
+                        <select name="payment_account" @change="selectedAccountBalance = parseFloat($event.target.options[$event.target.selectedIndex].dataset.balance || 0)" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 transition">
                             <option value="" disabled selected data-balance="0">Escolha uma conta...</option>
                             {% for acc in checking_accounts %}
                                 <option value="{{ acc.id }}" data-balance="{{ acc.balance|stringformat:'.2f' }}">{{ acc.name }} (Saldo: R$ {{ acc.balance|floatformat:2 }})</option>
                             {% endfor %}
                         </select>
-                        <div x-show="selectedAccountBalance !== null && selectedAccountBalance < paymentAmount" class="text-[11px] text-amber-600 dark:text-amber-500 mt-2 flex items-start gap-1 font-semibold leading-tight" x-cloak>
-                            <svg class="w-4 h-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                            <span>O saldo desta conta é insuficiente. A conta ficará negativa se o pagamento for confirmada.</span>
-                        </div>
                     </div>
-
-                    <div class="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-200 dark:border-slate-800">
-                        <button type="button" @click="open = false" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition">Cancelar</button>
+                    <div class="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-200">
+                        <button type="button" @click="open = false" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition">Cancelar</button>
                         <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition">Confirmar Pagamento</button>
                     </div>
                 </form>

@@ -4,10 +4,6 @@ from django.db import models
 
 
 def recalculate_account_balance(account):
-    """
-    Calculates the real current balance of an account based on:
-    initial_balance + sum(completed receitas) - sum(completed despesas) - sum(transfers out) + sum(transfers in)
-    """
     from moneta.common import TransactionType
     from transactions.models import Transaction, Transfer
     from wallets.models import Account
@@ -16,7 +12,6 @@ def recalculate_account_balance(account):
     if account.type == Account.Types.CREDIT_CARD:
         status_filter.append(Transaction.Statuses.PENDING)
 
-    # 1. Transações normais (não-transferências)
     completed_txs = Transaction.objects.filter(
         account=account,
         status__in=status_filter,
@@ -25,13 +20,11 @@ def recalculate_account_balance(account):
     incomes = completed_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     expenses = completed_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
 
-    # 2. Transferências de saída (reduzem saldo / aumentam dívida do cartão)
     transfers_out = Transfer.objects.filter(
         out_transaction__account=account,
         out_transaction__status__in=status_filter,
     ).aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
 
-    # 3. Transferências de entrada (pagamentos da fatura, aumentam saldo / reduzem dívida)
     transfers_in = Transfer.objects.filter(
         in_transaction__account=account,
         in_transaction__status__in=status_filter,
@@ -39,7 +32,6 @@ def recalculate_account_balance(account):
 
     new_balance = account.initial_balance + incomes - expenses - transfers_out + transfers_in
 
-    # Atualiza o limite disponível caso seja Cartão de Crédito
     if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
         cc = account.credit_card_details
         cc.available_limit = max(Decimal('0.00'), cc.limit + new_balance)
@@ -57,9 +49,6 @@ def recalculate_all_user_balances(user):
 
 
 def calculate_expected_balance(account, end_date=None):
-    """
-    Calculates the expected balance by adding pending transactions to the current balance.
-    """
     from moneta.common import TransactionType
     from transactions.models import Transaction, Transfer
 
@@ -94,10 +83,6 @@ def calculate_expected_balance(account, end_date=None):
 
 
 def calculate_balance_at_date(user, target_date, account_id=None):
-    """
-    Calcula o saldo real cumulativo (todas contas ou conta específica) até uma data,
-    incluindo transações concluídas e pendentes ('saldo previsto' daquele dia).
-    """
     from moneta.common import TransactionType
     from transactions.models import Transaction, Transfer
     from wallets.models import Account
@@ -142,7 +127,6 @@ def get_or_create_bill_for_transaction(account, transaction_date):
     closing_day = cc.closing_day
     due_day = cc.due_day
 
-    # Determina a data de fechamento para a fatura na qual esta transação se enquadra
     if transaction_date.day <= closing_day:
         cycle_month = transaction_date.month
         cycle_year = transaction_date.year

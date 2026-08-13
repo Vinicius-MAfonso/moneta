@@ -5,14 +5,13 @@
 {% block content %}
 <div class="space-y-8">
 
-    <!-- Seção de Cabeçalho -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Categorias & Tags</h2>
-            <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">Organize suas movimentações com categorias personalizadas e tags</p>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900  tracking-tight">Categorias & Tags</h2>
+            <p class="text-slate-500  text-sm mt-1">Organize suas movimentações com categorias personalizadas e tags</p>
         </div>
         <div class="flex items-center space-x-3">
-            <button hx-get="{% url 'transactions_web:tag_create' %}" hx-target="#modal-container" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium text-sm transition-all border border-slate-300 dark:border-slate-700">
+            <button hx-get="{% url 'transactions_web:tag_create' %}" hx-target="#modal-container" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-200  hover:bg-slate-300  text-slate-800  font-medium text-sm transition-all border border-slate-300 ">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span>Nova Tag</span>
             </button>
@@ -23,9 +22,8 @@
         </div>
     </div>
 
-    <!-- Grade de Categorias -->
     <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Minhas Categorias</h3>
+        <h3 class="text-lg font-bold text-slate-900 ">Minhas Categorias</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {% for cat in categories %}
                 <div class="glass-panel p-4 rounded-2xl flex items-center justify-between border-l-4" style="border-left-color: {{ cat.color }};">
@@ -40,8 +38,8 @@
                             </div>
                         {% endif %}
                         <div>
-                            <p class="text-sm font-bold text-slate-900 dark:text-white">{{ cat.name }}</p>
-                            <span class="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 capitalize">{{ cat.get_type_display }}</span>
+                            <p class="text-sm font-bold text-slate-900 ">{{ cat.name }}</p>
+                            <span class="text-[10px] uppercase font-semibold text-slate-500  capitalize">{{ cat.get_type_display }}</span>
                         </div>
                     </div>
                     <button hx-get="{% url 'transactions_web:category_confirm_delete' cat.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 p-1 rounded hover:bg-rose-500/10 transition">
@@ -56,12 +54,11 @@
         </div>
     </div>
 
-    <!-- Seção de Tags -->
     <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Minhas Tags</h3>
+        <h3 class="text-lg font-bold text-slate-900 ">Minhas Tags</h3>
         <div class="flex flex-wrap gap-3">
             {% for tag in tags %}
-                <span class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-900 dark:text-white glass-panel border" style="border-color: {{ tag.color }};">
+                <span class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-900  glass-panel border" style="border-color: {{ tag.color }};">
                     <span class="w-2 h-2 rounded-full" style="background-color: {{ tag.color }};"></span>
                     <span>{{ tag.name }}</span>
                     <button hx-get="{% url 'transactions_web:tag_confirm_delete' tag.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 ml-1 p-0.5 rounded hover:bg-rose-500/10 transition">
