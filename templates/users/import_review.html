@@ -1,81 +1,58 @@
-{% extends "base.html" %}
-
-{% block title %}Revisar Importação - Moneta{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} 
+{% block title %}Revisar Importação - Moneta{% endblock %} 
+{% block content %} 
 <div class="space-y-6 max-w-5xl mx-auto">
-
     <div>
-        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900  tracking-tight">Revisar Importação
-        </h2>
-        <p class="text-slate-500  text-sm mt-1">Selecione a conta de destino e categorize cada
-            transação antes de salvar.</p>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Revisar Importação</h2>
+        <p class="text-slate-500 text-sm mt-1">Selecione a conta de destino e categorize cada transação antes de salvar.</p>
     </div>
-
     <form method="POST" action="{% url 'users_web:import_review' %}" class="space-y-6">
         {% csrf_token %}
-
         <div class="glass-panel p-6 rounded-2xl">
-            <label
-                class="block text-xs font-bold text-slate-600  uppercase tracking-wider mb-2">Conta
-                de Destino</label>
-
+            <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Conta de Destino</label>
             {% if not accounts %}
-            <div
-                class="mb-4 p-4 rounded-xl bg-amber-50  border border-amber-200  flex items-start gap-3">
-                <svg class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor"
-                    viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                    </path>
+            <div class="mb-4 p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-3">
+                <svg class="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
                 <div>
-                    <h4 class="text-sm font-bold text-amber-800 ">Nenhuma conta encontrada!</h4>
-                    <p class="text-xs text-amber-700  mt-1">Você precisa criar pelo menos uma conta
-                        para poder salvar a importação do extrato.</p>
+                    <h4 class="text-sm font-bold text-amber-800">Nenhuma conta encontrada!</h4>
+                    <p class="text-xs text-amber-700 mt-1">Você precisa criar pelo menos uma conta para poder salvar a importação do extrato.</p>
                 </div>
             </div>
             {% endif %}
-
-            <select name="account_id" required {% if not accounts %}disabled{% endif %}
-                class="w-full max-w-md bg-slate-50  border border-slate-300  rounded-xl px-4 py-2.5 text-sm text-slate-900  focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+            <select name="account_id" required {% if not accounts %}disabled{% endif %} class="w-full max-w-md bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
                 <option value="" disabled selected>Selecione a conta de destino</option>
                 {% for acc in accounts %}
                 <option value="{{ acc.id }}">{{ acc.name }}</option>
                 {% endfor %}
             </select>
         </div>
-
         <div class="glass-panel overflow-hidden rounded-2xl">
             <div class="overflow-x-auto">
                 <table class="w-full text-left whitespace-nowrap">
                     <thead>
-                        <tr
-                            class="bg-slate-50  border-b border-slate-200  text-xs font-bold text-slate-500  uppercase tracking-wider">
+                        <tr class="bg-slate-50 border-b border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider">
                             <th class="px-6 py-4">Data</th>
                             <th class="px-6 py-4">Descrição</th>
                             <th class="px-6 py-4 text-right">Valor</th>
                             <th class="px-6 py-4">Categoria</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-200 ">
+                    <tbody class="divide-y divide-slate-200">
                         {% for tx in transactions %}
-                        <tr class="hover:bg-slate-50/50  transition">
-                            <td class="px-6 py-4 text-sm font-medium text-slate-900 ">
+                        <tr class="hover:bg-slate-50/50 transition">
+                            <td class="px-6 py-4 text-sm font-medium text-slate-900">
                                 {{ tx.date }}
                             </td>
                             <td class="px-4 py-3">
-                                <input type="text" name="description_{{ tx.id }}"
-                                    value="{{ tx.payee }}"
-                                    class="w-full min-w-[220px] bg-slate-50  border border-slate-200  rounded-lg px-3 py-2 text-sm text-slate-900  focus:outline-none focus:border-indigo-500 transition">
+                                <input type="text" name="description_{{ tx.id }}" value="{{ tx.payee }}" class="w-full min-w-[220px] bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 transition">
                             </td>
-                            <td
-                                class="px-6 py-4 text-sm font-bold text-right {% if tx.type == 'receita' %}text-emerald-600  else %}text-rose-600  endif %}">
+                            <td class="px-6 py-4 text-sm font-bold text-right {% if tx.type == 'receita' %}text-emerald-600{% else %}text-rose-600{% endif %}">
                                 {% if tx.type == 'receita' %}+{% else %}-{% endif %} R$ {{ tx.amount|cut:"-" }}
                             </td>
                             <td class="px-6 py-4">
-                                <select name="category_{{ tx.id }}"
-                                    class="w-full min-w-[200px] bg-white  border border-slate-300  rounded-lg px-3 py-2 text-sm text-slate-900  focus:outline-none focus:border-indigo-500">
+                                <select name="category_{{ tx.id }}" class="w-full min-w-[200px] bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                                     <option value="" disabled selected>Selecione...</option>
                                     <optgroup label="Categorias ({{ tx.type|title }})">
                                         {% for cat in categories %}
@@ -93,14 +70,11 @@
                 </table>
             </div>
         </div>
-
         <div class="flex justify-end gap-3 mt-8">
-            <a href="{% url 'users_web:settings' %}"
-                class="px-6 py-2.5 rounded-xl bg-white  border border-slate-200  hover:bg-slate-50  text-slate-700  font-semibold text-sm transition-all shadow-sm whitespace-nowrap">
+            <a href="{% url 'users_web:settings' %}" class="px-6 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all shadow-sm whitespace-nowrap">
                 Cancelar
             </a>
-            <button type="submit" {% if not accounts %}disabled{% endif %}
-                class="px-8 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-600/25 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:bg-indigo-600">
+            <button type="submit" {% if not accounts %}disabled{% endif %} class="px-8 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-600/25 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:hover:bg-indigo-600">
                 Salvar Importação
             </button>
         </div>
