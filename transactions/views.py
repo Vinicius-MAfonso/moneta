@@ -11,7 +11,7 @@ from django.urls import reverse
 from moneta.common import TransactionType, get_month_context
 from wallets.models import Account
 
-from .models import Category, RecurringTransaction, Tag, Transaction
+from .models import Category, Tag, Transaction
 from .services import create_regular_transaction, create_transfer
 
 
@@ -57,13 +57,19 @@ def transaction_list_view(request):
     else:
         qs = qs.filter(date__range=(month_ctx['start_date'], month_ctx['end_date']))
 
-    transactions = qs.select_related('account', 'category').prefetch_related('tags').order_by('-date', '-created_at')
+    if not account_id:
+        qs = qs.exclude(transfer_in__isnull=False)
+
+    transactions = qs.select_related(
+        'account', 'category', 'bill', 'transfer_out__in_transaction__bill'
+    ).prefetch_related('tags', 'transfer_in').order_by('-date', '-created_at')
 
     month_income = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
     month_expense = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
     month_net_balance = month_income - month_expense
 
     from collections import defaultdict
+
     from wallets.services import calculate_balance_at_date
     
     tx_dict = defaultdict(list)
@@ -255,22 +261,8 @@ def transaction_update_view(request, pk):
         if form.is_valid():
             cd = form.cleaned_data
 
-            old_account_id = transaction.account_id
-
-            transaction.account_id = cd['account']
-            transaction.category_id = cd['category']
-            transaction.description = cd['description']
-            transaction.amount = cd['amount']
-            transaction.date = cd['date']
-            transaction.status = cd['status']
-            transaction.save()
-
-            transaction.tags.set(cd['tags'])
-
-            recalculate_account_balance(transaction.account)
-            if old_account_id != transaction.account_id:
-                old_account = Account.objects.get(id=old_account_id)
-                recalculate_account_balance(old_account)
+            from transactions.services import update_transaction
+            update_transaction(transaction, cd)
 
             if request.headers.get('HX-Request'):
                 import json
@@ -370,7 +362,11 @@ def transaction_delete_view(request, pk):
     messages.success(request, "Transação excluída com sucesso.")
 
     if request.headers.get('HX-Request'):
-        return HttpResponse("")
+        from django.http import HttpResponse
+        from django.urls import reverse
+        response = HttpResponse(status=204)
+        response['HX-Redirect'] = reverse('transactions_web:list')
+        return response
     return redirect('transactions_web:list')
 
 
@@ -398,9 +394,9 @@ def category_create_view(request):
             cat.user = request.user
             cat.save()
             if request.headers.get('HX-Request'):
-                import json
+                messages.success(request, "Categoria criada com sucesso!")
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Categoria criada com sucesso!', 'type': 'success'}})
+                response['HX-Redirect'] = reverse('transactions_web:category_list')
                 return response
             messages.success(request, "Categoria criada com sucesso!")
             return redirect('transactions_web:category_list')
@@ -419,7 +415,6 @@ def category_create_view(request):
 
 @login_required(login_url='users_web:login')
 def category_confirm_delete_view(request, pk):
-    from django.http import HttpResponse
     cat = get_object_or_404(Category, pk=pk, user=request.user)
 
     if cat.transactions.exists():
@@ -464,6 +459,12 @@ def category_delete_view(request, pk):
         cat_name = cat.name
         cat.delete()
         messages.success(request, f"Categoria '{cat_name}' excluída com sucesso.")
+        if request.headers.get('HX-Request'):
+            from django.http import HttpResponse
+            from django.urls import reverse
+            response = HttpResponse(status=204)
+            response['HX-Redirect'] = reverse('transactions_web:category_list')
+            return response
     return redirect('transactions_web:category_list')
 
 
@@ -479,9 +480,11 @@ def tag_create_view(request):
             tag.user = request.user
             tag.save()
             if request.headers.get('HX-Request'):
-                import json
+                messages.success(request, "Tag criada com sucesso!")
+                from django.http import HttpResponse
+                from django.urls import reverse
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Tag criada com sucesso!', 'type': 'success'}})
+                response['HX-Redirect'] = reverse('transactions_web:category_list')
                 return response
             messages.success(request, "Tag criada com sucesso!")
             return redirect('transactions_web:category_list')
@@ -517,6 +520,12 @@ def tag_delete_view(request, pk):
         tag.delete()
         from django.contrib import messages
         messages.success(request, f"Tag '{tag_name}' excluída com sucesso.")
+        if request.headers.get('HX-Request'):
+            from django.http import HttpResponse
+            from django.urls import reverse
+            response = HttpResponse(status=204)
+            response['HX-Redirect'] = reverse('transactions_web:category_list')
+            return response
     return redirect('transactions_web:category_list')
 
 

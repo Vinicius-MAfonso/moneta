@@ -6,7 +6,6 @@ class TransactionsConfig(AppConfig):
     verbose_name = 'Transações'
 
     def ready(self):
-        import transactions.signals
         from django.db.models.signals import post_migrate
         post_migrate.connect(_setup_schedules, sender=self)
 

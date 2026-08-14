@@ -2,9 +2,9 @@ from django.db.models import Sum
 
 
 def get_category_breakdown(base_tx_qs, tx_type, start_date, end_date):
-    from transactions.models import Transaction
-
     from django.db.models import Q
+
+    from transactions.models import Transaction
     status_q = Q(status=Transaction.Statuses.COMPLETED) | (Q(status=Transaction.Statuses.PENDING) & Q(account__type='credit_card'))
 
     qs = base_tx_qs.filter(

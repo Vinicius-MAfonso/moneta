@@ -99,6 +99,14 @@ class Transaction(models.Model):
     def is_incoming(self):
         return self.category.type == TransactionType.INCOME or hasattr(self, 'transfer_in')
 
+    @property
+    def related_bill_payment(self):
+        if self.bill_id and hasattr(self, 'transfer_in'):
+            return self.bill
+        if hasattr(self, 'transfer_out') and self.transfer_out.in_transaction.bill_id:
+            return self.transfer_out.in_transaction.bill
+        return None
+
     def clean(self):
         super().clean()
         

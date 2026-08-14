@@ -53,3 +53,17 @@ def get_active_budgets(user, reference_date=None):
         
     progress_list.sort(key=lambda x: x['real_percentage'], reverse=True)
     return progress_list
+
+
+def deposit_to_goal(goal, amount):
+    """
+    Deposit the given amount to the specified goal.
+    """
+    if amount <= 0:
+        return False
+        
+    goal.__class__.objects.filter(pk=goal.pk).update(
+        current_amount=models.F('current_amount') + amount
+    )
+    return True
+

@@ -13,7 +13,7 @@
             </button>
         </div>
 
-        <form hx-post="{% url 'transactions_web:category_create' %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { window.location.reload(); }">
+        <form hx-post="{% url 'transactions_web:category_create' %}" hx-target="#modal-container">
             {% csrf_token %}
             <div class="space-y-4">
                 <div>
@@ -35,7 +35,7 @@
                             <option value="transferência">Transferência</option>
                         </select>
                     </div>
-                    <div x-data="categoryFormFactory()" class="relative">
+                    <div x-data="categoryForm" class="relative">
                         <label class="block text-xs font-semibold text-slate-600  uppercase tracking-wider mb-1.5">
                             Ícone
                         </label>
@@ -77,13 +77,3 @@
         </form>
     </div>
 </div>
-
-<script>
-    function categoryFormFactory() {
-        return {
-            open: false,
-            selected: '',
-            emojis: ['🍔', '🏠', '🚌', '🎉', '🏥', '📚', '👕', '📱', '🐾', '✈️', '💰', '⚖️', '🏷️', '💡']
-        };
-    }
-</script>

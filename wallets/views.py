@@ -54,9 +54,9 @@ def account_create_view(request):
                     due_day=cd['due_day'],
                 )
             if request.headers.get('HX-Request'):
-                import json
+                messages.success(request, "Conta criada com sucesso!")
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Conta criada com sucesso!', 'type': 'success'}})
+                response['HX-Redirect'] = reverse('wallets_web:list')
                 return response
             messages.success(request, "Conta criada com sucesso!")
             return redirect('wallets_web:list')
@@ -85,32 +85,13 @@ def account_update_view(request, pk):
         form = AccountForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data
-            account.name = cd['name']
-            account.institution = cd['institution']
-            account.color = cd['color']
-            if 'balance' in cd:
-                account.initial_balance = cd['balance']
-
-            account.save()
-
-            if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
-                cc = account.credit_card_details
-
-                diff = cd['limit'] - cc.limit
-                cc.limit = cd['limit']
-                cc.available_limit = max(Decimal('0.00'), cc.available_limit + diff)
-
-                cc.closing_day = cd['closing_day']
-                cc.due_day = cd['due_day']
-                cc.save()
-
-            from wallets.services import recalculate_account_balance
-            recalculate_account_balance(account)
+            from wallets.services import update_account
+            update_account(account, cd)
 
             if request.headers.get('HX-Request'):
-                import json
+                messages.success(request, "Conta atualizada com sucesso!")
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Conta atualizada com sucesso!', 'type': 'success'}})
+                response['HX-Redirect'] = reverse('wallets_web:list')
                 return response
             messages.success(request, "Conta atualizada com sucesso!")
             return redirect('wallets_web:list')
@@ -150,49 +131,24 @@ def account_balance_adjustment_view(request, pk):
             messages.error(request, "Valor de saldo inválido.")
             return redirect('wallets_web:list')
 
-        if adjustment_type == 'initial':
-            account.initial_balance = new_balance
-            account.save()
-            recalculate_account_balance(account)
-
-            messages.success(request, f"Saldo inicial de '{account.name}' atualizado.")
-
-        elif adjustment_type == 'transaction':
-            delta = new_balance - account.balance
-            if delta != 0:
-                tx_type = TransactionType.INCOME if delta > 0 else TransactionType.EXPENSE
-
-                category_name = "Reajuste de Saldo Positivo" if delta > 0 else "Reajuste de Saldo Negativo"
-                category, _ = Category.objects.get_or_create(
-                    user=request.user,
-                    name=category_name,
-                    defaults={
-                        'type': tx_type,
-                        'color': '#64748B',
-                        'icon': '⚖️',
-                        'is_system': True,
-                    }
-                )
-                if not category.is_system:
-                    Category.objects.filter(pk=category.pk).update(is_system=True)
-
-                Transaction.objects.create(
-                    user=request.user,
-                    account=account,
-                    category=category,
-                    amount=abs(delta),
-                    date=timezone.now().date(),
-                    description="Reajuste de Saldo",
-                    status=Transaction.Statuses.COMPLETED
-                )
-
-                recalculate_account_balance(account)
-                messages.success(request, f"Transação de reajuste criada em '{account.name}'.")
+        from wallets.services import adjust_account_balance
+        success, result_type = adjust_account_balance(account, new_balance, adjustment_type, request.user)
+        
+        if success:
+            if result_type == "initial":
+                messages.success(request, f"Saldo inicial de '{account.name}' atualizado.")
             else:
+                messages.success(request, f"Transação de reajuste criada em '{account.name}'.")
+        else:
+            if result_type == "no_change":
                 messages.info(request, "O novo saldo é igual ao saldo atual.")
+            else:
+                messages.error(request, "Tipo de reajuste inválido.")
 
         if request.headers.get('HX-Request'):
-            return HttpResponse()
+            response = HttpResponse(status=204)
+            response['HX-Redirect'] = reverse('wallets_web:list')
+            return response
         return redirect('wallets_web:list')
 
     context = {'account': account}
@@ -218,7 +174,11 @@ def account_delete_view(request, pk):
     if request.method == 'POST' or request.headers.get('HX-Request'):
         account_name = account.name
         account.delete()
-        messages.success(request, f"Conta '{account_name}' e todas as suas transações foram excluídas.")
+        messages.success(request, f"Conta '{account_name}' excluída com sucesso.")
+        if request.headers.get('HX-Request'):
+            response = HttpResponse(status=204)
+            response['HX-Redirect'] = reverse('wallets_web:list')
+            return response
     return redirect('wallets_web:list')
 
 @login_required(login_url='users_web:login')

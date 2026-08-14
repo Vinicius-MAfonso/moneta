@@ -7,7 +7,7 @@
             </button>
         </div>
 
-        <form hx-post="{% url 'transactions_web:tag_create' %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { window.location.reload(); }">
+        <form hx-post="{% url 'transactions_web:tag_create' %}" hx-target="#modal-container">
             {% csrf_token %}
             <div class="space-y-4">
                 <div>

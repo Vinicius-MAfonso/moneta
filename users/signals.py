@@ -1,8 +1,8 @@
-from django.db.models.signals import post_save, post_init
-from django.dispatch import receiver
 from django.contrib.auth import get_user_model
-from django_q.tasks import async_task
 from django.db import transaction
+from django.db.models.signals import post_init, post_save
+from django.dispatch import receiver
+from django_q.tasks import async_task
 
 from moneta.common import TransactionType
 from transactions.models import Category
@@ -50,8 +50,7 @@ def track_user_activation(sender, instance, created, **kwargs):
     if created:
         return
 
-    if hasattr(instance, '_original_is_active'):
-        if not instance._original_is_active and instance.is_active:
+    if hasattr(instance, '_original_is_active') and not instance._original_is_active and instance.is_active:
             transaction.on_commit(lambda: async_task('users.emails.send_welcome_email', instance.pk))
             
     instance._original_is_active = instance.is_active

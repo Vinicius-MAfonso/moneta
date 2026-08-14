@@ -170,6 +170,10 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
         if is_recurring:
             async_task('transactions.services.process_recurring_transactions', user)
 
+        from wallets.services import recalculate_account_balance
+        recalculate_account_balance(out_account)
+        recalculate_account_balance(in_account)
+
         return transfer
 
 
@@ -256,3 +260,29 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
 
             if is_recurring:
                 async_task('transactions.services.process_recurring_transactions', user)
+                
+        from wallets.services import recalculate_account_balance
+        recalculate_account_balance(account)
+
+def update_transaction(transaction, validated_data):
+    from wallets.models import Account
+    from wallets.services import recalculate_account_balance
+
+    old_account_id = transaction.account_id
+
+    transaction.account_id = validated_data['account']
+    transaction.category_id = validated_data['category']
+    transaction.description = validated_data['description']
+    transaction.amount = validated_data['amount']
+    transaction.date = validated_data['date']
+    transaction.status = validated_data['status']
+    transaction.save()
+
+    transaction.tags.set(validated_data['tags'])
+
+    recalculate_account_balance(transaction.account)
+    if old_account_id != transaction.account_id:
+        old_account = Account.objects.get(id=old_account_id)
+        recalculate_account_balance(old_account)
+
+    return transaction

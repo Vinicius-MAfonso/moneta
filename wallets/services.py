@@ -222,5 +222,87 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
         if amount_to_pay >= total_amount:
             bill.status = CreditCardBill.Statuses.PAID
             bill.save()
+            
+            # Marcar todas as transações da fatura como concluídas
+            from transactions.models import Transaction
+            bill.transactions.filter(status=Transaction.Statuses.PENDING).update(status=Transaction.Statuses.COMPLETED)
 
     return bill
+
+def adjust_account_balance(account, new_balance, adjustment_type, user):
+    """
+    Adjust the account balance either by updating the initial balance
+    or by creating a compensatory transaction.
+    """
+    from django.utils import timezone
+
+    from moneta.common import TransactionType
+    from transactions.models import Category, Transaction
+
+    if adjustment_type == 'initial':
+        account.initial_balance = new_balance
+        account.save(update_fields=['initial_balance'])
+        recalculate_account_balance(account)
+        return True, "initial"
+
+    elif adjustment_type == 'transaction':
+        delta = new_balance - account.balance
+        if delta == 0:
+            return False, "no_change"
+
+        tx_type = TransactionType.INCOME if delta > 0 else TransactionType.EXPENSE
+        category_name = "Reajuste de Saldo Positivo" if delta > 0 else "Reajuste de Saldo Negativo"
+        category, _ = Category.objects.get_or_create(
+            user=user,
+            name=category_name,
+            defaults={
+                'type': tx_type,
+                'color': '#64748B',
+                'icon': '⚖️',
+                'is_system': True,
+            }
+        )
+        if not category.is_system:
+            Category.objects.filter(pk=category.pk).update(is_system=True)
+
+        Transaction.objects.create(
+            user=user,
+            account=account,
+            category=category,
+            amount=abs(delta),
+            date=timezone.now().date(),
+            description="Reajuste de Saldo",
+            status=Transaction.Statuses.COMPLETED
+        )
+
+        recalculate_account_balance(account)
+        return True, "transaction"
+    
+    return False, "invalid_type"
+
+
+def update_account(account, validated_data):
+    """
+    Update account data including credit card specifics if applicable.
+    """
+    from decimal import Decimal
+
+    account.name = validated_data['name']
+    account.institution = validated_data['institution']
+    account.color = validated_data['color']
+    if 'balance' in validated_data:
+        account.initial_balance = validated_data['balance']
+
+    account.save()
+
+    if account.type == account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
+        cc = account.credit_card_details
+        diff = validated_data['limit'] - cc.limit
+        cc.limit = validated_data['limit']
+        cc.available_limit = max(Decimal('0.00'), cc.available_limit + diff)
+        cc.closing_day = validated_data['closing_day']
+        cc.due_day = validated_data['due_day']
+        cc.save()
+
+    recalculate_account_balance(account)
+    return account

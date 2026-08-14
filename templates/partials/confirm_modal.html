@@ -11,7 +11,7 @@
             </div>
         </div>
 
-        <form hx-post="{{ action_url }}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { window.location.reload(); }" class="space-y-4">
+        <form hx-post="{{ action_url }}" hx-target="#modal-container" class="space-y-4">
             {% csrf_token %}
 
             {% if options %}

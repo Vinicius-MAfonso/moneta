@@ -5,9 +5,9 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.csrf import csrf_exempt
 from ofxparse import OfxParser
 
 from transactions.models import Category, Transaction
@@ -60,7 +60,7 @@ def register_view(request):
         elif User.objects.filter(username=username).exists():
             messages.error(request, 'Nome de usuário já em uso.')
         else:
-            user = User.objects.create_user(
+            User.objects.create_user(
                 username=username,
                 email=email,
                 password=password,
@@ -116,13 +116,19 @@ def import_ofx_view(request):
                         'type': 'despesa' if tx.amount < 0 else 'receita'
                     })
             
+            if not transactions:
+                messages.warning(request, 'O arquivo OFX foi lido, mas não contém nenhuma transação.')
+                return redirect('users_web:settings')
+                
             request.session['ofx_transactions'] = transactions
             messages.info(request, f'Foram lidas {len(transactions)} transações. Revise-as abaixo.')
             return redirect('users_web:import_review')
             
-        except Exception as e:
-            messages.error(request, f'Erro ao ler arquivo OFX: {e!s}')
+        except Exception:
+            messages.error(request, 'Erro ao ler arquivo OFX. Verifique se o formato é válido.')
             return redirect('users_web:settings')
+    else:
+        messages.warning(request, 'Nenhum arquivo OFX foi enviado.')
             
     return redirect('users_web:settings')
 
@@ -148,8 +154,10 @@ def import_review_view(request):
         from django.db import transaction as db_transaction
         
         try:
-            from decimal import Decimal, ROUND_HALF_UP
-            from django.db.models.signals import post_save, post_delete
+            from decimal import ROUND_HALF_UP, Decimal
+
+            from django.db.models.signals import post_delete, post_save
+
             from transactions.signals import trigger_balance_recalculation
             from wallets.services import recalculate_account_balance
 

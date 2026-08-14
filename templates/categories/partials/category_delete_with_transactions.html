@@ -13,7 +13,7 @@
             </div>
         </div>
 
-        <form hx-post="{% url 'transactions_web:category_delete' category.id %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { window.location.reload(); }" class="space-y-4">
+        <form hx-post="{% url 'transactions_web:category_delete' category.id %}" hx-target="#modal-container" class="space-y-4">
             {% csrf_token %}
 
             <div class="space-y-2 pt-2 border-t border-slate-200 ">

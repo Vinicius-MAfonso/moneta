@@ -61,11 +61,11 @@ def budget_create_view(request):
                 end_date=end_date,
             )
             if request.headers.get('HX-Request'):
-                import json
-
+                from django.contrib import messages
+                messages.success(request, "Orçamento criado com sucesso!")
                 from django.http import HttpResponse
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Orçamento criado com sucesso!', 'type': 'success'}})
+                response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
         except Exception as e:
@@ -99,9 +99,13 @@ def budget_delete_view(request, pk):
     budget = get_object_or_404(Budget, pk=pk, user=request.user)
     if request.method == 'POST' or request.headers.get('HX-Request'):
         budget.delete()
+        from django.contrib import messages
+        messages.success(request, "Orçamento excluído com sucesso!")
         if request.headers.get('HX-Request'):
             from django.http import HttpResponse
-            return HttpResponse("")
+            response = HttpResponse(status=204)
+            response['HX-Redirect'] = reverse('planning_web:list')
+            return response
         return redirect('planning_web:list')
 
 
@@ -124,11 +128,11 @@ def goal_create_view(request):
                 end_date=end_date,
             )
             if request.headers.get('HX-Request'):
-                import json
-
+                from django.contrib import messages
+                messages.success(request, "Objetivo criado com sucesso!")
                 from django.http import HttpResponse
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Objetivo criado com sucesso!', 'type': 'success'}})
+                response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
         except Exception as e:
@@ -153,15 +157,14 @@ def goal_deposit_view(request, pk):
         try:
             amount = Decimal(request.POST.get('amount') or '0')
             if amount > 0:
-                Goal.objects.filter(pk=goal.pk).update(
-                    current_amount=models.F('current_amount') + amount
-                )
+                from planning.services import deposit_to_goal
+                deposit_to_goal(goal, amount)
             if request.headers.get('HX-Request'):
-                import json
-
+                from django.contrib import messages
+                messages.success(request, "Depósito realizado!")
                 from django.http import HttpResponse
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': 'Depósito realizado!', 'type': 'success'}})
+                response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
         except Exception as e:
@@ -195,7 +198,11 @@ def goal_delete_view(request, pk):
     goal = get_object_or_404(Goal, pk=pk, user=request.user)
     if request.method == 'POST' or request.headers.get('HX-Request'):
         goal.delete()
+        from django.contrib import messages
+        messages.success(request, "Objetivo excluído com sucesso!")
         if request.headers.get('HX-Request'):
             from django.http import HttpResponse
-            return HttpResponse("")
+            response = HttpResponse(status=204)
+            response['HX-Redirect'] = reverse('planning_web:list')
+            return response
         return redirect('planning_web:list')
