@@ -113,11 +113,7 @@ def account_update_view(request, pk):
 @login_required(login_url='users_web:login')
 def account_balance_adjustment_view(request, pk):
     from django.contrib import messages
-    from django.utils import timezone
 
-    from moneta.common import TransactionType
-    from transactions.models import Category, Transaction
-    from wallets.services import recalculate_account_balance
 
     account = get_object_or_404(Account, pk=pk, user=request.user)
 
@@ -183,6 +179,8 @@ def account_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def bill_detail_view(request, pk):
+    from decimal import Decimal
+
     from django.db.models import Sum
 
     from moneta.common import TransactionType
@@ -195,6 +193,8 @@ def bill_detail_view(request, pk):
     incomes = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
     total = expenses - incomes
+    paid_amount = bill.transactions.filter(transfer_in__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    remaining_amount = total - paid_amount
 
     checking_accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
 
@@ -204,6 +204,8 @@ def bill_detail_view(request, pk):
         'expenses': expenses,
         'incomes': incomes,
         'total': total,
+        'paid_amount': paid_amount,
+        'remaining_amount': remaining_amount,
         'checking_accounts': checking_accounts,
     }
     return render(request, 'wallets/bill_detail.html', context)
@@ -256,16 +258,18 @@ def bill_list_view(request, account_id):
         'bills': bills,
         'status_filter': status_filter,
     }
-    return render(request, 'wallets/bill_list.html', {'account': account, 'bills': bills})
+    return render(request, 'wallets/bill_list.html', context)
 
 @login_required(login_url='users_web:login')
 def credit_card_dashboard_view(request):
-    from django.db.models import Sum
-    from wallets.models import Account
-    from transactions.models import Transaction
-    from moneta.common import TransactionType
     import datetime
+
     from dateutil.relativedelta import relativedelta
+    from django.db.models import Sum
+
+    from moneta.common import TransactionType
+    from transactions.models import Transaction
+    from wallets.models import Account
 
     accounts = Account.objects.filter(user=request.user, type=Account.Types.CREDIT_CARD, active=True).select_related('credit_card_details')
     

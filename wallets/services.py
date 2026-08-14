@@ -142,30 +142,40 @@ def get_or_create_bill_for_transaction(account, transaction_date):
         _, max_day = calendar.monthrange(year, month)
         return datetime.date(year, month, min(day, max_day))
 
-    closing_date = get_valid_date(cycle_year, cycle_month, closing_day)
+    while True:
+        closing_date = get_valid_date(cycle_year, cycle_month, closing_day)
 
-    if due_day > closing_day:
-        due_month = cycle_month
-        due_year = cycle_year
-    else:
-        due_month = cycle_month + 1
-        due_year = cycle_year
-        if due_month > 12:
-            due_month = 1
-            due_year += 1
+        if due_day > closing_day:
+            due_month = cycle_month
+            due_year = cycle_year
+        else:
+            due_month = cycle_month + 1
+            due_year = cycle_year
+            if due_month > 12:
+                due_month = 1
+                due_year += 1
 
-    due_date = get_valid_date(due_year, due_month, due_day)
-    period_date = datetime.date(due_year, due_month, 1)
+        due_date = get_valid_date(due_year, due_month, due_day)
+        period_date = datetime.date(due_year, due_month, 1)
 
-    bill, _created = CreditCardBill.objects.get_or_create(
-        account=account,
-        period_date=period_date,
-        defaults={
-            'closing_date': closing_date,
-            'due_date': due_date,
-            'status': CreditCardBill.Statuses.OPEN
-        }
-    )
+        bill, _created = CreditCardBill.objects.get_or_create(
+            account=account,
+            period_date=period_date,
+            defaults={
+                'closing_date': closing_date,
+                'due_date': due_date,
+                'status': CreditCardBill.Statuses.OPEN
+            }
+        )
+
+        if bill.status == CreditCardBill.Statuses.OPEN:
+            break
+
+        cycle_month += 1
+        if cycle_month > 12:
+            cycle_month = 1
+            cycle_year += 1
+
     return bill
 
 

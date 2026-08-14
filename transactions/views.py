@@ -236,7 +236,6 @@ def transaction_create_view(request):
 
 @login_required(login_url='users_web:login')
 def transaction_update_view(request, pk):
-    from wallets.services import recalculate_account_balance
 
     transaction = get_object_or_404(Transaction, pk=pk, user=request.user)
 
@@ -251,6 +250,17 @@ def transaction_update_view(request, pk):
         messages.error(request, "Não é possível editar transferências.")
         return redirect('transactions_web:list')
 
+    if transaction.bill and transaction.bill.status == 'paid':
+        if request.headers.get('HX-Request'):
+            import json
+            response = HttpResponse(status=204)
+            response['HX-Trigger'] = json.dumps({
+                'show-toast': {'message': 'Transações de faturas já pagas não podem ser editadas.', 'type': 'error'}
+            })
+            return response
+        messages.error(request, "Transações de faturas já pagas não podem ser editadas.")
+        return redirect('transactions_web:list')
+
     accounts = Account.objects.filter(user=request.user, active=True)
     categories = Category.objects.filter(user=request.user, is_system=False)
     tags = Tag.objects.filter(user=request.user)
@@ -261,8 +271,22 @@ def transaction_update_view(request, pk):
         if form.is_valid():
             cd = form.cleaned_data
 
+            from django.core.exceptions import ValidationError
+
             from transactions.services import update_transaction
-            update_transaction(transaction, cd)
+            try:
+                update_transaction(transaction, cd)
+            except ValidationError as e:
+                error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
+                if request.headers.get('HX-Request'):
+                    import json
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({
+                        'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                    })
+                    return response
+                messages.error(request, f"Erro: {error_msg}")
+                return redirect('transactions_web:list')
 
             if request.headers.get('HX-Request'):
                 import json
@@ -309,6 +333,20 @@ def transaction_update_view(request, pk):
 @login_required(login_url='users_web:login')
 def transaction_confirm_delete_view(request, pk):
     tx = get_object_or_404(Transaction, pk=pk, user=request.user)
+
+    if tx.bill and tx.bill.status == 'paid':
+        if request.headers.get('HX-Request'):
+            import json
+
+            from django.http import HttpResponse
+            response = HttpResponse(status=204)
+            response['HX-Trigger'] = json.dumps({
+                'show-toast': {'message': 'Transações de faturas já pagas não podem ser excluídas.', 'type': 'error'}
+            })
+            return response
+        messages.error(request, "Transações de faturas já pagas não podem ser excluídas.")
+        return redirect('transactions_web:list')
+
     context = {
         'title': 'Excluir Transação',
         'message': f"Tem certeza que deseja excluir a transação '{tx.description}' no valor de R$ {tx.amount}?",
@@ -328,6 +366,20 @@ def transaction_confirm_delete_view(request, pk):
 @login_required(login_url='users_web:login')
 def transaction_delete_view(request, pk):
     tx = get_object_or_404(Transaction, pk=pk, user=request.user)
+
+    if tx.bill and tx.bill.status == 'paid':
+        if request.headers.get('HX-Request'):
+            import json
+
+            from django.http import HttpResponse
+            response = HttpResponse(status=204)
+            response['HX-Trigger'] = json.dumps({
+                'show-toast': {'message': 'Transações de faturas já pagas não podem ser excluídas.', 'type': 'error'}
+            })
+            return response
+        messages.error(request, "Transações de faturas já pagas não podem ser excluídas.")
+        return redirect('transactions_web:list')
+
     delete_mode = request.POST.get('delete_mode', 'single')
 
     tx_to_delete_extra = None

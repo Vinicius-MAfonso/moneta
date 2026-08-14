@@ -265,8 +265,16 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
         recalculate_account_balance(account)
 
 def update_transaction(transaction, validated_data):
+    from django.core.exceptions import ValidationError
+
     from wallets.models import Account
-    from wallets.services import recalculate_account_balance
+    from wallets.services import (
+        get_or_create_bill_for_transaction,
+        recalculate_account_balance,
+    )
+
+    if transaction.bill and transaction.bill.status == 'paid':
+        raise ValidationError("Transações de faturas já pagas não podem ser alteradas.")
 
     old_account_id = transaction.account_id
 
@@ -276,6 +284,14 @@ def update_transaction(transaction, validated_data):
     transaction.amount = validated_data['amount']
     transaction.date = validated_data['date']
     transaction.status = validated_data['status']
+    
+    new_account = Account.objects.get(id=transaction.account_id)
+    if new_account.type == Account.Types.CREDIT_CARD:
+        new_bill = get_or_create_bill_for_transaction(new_account, transaction.date)
+        transaction.bill = new_bill
+    else:
+        transaction.bill = None
+
     transaction.save()
 
     transaction.tags.set(validated_data['tags'])
