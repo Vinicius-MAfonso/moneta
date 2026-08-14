@@ -21,10 +21,6 @@ urlpatterns = [
     path('tags/<uuid:pk>/confirm-delete/', views.tag_confirm_delete_view, name='tag_confirm_delete'),
     path('tags/<uuid:pk>/delete/', views.tag_delete_view, name='tag_delete'),
 
-    path('recurring/', views.recurring_list_view, name='recurring_list'),
-    path('recurring/create/', views.recurring_create_view, name='recurring_create'),
-    path('recurring/<uuid:pk>/confirm-delete/', views.recurring_confirm_delete_view, name='recurring_confirm_delete'),
-    path('recurring/<uuid:pk>/delete/', views.recurring_delete_view, name='recurring_delete'),
 
     path('transfers/create/', views.transfer_create_view, name='transfer_create'),
 ]

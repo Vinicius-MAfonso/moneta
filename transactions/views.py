@@ -208,11 +208,22 @@ def transaction_create_view(request):
             messages.error(request, f"Erro ao criar transação: {error_msg}")
             return redirect('transactions_web:list')
 
+    initial_tx_data = {
+        'txType': 'despesa',
+        'selectedAccountType': accounts[0].type if accounts else '',
+        'originalAccountId': '',
+        'selectedAccountId': str(accounts[0].id) if accounts else '',
+        'originalAmount': 0,
+        'selectedAccountLimit': float(accounts[0].credit_card_details.available_limit) if accounts and accounts[0].type == 'credit_card' else 0,
+        'categories': [{'id': str(c.id), 'name': f"{c.icon + ' ' if c.icon else ''}{c.name}", 'type': c.type} for c in categories]
+    }
+
     context = {
         'accounts': accounts,
         'transfer_accounts': transfer_accounts,
         'categories': categories,
         'tags': tags,
+        'initial_tx_data': initial_tx_data,
     }
     return render(request, 'transactions/partials/transaction_form.html', context)
 
@@ -283,11 +294,22 @@ def transaction_update_view(request, pk):
             messages.error(request, f"Erro: {error_msg}")
             return redirect('transactions_web:list')
 
+    initial_tx_data = {
+        'txType': transaction.category.type,
+        'selectedAccountType': transaction.account.type,
+        'originalAccountId': str(transaction.account.id),
+        'selectedAccountId': str(transaction.account.id),
+        'originalAmount': float(transaction.amount),
+        'selectedAccountLimit': float(transaction.account.credit_card_details.available_limit) if transaction.account.type == 'credit_card' else 0,
+        'categories': [{'id': str(c.id), 'name': f"{c.icon + ' ' if c.icon else ''}{c.name}", 'type': c.type} for c in categories]
+    }
+
     context = {
         'transaction': transaction,
         'accounts': accounts,
         'categories': categories,
         'tags': tags,
+        'initial_tx_data': initial_tx_data,
     }
     return render(request, 'transactions/partials/transaction_form.html', context)
 
@@ -497,102 +519,6 @@ def tag_delete_view(request, pk):
         messages.success(request, f"Tag '{tag_name}' excluída com sucesso.")
     return redirect('transactions_web:category_list')
 
-
-@login_required(login_url='users_web:login')
-def recurring_list_view(request):
-    recurring = RecurringTransaction.objects.filter(user=request.user).select_related('account', 'category')
-
-    context = {
-        'recurring_transactions': recurring,
-    }
-    return render(request, 'recurring/index.html', context)
-
-
-from django.db import transaction as db_transaction
-
-
-@login_required(login_url='users_web:login')
-def recurring_create_view(request):
-    accounts = Account.objects.filter(user=request.user)
-    categories = Category.objects.filter(user=request.user, is_system=False)
-
-    if request.method == 'POST':
-        category_id = request.POST.get('category')
-        account_id = request.POST.get('account')
-        description = request.POST.get('description')
-        amount = Decimal(request.POST.get('amount', '0'))
-        frequency = request.POST.get('frequency', 'monthly')
-        start_date = request.POST.get('start_date')
-        end_date = request.POST.get('end_date') or None
-
-        with db_transaction.atomic():
-            recurring = RecurringTransaction.objects.create(
-                user=request.user,
-                category_id=category_id,
-                account_id=account_id,
-                description=description,
-                amount=amount,
-                frequency=frequency,
-                start_date=start_date,
-                end_date=end_date,
-                active=True,
-            )
-
-            Transaction.objects.create(
-                user=request.user,
-                account_id=account_id,
-                category_id=category_id,
-                description=f"{description} (Recorrente)",
-                amount=amount,
-                date=start_date,
-                status=Transaction.Statuses.COMPLETED,
-                recurring=recurring,
-            )
-
-        from django.contrib import messages
-        messages.success(request, "Transação recorrente criada com sucesso!")
-        return redirect('transactions_web:recurring_list')
-
-    context = {
-        'accounts': accounts,
-        'categories': categories,
-    }
-    return render(request, 'recurring/partials/recurring_form.html', context)
-
-
-@login_required(login_url='users_web:login')
-def recurring_confirm_delete_view(request, pk):
-    item = get_object_or_404(RecurringTransaction, pk=pk, user=request.user)
-    context = {
-        'title': 'Excluir Transação Recorrente',
-        'message': f"Deseja excluir a regra de recorrência '{item.description}'?",
-        'action_url': reverse('transactions_web:recurring_delete', args=[item.id]),
-        'options': [
-            {
-                'value': 'keep_history',
-                'label': 'Manter transações já registradas (excluir apenas ocorrências futuras)'
-            },
-            {
-                'value': 'delete_all',
-                'label': 'Excluir a regra e TODAS as transações geradas por ela'
-            }
-        ]
-    }
-    return render(request, 'partials/confirm_modal.html', context)
-
-
-@login_required(login_url='users_web:login')
-def recurring_delete_view(request, pk):
-    item = get_object_or_404(RecurringTransaction, pk=pk, user=request.user)
-    if request.method == 'POST':
-        delete_mode = request.POST.get('delete_mode', 'keep_history')
-        with db_transaction.atomic():
-            if delete_mode == 'delete_all':
-                item.generated_transactions.all().delete()
-            else:
-                item.generated_transactions.update(recurring=None)
-            item.delete()
-    return redirect('transactions_web:recurring_list')
 
 
 @login_required(login_url='users_web:login')

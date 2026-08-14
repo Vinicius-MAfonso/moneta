@@ -67,7 +67,7 @@
                         </div>
                     </div>
                     <div class="text-right max-w-[45%] break-all">
-                        {% if hasattr and tx.transfer_in or tx.type == 'receita' or tx.description|slice:":17" == "Transferência de " %}
+                        {% if tx.is_incoming %}
                         <p class="font-bold text-emerald-600">
                             +R$ {{ tx.amount|floatformat:2 }}
                         </p>

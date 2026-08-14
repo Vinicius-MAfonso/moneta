@@ -1,16 +1,49 @@
 const CACHE_NAME = 'moneta-v1';
+const STATIC_ASSETS = [
+    '/',
+    '/static/icon-192.png',
+    '/static/icon-512.png',
+    '/manifest.json'
+];
 
 self.addEventListener('install', (event) => {
-    self.skipWaiting();
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(STATIC_ASSETS);
+        }).then(() => self.skipWaiting())
+    );
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(clients.claim());
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cacheName) => {
+                    if (cacheName !== CACHE_NAME) {
+                        return caches.delete(cacheName);
+                    }
+                })
+            );
+        }).then(() => clients.claim())
+    );
 });
 
 self.addEventListener('fetch', (event) => {
+    if (event.request.method !== 'GET') return;
+
     event.respondWith(
-        fetch(event.request).catch(() => {
+        fetch(event.request).then((response) => {
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+                return response;
+            }
+
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseToCache);
+            });
+
+            return response;
+        }).catch(() => {
             return caches.match(event.request);
         })
     );
@@ -21,12 +54,11 @@ self.addEventListener('push', function(event) {
         const data = event.data.json();
         const options = {
             body: data.body,
-            icon: '/static/icons/icon-192x192.png',
-            badge: '/static/icons/icon-72x72.png',
+            icon: '/static/icon-192.png',
+            badge: '/static/icon-192.png',
             vibrate: [100, 50, 100],
             data: {
                 dateOfArrival: Date.now(),
-                primaryKey: '2',
                 url: data.url || '/'
             }
         };

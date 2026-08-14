@@ -12,11 +12,11 @@
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
             <div class="inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-2xl px-3 py-1.5 shadow-sm text-sm font-bold text-slate-800">
-                <a href="?month={{ month_info.prev_month }}" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                <a href="?{{ request.GET.urlencode }}&month={{ month_info.prev_month }}" class="p-1 text-slate-500 hover:text-indigo-600 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                 </a>
                 <span class="px-2 min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs md:text-sm">{{ month_info.month_label }}</span>
-                <a href="?month={{ month_info.next_month }}" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                <a href="?{{ request.GET.urlencode }}&month={{ month_info.next_month }}" class="p-1 text-slate-500 hover:text-indigo-600 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </a>
             </div>
@@ -34,16 +34,16 @@
             
             <div>
                 <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Buscar</label>
-                <input type="text" name="search" placeholder="Descrição..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
+                <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Descrição..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
             </div>
 
             <div>
                 <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Tipo</label>
                 <select name="type" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
                     <option value="">Todos os Tipos</option>
-                    <option value="despesa">Despesa</option>
-                    <option value="receita">Receita</option>
-                    <option value="transferência">Transferência</option>
+                    <option value="despesa" {% if request.GET.type == 'despesa' %}selected{% endif %}>Despesa</option>
+                    <option value="receita" {% if request.GET.type == 'receita' %}selected{% endif %}>Receita</option>
+                    <option value="transferência" {% if request.GET.type == 'transferência' %}selected{% endif %}>Transferência</option>
                 </select>
             </div>
 
@@ -52,7 +52,7 @@
                 <select name="account_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
                     <option value="">Todas as Contas</option>
                     {% for account in accounts %}
-                        <option value="{{ account.id }}">{{ account.name }}</option>
+                        <option value="{{ account.id }}" {% if request.GET.account_id == account.id|stringformat:"s" %}selected{% endif %}>{{ account.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -62,7 +62,7 @@
                 <select name="category_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
                     <option value="">Todas as Categorias</option>
                     {% for category in categories %}
-                        <option value="{{ category.id }}">{{ category.name }}</option>
+                        <option value="{{ category.id }}" {% if request.GET.category_id == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -71,8 +71,8 @@
                 <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Status</label>
                 <select name="status" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
                     <option value="">Todos</option>
-                    <option value="concluída">Concluída</option>
-                    <option value="pendente">Pendente</option>
+                    <option value="concluída" {% if request.GET.status == 'concluída' %}selected{% endif %}>Concluída</option>
+                    <option value="pendente" {% if request.GET.status == 'pendente' %}selected{% endif %}>Pendente</option>
                 </select>
             </div>
         </form>

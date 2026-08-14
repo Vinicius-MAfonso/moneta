@@ -12,7 +12,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" integrity="sha384-Rpe/8orFUm5Q1GplYBHxbuA8Az8O8C5sAoOsdbRWkqPjKFaxPgGZipj4zeHL7lxX" crossorigin="anonymous"></script>
     {% tailwind_css %}
 </head>
 <body class="h-full font-sans bg-slate-100 text-slate-900 transition-colors duration-200 flex items-center justify-center p-4">
@@ -33,7 +32,11 @@
         {% if messages %}
         <div class="space-y-2">
             {% for message in messages %}
-            <div class="p-3.5 rounded-xl text-xs font-semibold border shadow-lg {% if message.tags == 'error' %}bg-rose-500/10 text-rose-600 border-rose-500/30{% else %}bg-emerald-500/10 text-emerald-600 border-emerald-500/30{% endif %}">
+            <div class="p-3.5 rounded-xl text-xs font-semibold border shadow-lg 
+                {% if message.tags == 'error' %}bg-rose-500/10 text-rose-600 border-rose-500/30
+                {% elif message.tags == 'warning' %}bg-amber-500/10 text-amber-600 border-amber-500/30
+                {% elif message.tags == 'info' %}bg-blue-500/10 text-blue-600 border-blue-500/30
+                {% else %}bg-emerald-500/10 text-emerald-600 border-emerald-500/30{% endif %}">
                 {{ message }}
             </div>
             {% endfor %}

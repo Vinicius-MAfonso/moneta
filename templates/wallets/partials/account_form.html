@@ -49,7 +49,7 @@
                         <label
                             class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Saldo
                             Inicial (R$)</label>
-                        <input type="number" step="0.01" name="balance" :min="!isCreditCard ? '0' : ''" :required="!isCreditCard" value="{{ account.initial_balance|default:'0.00' }}"
+                        <input type="number" step="0.01" name="balance" :min="!isCreditCard ? '0' : ''" :required="!isCreditCard" :disabled="isCreditCard" value="{{ account.initial_balance|default:'0.00' }}"
                             class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                     </div>
                     {% else %}

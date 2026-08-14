@@ -6,7 +6,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
-        <form method="POST" action="{% url 'planning_web:goal_create' %}">
+        <form hx-post="{% url 'planning_web:goal_create' %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { window.location.reload(); }">
             {% csrf_token %}
             <div class="space-y-4">
                 <div>

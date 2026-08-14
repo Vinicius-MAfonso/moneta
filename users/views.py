@@ -29,6 +29,9 @@ def login_view(request):
         if user is not None:
             login(request, user)
             next_url = request.GET.get('next') or 'dashboard'
+            from django.utils.http import url_has_allowed_host_and_scheme
+            if next_url != 'dashboard' and not url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
+                next_url = 'dashboard'
             return redirect(next_url)
         else:
             user_obj = User.objects.filter(username=username).first()

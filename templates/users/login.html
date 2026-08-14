@@ -3,7 +3,7 @@
 {% block subtitle %}Acesse sua conta para gerenciar suas finanças{% endblock %} 
 {% block content %} 
 <div class="bg-white border border-slate-200 p-8 rounded-3xl shadow-2xl space-y-6">
-    <form method="POST" action="{% url 'users_web:login' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" class="space-y-4">
+    <form method="POST" action="{% url 'users_web:login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="space-y-4">
         {% csrf_token %}
         <div>
             <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Usuário</label>

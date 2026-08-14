@@ -95,6 +95,10 @@ class Transaction(models.Model):
     def type(self):
         return self.category.type
 
+    @property
+    def is_incoming(self):
+        return self.category.type == TransactionType.INCOME or hasattr(self, 'transfer_in')
+
     def clean(self):
         super().clean()
         

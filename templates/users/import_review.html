@@ -52,7 +52,7 @@
                                 {% if tx.type == 'receita' %}+{% else %}-{% endif %} R$ {{ tx.amount|cut:"-" }}
                             </td>
                             <td class="px-6 py-4">
-                                <select name="category_{{ tx.id }}" class="w-full min-w-[200px] bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
+                                <select name="category_{{ tx.id }}" required class="w-full min-w-[200px] bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                                     <option value="" disabled selected>Selecione...</option>
                                     <optgroup label="Categorias ({{ tx.type|title }})">
                                         {% for cat in categories %}

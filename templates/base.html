@@ -231,33 +231,7 @@
     </main>
 
     <!-- Toasts Container -->
-    <div x-data="{
-            toasts: [],
-            addToast(message, type = 'success') {
-                const id = Date.now();
-                const validTypes = ['success', 'error', 'danger', 'warning', 'info'];
-                const safeType = validTypes.includes(type) ? type : 'info';
-                
-                const toast = { id, message, type: safeType, show: false };
-                this.toasts.push(toast);
-                
-                setTimeout(() => {
-                    const t = this.toasts.find(t => t.id === id);
-                    if (t) t.show = true;
-                }, 50);
-
-                setTimeout(() => this.removeToast(id), 5000);
-            },
-            removeToast(id) {
-                const toast = this.toasts.find(t => t.id === id);
-                if (toast) {
-                    toast.show = false;
-                    setTimeout(() => {
-                        this.toasts = this.toasts.filter(t => t.id !== id);
-                    }, 300);
-                }
-            }
-        }" 
+    <div x-data="toastContainer()" 
         @show-toast.window="addToast($event.detail.message, $event.detail.type)"
         class="fixed top-6 right-4 md:top-8 md:right-8 z-[100] flex flex-col gap-3 w-[320px] pointer-events-none px-4 md:px-0">
         
@@ -317,6 +291,37 @@
 
     <div id="modal-container"></div>
 
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('toastContainer', () => ({
+                toasts: [],
+                addToast(message, type = 'success') {
+                    const id = Date.now();
+                    const validTypes = ['success', 'error', 'danger', 'warning', 'info'];
+                    const safeType = validTypes.includes(type) ? type : 'info';
+                    
+                    const toast = { id, message, type: safeType, show: false };
+                    this.toasts.push(toast);
+                    
+                    setTimeout(() => {
+                        const t = this.toasts.find(t => t.id === id);
+                        if (t) t.show = true;
+                    }, 50);
+
+                    setTimeout(() => this.removeToast(id), 5000);
+                },
+                removeToast(id) {
+                    const toast = this.toasts.find(t => t.id === id);
+                    if (toast) {
+                        toast.show = false;
+                        setTimeout(() => {
+                            this.toasts = this.toasts.filter(t => t.id !== id);
+                        }, 300);
+                    }
+                }
+            }));
+        });
+    </script>
 </body>
 
 </html>
