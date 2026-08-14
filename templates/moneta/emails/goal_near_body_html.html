@@ -19,7 +19,7 @@
                         <td style="padding: 40px 40px 20px 40px;">
                             <h2 style="color: #0f172a; font-size: 20px; margin-top: 0; margin-bottom: 20px; font-weight: 700;">Olá, {{ user_name }}!</h2>
                             <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
-                                Parabéns! Você atingiu <strong>R$ {{ current_amount }}</strong> de <strong>R$ {{ target_amount }}</strong> na sua meta <strong>"{{ goal_name }}"</strong>.
+                                Parabéns! Você atingiu <strong>R$ {{ current_amount|floatformat:2 }}</strong> de <strong>R$ {{ target_amount|floatformat:2 }}</strong> na sua meta <strong>"{{ goal_name }}"</strong>.
                             </p>
                             <p style="color: #475569; font-size: 16px; line-height: 1.6; margin-bottom: 24px;">
                                 Falta muito pouco para você completar esse objetivo! Continue assim e logo você chegará lá.

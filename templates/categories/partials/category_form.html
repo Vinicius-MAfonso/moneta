@@ -13,7 +13,7 @@
             </button>
         </div>
 
-        <form method="POST" action="{% url 'transactions_web:category_create' %}">
+        <form hx-post="{% url 'transactions_web:category_create' %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { window.location.reload(); }">
             {% csrf_token %}
             <div class="space-y-4">
                 <div>
@@ -45,6 +45,7 @@
                                 class="cursor-pointer w-full bg-slate-50  border border-slate-300  rounded-xl px-3.5 py-2 text-sm text-slate-900  focus:outline-none focus:border-indigo-500 pr-10">
                             <button type="button" @click="open = !open"
                                 class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 ">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                             </button>
                         </div>
                         <div x-show="open" @click.away="open = false" x-cloak
@@ -82,7 +83,7 @@
         return {
             open: false,
             selected: '',
-            emojis: ['🍔', '🏠', '🚌', '🎉', '🏥', '📚', '👕', '📱', '🐾', '✈️', '💰', '⚖️', '🏷️', '💡', '🏷️']
+            emojis: ['🍔', '🏠', '🚌', '🎉', '🏥', '📚', '👕', '📱', '🐾', '✈️', '💰', '⚖️', '🏷️', '💡']
         };
     }
 </script>

@@ -11,7 +11,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ action_url }}" class="space-y-4">
+        <form hx-post="{{ action_url }}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { window.location.reload(); }" class="space-y-4">
             {% csrf_token %}
 
             {% if options %}
@@ -27,7 +27,7 @@
             {% endif %}
 
             <div class="flex items-center justify-end space-x-3 pt-3 border-t border-slate-200 ">
-                <button type="button" onclick="document.getElementById('modal-container').innerHTML = ''" class="px-4 py-2 rounded-xl bg-slate-200  hover:bg-slate-300  text-slate-800  font-semibold text-xs transition">
+                <button type="button" @click="$el.closest('.fixed').remove()" class="px-4 py-2 rounded-xl bg-slate-200  hover:bg-slate-300  text-slate-800  font-semibold text-xs transition">
                     Cancelar
                 </button>
                 <button type="submit" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-lg shadow-rose-600/25">

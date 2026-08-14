@@ -1,6 +1,6 @@
 Olá, {{ user_name }}! 
 
-Parabéns! Você atingiu R$ {{ current_amount }} de R$ {{ target_amount }} na sua meta "{{ goal_name }}". 
+Parabéns! Você atingiu R$ {{ current_amount|floatformat:2 }} de R$ {{ target_amount|floatformat:2 }} na sua meta "{{ goal_name }}". 
 
 Falta muito pouco para você completar esse objetivo! Continue assim e logo você chegará lá.
 
