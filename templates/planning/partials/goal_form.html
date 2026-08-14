@@ -13,6 +13,15 @@
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Nome do Objetivo</label>
                     <input type="text" name="name" required placeholder="Ex: Reserva de Emergência, Carro Novo..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Vincular à Conta Principal</label>
+                    <select name="account" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 transition">
+                        <option value="" disabled selected>Escolha uma conta para separar o saldo...</option>
+                        {% for acc in accounts %}
+                            <option value="{{ acc.id }}">{{ acc.name }} (Saldo Livre: R$ {{ acc.free_balance|floatformat:2 }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Valor Meta (R$)</label>

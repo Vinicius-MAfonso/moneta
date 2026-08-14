@@ -25,6 +25,24 @@ class Account(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
 
+    @property
+    def free_balance(self):
+        if self.type == self.Types.CREDIT_CARD:
+            return self.balance
+            
+        if hasattr(self, '_prefetched_objects_cache') and 'goals' in self._prefetched_objects_cache:
+            goals_total = sum(g.current_amount for g in self.goals.all())
+        else:
+            goals_total = self.goals.aggregate(total=models.Sum('current_amount'))['total'] or Decimal('0.00')
+            
+        return self.balance - goals_total
+
+    @property
+    def locked_balance(self):
+        if self.type == self.Types.CREDIT_CARD:
+            return Decimal('0.00')
+        return self.balance - self.free_balance
+
     class Meta:
         verbose_name = 'conta'
         verbose_name_plural = 'contas'

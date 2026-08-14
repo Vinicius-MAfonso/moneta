@@ -25,7 +25,7 @@ def dashboard_view(request):
     from django_q.tasks import async_task
     async_task('transactions.services.process_recurring_transactions', user, month_ctx['end_date'])
 
-    accounts_qs = Account.objects.filter(user=user, active=True).select_related('credit_card_details')
+    accounts_qs = Account.objects.filter(user=user, active=True).exclude(type=Account.Types.CREDIT_CARD)
     from wallets.services import calculate_expected_balance
     
     accounts = []

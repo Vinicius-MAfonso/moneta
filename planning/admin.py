@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Budget, Goal, GoalTransaction
+from .models import Budget, Goal
 
 
 @admin.register(Budget)
@@ -37,12 +37,3 @@ class GoalAdmin(admin.ModelAdmin):
             obj.user = request.user
         super().save_model(request, obj, form, change)
 
-
-@admin.register(GoalTransaction)
-class GoalTransactionAdmin(admin.ModelAdmin):
-    readonly_fields = ('created_at', 'updated_at')
-    autocomplete_fields = ('goal', 'transaction')
-    list_display = ('goal', 'transaction', 'amount', 'created_at')
-    search_fields = ('goal__name', 'transaction__description')
-    ordering = ('-created_at',)
-    list_per_page = 25

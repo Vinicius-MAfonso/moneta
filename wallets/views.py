@@ -189,14 +189,12 @@ def bill_detail_view(request, pk):
     from wallets.models import Account, CreditCardBill
 
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
-    transactions = bill.transactions.all().order_by('-date', '-created_at')
+    transactions = bill.transactions.filter(transfer_in__isnull=True).order_by('-date', '-created_at')
 
     expenses = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     incomes = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    transfers_in = transactions.filter(transfer_in__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    transfers_out = transactions.filter(transfer_out__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
-    total = expenses - incomes - transfers_in + transfers_out
+    total = expenses - incomes
 
     checking_accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
 
@@ -247,7 +245,7 @@ def pay_bill_view(request, pk):
 def bill_list_view(request, account_id):
     from wallets.models import Account
     account = get_object_or_404(Account, pk=account_id, user=request.user, type=Account.Types.CREDIT_CARD)
-    bills = account.bills.all().order_by('-period_date')
+    bills = account.bills.all().order_by('period_date')
 
     status_filter = request.GET.get('status')
     if status_filter in ['open', 'closed', 'paid']:
@@ -258,4 +256,59 @@ def bill_list_view(request, account_id):
         'bills': bills,
         'status_filter': status_filter,
     }
-    return render(request, 'wallets/bill_list.html', context)
+    return render(request, 'wallets/bill_list.html', {'account': account, 'bills': bills})
+
+@login_required(login_url='users_web:login')
+def credit_card_dashboard_view(request):
+    from django.db.models import Sum
+    from wallets.models import Account
+    from transactions.models import Transaction
+    from moneta.common import TransactionType
+    import datetime
+    from dateutil.relativedelta import relativedelta
+
+    accounts = Account.objects.filter(user=request.user, type=Account.Types.CREDIT_CARD, active=True).select_related('credit_card_details')
+    
+    # 1. Timeline das parcelas: Somar todas as transações de crédito pendentes por mês
+    today = datetime.date.today()
+    start_of_month = today.replace(day=1)
+    
+    timeline = []
+    for i in range(12):
+        month_date = start_of_month + relativedelta(months=i)
+        
+        # O mês da fatura geralmente bate com o 'due_date' ou o próprio 'date' se não houver faturas amarradas
+        # Para ser exato, somamos transações que têm date no mês e account=credit_card
+        # Mas para faturas, o que importa é a fatura. Vamos somar transações que caem nesse mês
+        total = Transaction.objects.filter(
+            user=request.user,
+            account__type=Account.Types.CREDIT_CARD,
+            status=Transaction.Statuses.PENDING,
+            date__year=month_date.year,
+            date__month=month_date.month,
+            category__type=TransactionType.EXPENSE
+        ).aggregate(sum=Sum('amount'))['sum'] or Decimal('0.00')
+        
+        months_pt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+        month_name = months_pt[month_date.month - 1]
+        
+        timeline.append({
+            'date': month_date,
+            'label': f"{month_name}/{month_date.year}", # Ex: Janeiro/2027
+            'total': total
+        })
+
+    # 2. Transações parceladas ativas
+    installments = Transaction.objects.filter(
+        user=request.user,
+        account__type=Account.Types.CREDIT_CARD,
+        installment_number__isnull=False,
+        status=Transaction.Statuses.PENDING
+    ).select_related('account', 'category').order_by('date')[:20]
+
+    context = {
+        'accounts': accounts,
+        'timeline': timeline,
+        'installments': installments,
+    }
+    return render(request, 'wallets/credit_card_dashboard.html', context)

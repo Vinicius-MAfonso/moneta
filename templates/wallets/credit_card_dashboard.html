@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Painel de Cartões - Moneta{% endblock %}
+{% block content %}
+<div class="space-y-8 pb-10">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Painel de Cartões de Crédito</h2>
+            <p class="text-slate-500 text-sm mt-1">Gerencie suas compras a prazo e previsão de faturas futuras</p>
+        </div>
+        <a href="{% url 'wallets_web:list' %}" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium text-sm transition-all shadow-sm">
+            <span>Voltar para Contas</span>
+        </a>
+    </div>
+
+    <!-- Timeline Chart (Visual Horizon) -->
+    <div class="glass-panel p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
+        <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            Projeção de Faturas Futuras
+        </h3>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {% for month in timeline %}
+            <div class="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ month.label }}</span>
+                <span class="text-lg font-extrabold {% if month.total > 0 %}text-rose-600{% else %}text-emerald-500{% endif %}">
+                    R$ {{ month.total|floatformat:2 }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Active Cards & Installments List -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Meus Cartões -->
+        <div class="lg:col-span-1 space-y-6">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                Meus Cartões
+            </h3>
+            
+            {% for account in accounts %}
+                <div class="glass-panel p-5 rounded-2xl border-t-4 shadow-sm" style="border-top-color: {{ account.color }};">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="font-bold text-slate-900">{{ account.name }}</h4>
+                            <p class="text-xs text-slate-500">{{ account.institution }}</p>
+                        </div>
+                        <a href="{% url 'wallets_web:bill_list' account.id %}" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2.5 py-1 rounded-md transition-colors">
+                            Ver Faturas
+                        </a>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-500">Fatura Atual</span>
+                            <span class="font-bold text-rose-600">R$ {{ account.balance|floatformat:2 }}</span>
+                        </div>
+                        
+                        <!-- Limit Bar -->
+                        <div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden">
+                            {% widthratio account.balance account.credit_card_details.limit|default:1 100 as limit_pct %}
+                            <div class="bg-rose-500 h-2 rounded-full" style="width: {% if limit_pct > 100 %}100{% else %}{{ limit_pct }}{% endif %}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="text-center p-6 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
+                    <p class="text-slate-500 text-sm">Nenhum cartão de crédito cadastrado.</p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Installments Breakdown -->
+        <div class="lg:col-span-2 space-y-6">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                Compras Parceladas Ativas
+            </h3>
+
+            <div class="glass-panel overflow-hidden rounded-2xl shadow-sm border border-slate-100">
+                {% if installments %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/80 border-b border-slate-100 text-xs uppercase tracking-wider text-slate-500">
+                                <th class="p-4 font-semibold">Data</th>
+                                <th class="p-4 font-semibold">Descrição</th>
+                                <th class="p-4 font-semibold">Cartão</th>
+                                <th class="p-4 font-semibold text-center">Parcela</th>
+                                <th class="p-4 font-semibold text-right">Valor da Parcela</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100/50">
+                            {% for tx in installments %}
+                            <tr>
+                                <td class="p-4 text-sm text-slate-500 whitespace-nowrap">{{ tx.date|date:"d/m/Y" }}</td>
+                                <td class="p-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style="background-color: {{ tx.category.color }}15; color: {{ tx.category.color }}">
+                                            {% if tx.category.icon %}
+                                                <span class="text-xs">{{ tx.category.icon }}</span>
+                                            {% else %}
+                                                <i class="fa-solid fa-tag text-xs"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <p class="font-medium text-slate-900 line-clamp-1">{{ tx.description }}</p>
+                                            <p class="text-xs text-slate-400">{{ tx.category.name }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="p-4 text-sm text-slate-600">
+                                    <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 border border-slate-200">
+                                        <span class="w-2 h-2 rounded-full" style="background-color: {{ tx.account.color }}"></span>
+                                        {{ tx.account.name }}
+                                    </span>
+                                </td>
+                                <td class="p-4 text-center">
+                                    <span class="inline-flex items-center justify-center px-2.5 py-1 text-xs font-bold rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                        {{ tx.installment_number }} / {{ tx.total_installments }}
+                                    </span>
+                                </td>
+                                <td class="p-4 text-right">
+                                    <p class="font-bold text-rose-600 whitespace-nowrap">R$ {{ tx.amount|floatformat:2 }}</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-slate-500">
+                    Nenhuma compra parcelada em aberto.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

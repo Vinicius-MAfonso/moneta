@@ -118,9 +118,13 @@ def goal_create_view(request):
             current_amount = Decimal(request.POST.get('current_amount') or '0')
             start_date = request.POST.get('start_date')
             end_date = request.POST.get('end_date') or None
+            account_id = request.POST.get('account')
+            from wallets.models import Account
+            account = Account.objects.get(id=account_id, user=request.user) if account_id else None
 
             Goal.objects.create(
                 user=request.user,
+                account=account,
                 name=name,
                 target_amount=target_amount,
                 current_amount=current_amount,
@@ -147,7 +151,9 @@ def goal_create_view(request):
             messages.error(request, f"Erro: {e!s}")
             return redirect('planning_web:list')
 
-    return render(request, 'planning/partials/goal_form.html')
+    from wallets.models import Account
+    accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
+    return render(request, 'planning/partials/goal_form.html', {'accounts': accounts})
 
 
 @login_required(login_url='users_web:login')
@@ -157,6 +163,8 @@ def goal_deposit_view(request, pk):
         try:
             amount = Decimal(request.POST.get('amount') or '0')
             if amount > 0:
+                if goal.account and amount > goal.account.free_balance:
+                    raise ValueError(f"Saldo livre insuficiente na conta '{goal.account.name}'. Saldo disponível: R$ {goal.account.free_balance:.2f}.")
                 from planning.services import deposit_to_goal
                 deposit_to_goal(goal, amount)
             if request.headers.get('HX-Request'):

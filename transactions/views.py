@@ -58,7 +58,7 @@ def transaction_list_view(request):
         qs = qs.filter(date__range=(month_ctx['start_date'], month_ctx['end_date']))
 
     if not account_id:
-        qs = qs.exclude(transfer_in__isnull=False)
+        qs = qs.exclude(transfer_in__isnull=False, account__type=Account.Types.CREDIT_CARD)
 
     transactions = qs.select_related(
         'account', 'category', 'bill', 'transfer_out__in_transaction__bill'

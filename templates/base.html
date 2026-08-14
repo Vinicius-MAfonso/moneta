@@ -166,15 +166,37 @@
                     </div>
                 </div>
 
-                <a href="{% url 'wallets_web:list' %}"
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'wallets' in request.path %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
-                        </path>
-                    </svg>
-                    <span>Contas & Cartões</span>
-                </a>
+                <div
+                    x-data="{ wOpen: {% if 'wallets' in request.path %}true{% else %}false{% endif %}, clicked: false }">
+                    <button @click="wOpen = !wOpen; clicked = true"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'wallets' in request.path %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/20{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
+                        <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            <span>Contas & Cartões</span>
+                        </div>
+                        <svg :class="wOpen ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div x-show="wOpen" x-collapse {% if 'wallets' not in request.path %}x-cloak{% endif %} class="mt-1 pl-8 space-y-1">
+                        <a href="{% url 'wallets_web:list' %}"
+                            :class="clicked ? 'animate-stagger-1' : ''"
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'list' and 'wallets' in request.path %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
+                            Visão Geral
+                        </a>
+                        <a href="{% url 'wallets_web:credit_card_dashboard' %}"
+                            :class="clicked ? 'animate-stagger-2' : ''"
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'credit_card_dashboard' %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
+                            Painel de Cartões
+                        </a>
+                    </div>
+                </div>
 
                 <a href="{% url 'planning_web:list' %}"
                     class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'planning' in request.path %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
