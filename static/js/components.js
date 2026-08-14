@@ -38,4 +38,29 @@ document.addEventListener('alpine:init', () => {
         selected: '',
         emojis: ['🍔', '🏠', '🚌', '🎉', '🏥', '📚', '👕', '📱', '🐾', '✈️', '💰', '⚖️', '🏷️', '💡']
     }));
+
+    Alpine.data('tutorialModal', () => ({
+        showTutorial: false,
+        step: 1,
+        totalSteps: 4,
+        init() {
+            if (!localStorage.getItem('moneta_tutorial_seen')) {
+                setTimeout(() => { this.showTutorial = true; }, 500);
+            }
+        },
+        next() {
+            if (this.step < this.totalSteps) {
+                this.step++;
+            } else {
+                this.close();
+            }
+        },
+        prev() {
+            if (this.step > 1) this.step--;
+        },
+        close() {
+            this.showTutorial = false;
+            localStorage.setItem('moneta_tutorial_seen', 'true');
+        }
+    }));
 });

@@ -3,7 +3,6 @@
 {% block content %}
 <div class="space-y-8 pb-10">
 
-    <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Painel de Cartões de Crédito</h2>
@@ -14,7 +13,6 @@
         </a>
     </div>
 
-    <!-- Timeline Chart (Visual Horizon) -->
     <div class="glass-panel p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden">
         <h3 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
             <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -33,10 +31,8 @@
         </div>
     </div>
 
-    <!-- Active Cards & Installments List -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <!-- Meus Cartões -->
         <div class="lg:col-span-1 space-y-6">
             <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
@@ -61,7 +57,6 @@
                             <span class="font-bold text-rose-600">R$ {{ account.balance|floatformat:2 }}</span>
                         </div>
                         
-                        <!-- Limit Bar -->
                         <div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden">
                             {% widthratio account.balance account.credit_card_details.limit|default:1 100 as limit_pct %}
                             <div class="bg-rose-500 h-2 rounded-full" style="width: {% if limit_pct > 100 %}100{% else %}{{ limit_pct }}{% endif %}%;"></div>
@@ -75,7 +70,6 @@
             {% endfor %}
         </div>
 
-        <!-- Installments Breakdown -->
         <div class="lg:col-span-2 space-y-6">
             <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
