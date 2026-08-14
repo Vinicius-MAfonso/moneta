@@ -14,7 +14,14 @@
             <a href="{% url 'wallets_web:list' %}" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition shadow-sm">
                 Voltar
             </a>
-            {% if bill.status != 'paid' and remaining_amount > 0 %}
+            {% if bill.status == 'paid' %}
+                <form method="POST" action="{% url 'wallets_web:reopen_bill' bill.pk %}" class="inline" onsubmit="return confirm('Tem certeza que deseja cancelar o pagamento e reabrir esta fatura? O valor será devolvido para a conta de origem.');">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-rose-600/30 transition">
+                        Reabrir Fatura
+                    </button>
+                </form>
+            {% elif bill.status != 'paid' and remaining_amount > 0 %}
                 <button type="button" @click="$dispatch('open-pay-modal')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/30 transition">
                     Pagar Fatura
                 </button>

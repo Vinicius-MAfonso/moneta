@@ -239,6 +239,32 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
 
     return bill
 
+def reopen_credit_card_bill(bill):
+    from django.db import transaction as db_transaction
+    from django.utils import timezone
+    from wallets.models import CreditCardBill
+
+    with db_transaction.atomic():
+        if bill.status != CreditCardBill.Statuses.PAID:
+            raise ValueError("Apenas faturas pagas podem ser reabertas.")
+
+        payment_txs = bill.transactions.filter(transfer_in__isnull=False)
+        for tx in payment_txs:
+            transfer = getattr(tx, 'transfer_in', None)
+            if transfer:
+                out_tx = transfer.out_transaction
+                tx.delete()
+                out_tx.delete()
+
+        if timezone.now().date() > bill.closing_date:
+            bill.status = CreditCardBill.Statuses.CLOSED
+        else:
+            bill.status = CreditCardBill.Statuses.OPEN
+        bill.save()
+
+        from transactions.models import Transaction
+        bill.transactions.filter(status=Transaction.Statuses.COMPLETED).update(status=Transaction.Statuses.PENDING)
+
 def adjust_account_balance(account, new_balance, adjustment_type, user):
     """
     Adjust the account balance either by updating the initial balance

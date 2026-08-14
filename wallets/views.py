@@ -244,6 +244,24 @@ def pay_bill_view(request, pk):
 
 
 @login_required(login_url='users_web:login')
+def reopen_bill_view(request, pk):
+    from django.contrib import messages
+    from wallets.models import CreditCardBill
+    from wallets.services import reopen_credit_card_bill
+
+    bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
+
+    if request.method == 'POST':
+        try:
+            reopen_credit_card_bill(bill)
+            messages.success(request, f"O pagamento da fatura de {bill.period_date.strftime('%m/%Y')} foi cancelado e a fatura reaberta.")
+        except Exception as e:
+            messages.error(request, f"Erro ao reabrir fatura: {e!s}")
+
+    return redirect('wallets_web:bill_detail', pk=bill.pk)
+
+
+@login_required(login_url='users_web:login')
 def bill_list_view(request, account_id):
     from wallets.models import Account
     account = get_object_or_404(Account, pk=account_id, user=request.user, type=Account.Types.CREDIT_CARD)

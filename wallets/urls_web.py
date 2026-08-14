@@ -15,4 +15,5 @@ urlpatterns = [
     path('cartao/<uuid:account_id>/faturas/', views.bill_list_view, name='bill_list'),
     path('fatura/<uuid:pk>/', views.bill_detail_view, name='bill_detail'),
     path('fatura/<uuid:pk>/pagar/', views.pay_bill_view, name='pay_bill'),
+    path('fatura/<uuid:pk>/reabrir/', views.reopen_bill_view, name='reopen_bill'),
 ]
