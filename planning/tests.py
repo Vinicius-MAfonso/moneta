@@ -89,3 +89,46 @@ class PlanningWebTestCase(TestCase):
         self.assertEqual(progress['remaining'], Decimal('100.00'))
         self.assertTrue(progress['is_warning'])
         self.assertFalse(progress['is_over_budget'])
+
+    def test_deposit_to_goal(self):
+        from planning.services import deposit_to_goal
+        
+        goal = Goal.objects.create(
+            user=self.user,
+            name='Carro Novo',
+            target_amount=Decimal('50000.00'),
+            current_amount=Decimal('1000.00'),
+            start_date='2026-08-01',
+            end_date='2027-08-01'
+        )
+        
+        success = deposit_to_goal(goal, Decimal('500.00'))
+        self.assertTrue(success)
+        
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal('1500.00'))
+        
+        # Testar valor inválido
+        success = deposit_to_goal(goal, Decimal('-100.00'))
+        self.assertFalse(success)
+        goal.refresh_from_db()
+        self.assertEqual(goal.current_amount, Decimal('1500.00'))
+
+    def test_get_active_budgets(self):
+        from datetime import date
+
+        from planning.services import get_active_budgets
+        
+        Budget.objects.create(
+            user=self.user, category=self.category, amount=Decimal('500.00'),
+            start_date=date(2026, 8, 1), end_date=date(2026, 8, 31)
+        )
+        # Orçamento inativo (passado)
+        Budget.objects.create(
+            user=self.user, category=self.category, amount=Decimal('200.00'),
+            start_date=date(2026, 7, 1), end_date=date(2026, 7, 31)
+        )
+        
+        active_budgets = get_active_budgets(self.user, reference_date=date(2026, 8, 15))
+        self.assertEqual(len(active_budgets), 1)
+        self.assertEqual(active_budgets[0]['budget'].amount, Decimal('500.00'))

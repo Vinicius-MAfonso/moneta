@@ -246,6 +246,7 @@ def pay_bill_view(request, pk):
 @login_required(login_url='users_web:login')
 def reopen_bill_view(request, pk):
     from django.contrib import messages
+
     from wallets.models import CreditCardBill
     from wallets.services import reopen_credit_card_bill
 

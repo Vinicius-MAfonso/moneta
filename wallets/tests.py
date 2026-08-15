@@ -123,3 +123,119 @@ class WalletsWebTestCase(TestCase):
         from wallets.services import recalculate_account_balance
         recalculate_account_balance(checking_account)
         self.assertEqual(checking_account.balance, Decimal('1800.00'))
+
+
+class WalletsServicesTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='wallet_svc', password='password123')
+        
+        from wallets.models import Account, CreditCardDetails
+        self.cc_account = Account.objects.create(
+            user=self.user, name='Cartão Black', type=Account.Types.CREDIT_CARD,
+            balance=Decimal('0.00'), initial_balance=Decimal('0.00')
+        )
+        CreditCardDetails.objects.create(
+            account=self.cc_account, limit=Decimal('5000.00'), available_limit=Decimal('5000.00'),
+            closing_day=10, due_day=20
+        )
+        
+        self.checking_account = Account.objects.create(
+            user=self.user, name='Corrente', type=Account.Types.CHECKING,
+            balance=Decimal('1000.00'), initial_balance=Decimal('1000.00')
+        )
+
+    def test_smart_forwarding_get_or_create_bill(self):
+        import datetime
+
+        from wallets.models import CreditCardBill
+        from wallets.services import get_or_create_bill_for_transaction
+        
+        # Cria a primeira fatura e a fecha
+        bill1 = get_or_create_bill_for_transaction(self.cc_account, datetime.date(2026, 8, 5))
+        self.assertEqual(bill1.status, CreditCardBill.Statuses.OPEN)
+        self.assertEqual(bill1.due_date, datetime.date(2026, 8, 20))
+        
+        bill1.status = CreditCardBill.Statuses.PAID
+        bill1.save()
+        
+        # Tenta lançar despesa retroativa no mesmo período
+        bill2 = get_or_create_bill_for_transaction(self.cc_account, datetime.date(2026, 8, 5))
+        
+        # O sistema deve pular a fatura PAID e criar/retornar a próxima OPEN (vencimento em setembro)
+        self.assertEqual(bill2.status, CreditCardBill.Statuses.OPEN)
+        self.assertEqual(bill2.due_date, datetime.date(2026, 9, 20))
+        self.assertNotEqual(bill1.id, bill2.id)
+
+    def test_reopen_credit_card_bill(self):
+        import datetime
+
+        from moneta.common import TransactionType
+        from transactions.models import Category, Transaction
+        from wallets.models import CreditCardBill
+        from wallets.services import (
+            get_or_create_bill_for_transaction,
+            pay_credit_card_bill,
+            reopen_credit_card_bill,
+        )
+
+        cat_expense = Category.objects.create(user=self.user, name='Compras', type=TransactionType.EXPENSE)
+        
+        tx = Transaction.objects.create(
+            user=self.user, account=self.cc_account, category=cat_expense,
+            description='Celular', amount=Decimal('500.00'), date='2026-08-01',
+            status=Transaction.Statuses.COMPLETED
+        )
+        bill = get_or_create_bill_for_transaction(self.cc_account, datetime.date(2026, 8, 1))
+        tx.bill = bill
+        tx.save()
+        
+        # Pagar a fatura
+        bill = pay_credit_card_bill(bill, self.checking_account.id)
+        self.assertEqual(bill.status, CreditCardBill.Statuses.PAID)
+        self.assertFalse(hasattr(tx, 'transfer_in'))
+        
+        # Pagar faturas cria uma transação de transferência atrelada aos payment_txs
+        # A própria pay_credit_card_bill vincula o in_tx na fatura.
+        payment_txs = bill.transactions.filter(transfer_in__isnull=False)
+        self.assertEqual(payment_txs.count(), 1)
+        
+        # Recalcular saldos simulando fluxo real
+        from wallets.services import recalculate_account_balance
+        recalculate_account_balance(self.checking_account)
+        self.assertEqual(self.checking_account.balance, Decimal('500.00')) # 1000 - 500
+        
+        # Chamar estorno
+        reopen_credit_card_bill(bill)
+        
+        bill.refresh_from_db()
+        self.assertIn(bill.status, [CreditCardBill.Statuses.OPEN, CreditCardBill.Statuses.CLOSED])
+        
+        # A transferência de pagamento foi deletada?
+        payment_txs_after = bill.transactions.filter(transfer_in__isnull=False)
+        self.assertEqual(payment_txs_after.count(), 0)
+        
+        # A conta corrente recuperou o dinheiro?
+        recalculate_account_balance(self.checking_account)
+        self.assertEqual(self.checking_account.balance, Decimal('1000.00'))
+
+    def test_adjust_account_balance_transaction(self):
+        from transactions.models import Transaction
+        from wallets.services import adjust_account_balance
+        
+        success, adjust_type = adjust_account_balance(
+            self.checking_account, 
+            Decimal('1200.00'), 
+            'transaction', 
+            self.user
+        )
+        self.assertTrue(success)
+        self.assertEqual(adjust_type, 'transaction')
+        
+        self.checking_account.refresh_from_db()
+        self.assertEqual(self.checking_account.balance, Decimal('1200.00'))
+        
+        # Checar se a transação compensatória foi criada
+        sys_tx = Transaction.objects.filter(account=self.checking_account, category__is_system=True).first()
+        self.assertIsNotNone(sys_tx)
+        self.assertEqual(sys_tx.amount, Decimal('200.00'))
+        self.assertEqual(sys_tx.description, 'Reajuste de Saldo')

@@ -233,7 +233,6 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
             bill.status = CreditCardBill.Statuses.PAID
             bill.save()
             
-            # Marcar todas as transações da fatura como concluídas
             from transactions.models import Transaction
             bill.transactions.filter(status=Transaction.Statuses.PENDING).update(status=Transaction.Statuses.COMPLETED)
 
@@ -242,6 +241,7 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
 def reopen_credit_card_bill(bill):
     from django.db import transaction as db_transaction
     from django.utils import timezone
+
     from wallets.models import CreditCardBill
 
     with db_transaction.atomic():

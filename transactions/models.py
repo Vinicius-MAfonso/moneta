@@ -71,7 +71,6 @@ class Transaction(models.Model):
     description = models.CharField(max_length=255, verbose_name='descrição')
     amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
     date = models.DateField(verbose_name='data')
-    due_date = models.DateField(blank=True, null=True, verbose_name='data de vencimento')
     status = models.CharField(max_length=10, choices=Statuses.choices, default='pendente', verbose_name='status')
     installment_number = models.PositiveIntegerField(blank=True, null=True, verbose_name='número da parcela')
     total_installments = models.PositiveIntegerField(blank=True, null=True, verbose_name='total de parcelas')
