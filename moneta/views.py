@@ -126,7 +126,7 @@ def dashboard_view(request):
             stats_dict[m_key] = {'income': Decimal('0.00'), 'expense': Decimal('0.00')}
         if stat['category__type'] == TransactionType.INCOME:
             stats_dict[m_key]['income'] += stat['total']
-        else:
+        elif stat['category__type'] == TransactionType.EXPENSE:
             stats_dict[m_key]['expense'] += stat['total']
 
     chart_labels = []
