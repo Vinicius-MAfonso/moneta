@@ -8,6 +8,7 @@ class TransactionsConfig(AppConfig):
     def ready(self):
         from django.db.models.signals import post_migrate
         post_migrate.connect(_setup_schedules, sender=self)
+        import transactions.signals  # noqa: F401
 
 
 def _setup_schedules(sender, **kwargs):

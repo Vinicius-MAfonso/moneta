@@ -6,4 +6,4 @@ class WalletsConfig(AppConfig):
     verbose_name = 'Carteiras'
 
     def ready(self):
-        pass
+        import wallets.signals  # noqa: F401
