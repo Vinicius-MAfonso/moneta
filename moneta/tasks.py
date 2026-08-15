@@ -4,6 +4,9 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+import logging
+
+logger = logging.getLogger(__name__)
 
 from planning.models import Goal
 from wallets.models import CreditCardBill
@@ -40,9 +43,9 @@ def check_and_send_alerts():
             )
             msg.attach_alternative(html_content, "text/html")
             try:
-                msg.send(fail_silently=True)
-            except Exception:
-                pass
+                msg.send(fail_silently=False)
+            except Exception as e:
+                logger.error(f"Erro ao enviar email de fatura para {user.email}: {e}")
         bill.is_due_tomorrow_notified = True
         bill.save(update_fields=['is_due_tomorrow_notified'])
         
@@ -71,8 +74,8 @@ def check_and_send_alerts():
                 )
                 msg.attach_alternative(html_content, "text/html")
                 try:
-                    msg.send(fail_silently=True)
-                except Exception:
-                    pass
+                    msg.send(fail_silently=False)
+                except Exception as e:
+                    logger.error(f"Erro ao enviar email de meta para {user.email}: {e}")
             goal.is_near_target_notified = True
             goal.save(update_fields=['is_near_target_notified'])

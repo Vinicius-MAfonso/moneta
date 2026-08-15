@@ -28,7 +28,7 @@ def send_push_notification(user, title, body, url='/dashboard/'):
                 data=payload,
                 vapid_private_key=str(settings.VAPID_PRIVATE_KEY),
                 vapid_claims={
-                    "sub": settings.VAPID_ADMIN_EMAIL
+                    "sub": f"mailto:{settings.VAPID_ADMIN_EMAIL.replace('mailto:', '')}"
                 }
             )
         except WebPushException as ex:

@@ -17,6 +17,7 @@ class Command(BaseCommand):
             {'func': 'wallets.tasks.notify_due_credit_card_bills', 'hour': 9, 'minute': 0},
             {'func': 'planning.tasks.notify_budget_warnings', 'hour': 10, 'minute': 0},
             {'func': 'transactions.tasks.notify_due_transactions', 'hour': 11, 'minute': 0},
+            {'func': 'moneta.tasks.check_and_send_alerts', 'hour': 12, 'minute': 0},
         ]
 
         now = timezone.now()
@@ -25,7 +26,6 @@ class Command(BaseCommand):
             func_name = task['func']
             Schedule.objects.filter(func=func_name).delete()
             
-            # Ajusta o próximo horário
             next_run = now.replace(hour=task['hour'], minute=task['minute'], second=0, microsecond=0)
             if next_run < now:
                 next_run += datetime.timedelta(days=1)
