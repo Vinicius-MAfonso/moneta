@@ -292,7 +292,6 @@ def credit_card_dashboard_view(request):
 
     accounts = Account.objects.filter(user=request.user, type=Account.Types.CREDIT_CARD, active=True).select_related('credit_card_details')
     
-    # 1. Timeline das parcelas: Somar todas as transações de crédito pendentes por mês
     today = datetime.date.today()
     start_of_month = today.replace(day=1)
     
@@ -300,9 +299,6 @@ def credit_card_dashboard_view(request):
     for i in range(12):
         month_date = start_of_month + relativedelta(months=i)
         
-        # O mês da fatura geralmente bate com o 'due_date' ou o próprio 'date' se não houver faturas amarradas
-        # Para ser exato, somamos transações que têm date no mês e account=credit_card
-        # Mas para faturas, o que importa é a fatura. Vamos somar transações que caem nesse mês
         total = Transaction.objects.filter(
             user=request.user,
             account__type=Account.Types.CREDIT_CARD,
@@ -317,11 +313,10 @@ def credit_card_dashboard_view(request):
         
         timeline.append({
             'date': month_date,
-            'label': f"{month_name}/{month_date.year}", # Ex: Janeiro/2027
+            'label': f"{month_name}/{month_date.year}",
             'total': total
         })
 
-    # 2. Transações parceladas ativas
     installments = Transaction.objects.filter(
         user=request.user,
         account__type=Account.Types.CREDIT_CARD,
