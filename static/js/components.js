@@ -1,7 +1,9 @@
 document.addEventListener('alpine:init', () => {
     Alpine.data('transactionForm', (initialData) => ({
         txType: initialData.txType,
-        isRecurring: false,
+        isRecurring: initialData.isRecurring || false,
+        frequency: initialData.frequency || 'monthly',
+        recurringEndDate: initialData.recurringEndDate || '',
         installments: 1,
         selectedAccountType: initialData.selectedAccountType,
         originalAccountId: initialData.originalAccountId,

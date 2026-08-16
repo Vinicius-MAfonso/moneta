@@ -31,6 +31,7 @@ def recalculate_account_balance(account):
     ).aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
 
     new_balance = account.initial_balance + incomes - expenses - transfers_out + transfers_in
+    new_balance = Decimal(new_balance).quantize(Decimal('.01'))
 
     if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
         cc = account.credit_card_details

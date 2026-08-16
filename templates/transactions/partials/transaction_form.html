@@ -158,7 +158,6 @@
                             </div>
                         </div>
 
-                        {% if not transaction %}
                         <div class="pt-2 border-t border-slate-200  space-y-3" x-show="!(selectedAccountType === 'credit_card' && installments > 1)" x-cloak>
                             <label class="flex items-center justify-between cursor-pointer">
                                 <span class="text-xs font-bold uppercase tracking-wider text-slate-700 " x-text="txType === 'transferencia' ? 'Repetir esta transferência' : 'Repetir esta transação'">Repetir esta transação</span>
@@ -169,8 +168,8 @@
                             <div x-show="isRecurring" x-cloak class="space-y-4 p-3.5 rounded-xl bg-slate-100  border border-slate-200 ">
                                 <div>
                                     <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600  mb-1">Frequência</label>
-                                    <select name="frequency" class="w-full bg-white  border border-slate-300  rounded-xl px-3 pr-10 py-2 text-xs text-slate-900  focus:outline-none focus:border-indigo-500">
-                                        <option value="monthly" selected>Mensalmente</option>
+                                    <select name="frequency" x-model="frequency" class="w-full bg-white  border border-slate-300  rounded-xl px-3 pr-10 py-2 text-xs text-slate-900  focus:outline-none focus:border-indigo-500">
+                                        <option value="monthly">Mensalmente</option>
                                         <option value="weekly">Semanalmente</option>
                                         <option value="daily">Diariamente</option>
                                         <option value="yearly">Anualmente</option>
@@ -178,11 +177,10 @@
                                 </div>
                                 <div>
                                     <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600  mb-1">Término (Opcional)</label>
-                                    <input type="date" name="recurring_end_date" class="w-full bg-white  border border-slate-300  rounded-xl px-3 py-2 text-xs text-slate-900  focus:outline-none focus:border-indigo-500">
+                                    <input type="date" name="recurring_end_date" x-model="recurringEndDate" class="w-full bg-white  border border-slate-300  rounded-xl px-3 py-2 text-xs text-slate-900  focus:outline-none focus:border-indigo-500">
                                 </div>
                             </div>
                         </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>

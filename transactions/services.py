@@ -292,6 +292,42 @@ def update_transaction(transaction, validated_data):
     else:
         transaction.bill = None
 
+    is_recurring = validated_data.get('is_recurring', False)
+    frequency = validated_data.get('frequency', 'monthly')
+    recurring_end_date = validated_data.get('recurring_end_date')
+
+    was_recurring = transaction.recurring is not None
+
+    if was_recurring and not is_recurring:
+        from transactions.models import Transaction
+        old_recurring = transaction.recurring
+        Transaction.objects.filter(recurring=old_recurring, date__gt=transaction.date).delete()
+        old_recurring.active = False
+        old_recurring.end_date = transaction.date
+        old_recurring.save(update_fields=['active', 'end_date'])
+        
+        transaction.recurring = None
+        
+    elif not was_recurring and is_recurring:
+        from django_q.tasks import async_task
+        from transactions.models import Category, RecurringTransaction
+        
+        category = Category.objects.get(id=transaction.category_id)
+        
+        new_recurring = RecurringTransaction.objects.create(
+            user=transaction.user,
+            account=new_account,
+            category=category,
+            description=transaction.description,
+            amount=transaction.amount,
+            frequency=frequency,
+            start_date=transaction.date,
+            end_date=recurring_end_date,
+            active=True
+        )
+        transaction.recurring = new_recurring
+        async_task('transactions.services.process_recurring_transactions', transaction.user)
+
     transaction.save()
 
     transaction.tags.set(validated_data['tags'])

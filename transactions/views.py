@@ -221,7 +221,10 @@ def transaction_create_view(request):
         'selectedAccountId': str(accounts[0].id) if accounts else '',
         'originalAmount': 0,
         'selectedAccountLimit': float(accounts[0].credit_card_details.available_limit) if accounts and accounts[0].type == 'credit_card' else 0,
-        'categories': [{'id': str(c.id), 'name': f"{c.icon + ' ' if c.icon else ''}{c.name}", 'type': c.type} for c in categories]
+        'categories': [{'id': str(c.id), 'name': f"{c.icon + ' ' if c.icon else ''}{c.name}", 'type': c.type} for c in categories],
+        'isRecurring': False,
+        'frequency': 'monthly',
+        'recurringEndDate': '',
     }
 
     context = {
@@ -317,7 +320,10 @@ def transaction_update_view(request, pk):
         'selectedAccountId': str(transaction.account.id),
         'originalAmount': float(transaction.amount),
         'selectedAccountLimit': float(transaction.account.credit_card_details.available_limit) if transaction.account.type == 'credit_card' else 0,
-        'categories': [{'id': str(c.id), 'name': f"{c.icon + ' ' if c.icon else ''}{c.name}", 'type': c.type} for c in categories]
+        'categories': [{'id': str(c.id), 'name': f"{c.icon + ' ' if c.icon else ''}{c.name}", 'type': c.type} for c in categories],
+        'isRecurring': transaction.recurring is not None,
+        'frequency': transaction.recurring.frequency if transaction.recurring else 'monthly',
+        'recurringEndDate': str(transaction.recurring.end_date) if transaction.recurring and transaction.recurring.end_date else '',
     }
 
     context = {

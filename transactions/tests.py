@@ -24,7 +24,7 @@ class TransactionsWebTestCase(TestCase):
         self.client.force_login(self.user)
         self.account1 = Account.objects.create(user=self.user, name='Conta A', type=Account.Types.CHECKING)
         self.account2 = Account.objects.create(user=self.user, name='Conta B', type=Account.Types.OTHER)
-        self.category = Category.objects.create(user=self.user, name='Alimentação', type=TransactionType.EXPENSE)
+        self.category, _ = Category.objects.get_or_create(user=self.user, name='Alimentação', defaults={'type': TransactionType.EXPENSE})
         self.tag = Tag.objects.create(user=self.user, name='Essencial', color='#FF0000')
 
     def test_category_and_tag_web_view(self):
@@ -164,10 +164,10 @@ class TransactionServicesTestCase(TestCase):
         self.cc_account = Account.objects.create(user=self.user, name='Cartão', type=Account.Types.CREDIT_CARD)
         
         from wallets.models import CreditCardDetails
-        CreditCardDetails.objects.create(account=self.cc_account, limit=5000, closing_day=10, due_day=15)
+        CreditCardDetails.objects.create(account=self.cc_account, limit=Decimal('5000.00'), closing_day=10, due_day=15)
         
-        self.cat_expense = Category.objects.create(user=self.user, name='Despesa', type=TransactionType.EXPENSE)
-        self.cat_transfer = Category.objects.create(user=self.user, name='Transferência', type=TransactionType.TRANSFER)
+        self.cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Despesa', defaults={'type': TransactionType.EXPENSE})
+        self.cat_transfer, _ = Category.objects.get_or_create(user=self.user, name='Transferência', defaults={'type': TransactionType.TRANSFER})
 
     def test_create_regular_transaction_installments(self):
         from transactions.services import create_regular_transaction
@@ -295,4 +295,82 @@ class TransactionServicesTestCase(TestCase):
         # A quantidade deve permanecer 2
         txs = Transaction.objects.filter(recurring=rec).order_by('date')
         self.assertEqual(txs.count(), 2)
+
+    def test_update_transaction_add_recurrence(self):
+        from transactions.services import create_regular_transaction, update_transaction
+        
+        create_regular_transaction(
+            user=self.user,
+            account_id=self.account1.id,
+            category_id=self.cat_expense.id,
+            description='Academia',
+            amount=Decimal('100.00'),
+            tx_date=date(2026, 8, 1),
+            status=Transaction.Statuses.COMPLETED
+        )
+        tx = Transaction.objects.get(description='Academia')
+        self.assertIsNone(tx.recurring)
+        
+        update_transaction(tx, {
+            'account': self.account1.id,
+            'category': self.cat_expense.id,
+            'description': 'Academia',
+            'amount': Decimal('100.00'),
+            'date': date(2026, 8, 1),
+            'status': Transaction.Statuses.COMPLETED,
+            'tags': [],
+            'is_recurring': True,
+            'frequency': 'monthly',
+            'recurring_end_date': None
+        })
+        
+        tx.refresh_from_db()
+        self.assertIsNotNone(tx.recurring)
+        self.assertEqual(tx.recurring.frequency, 'monthly')
+
+    def test_update_transaction_remove_recurrence(self):
+        from transactions.services import process_recurring_transactions, update_transaction
+        
+        rec = RecurringTransaction.objects.create(
+            user=self.user,
+            account=self.account1,
+            category=self.cat_expense,
+            description='Curso',
+            amount=Decimal('50.00'),
+            frequency=RecurringTransaction.Frequencies.MONTHLY,
+            start_date=date(2026, 8, 1),
+            active=True
+        )
+        process_recurring_transactions(self.user, target_end_date=date(2026, 10, 31))
+        
+        txs = Transaction.objects.filter(recurring=rec).order_by('date')
+        self.assertEqual(txs.count(), 3)
+        
+        # Vamos destransformar a transação de Setembro
+        tx_sept = txs.get(date=date(2026, 9, 1))
+        
+        update_transaction(tx_sept, {
+            'account': self.account1.id,
+            'category': self.cat_expense.id,
+            'description': 'Curso (Avulso)',
+            'amount': Decimal('50.00'),
+            'date': date(2026, 9, 1),
+            'status': Transaction.Statuses.PENDING,
+            'tags': [],
+            'is_recurring': False,
+            'frequency': 'monthly',
+            'recurring_end_date': None
+        })
+        
+        tx_sept.refresh_from_db()
+        self.assertIsNone(tx_sept.recurring)
+        
+        rec.refresh_from_db()
+        self.assertFalse(rec.active)
+        self.assertEqual(rec.end_date, date(2026, 9, 1))
+        
+        # A de Outubro (futura) deve ter sido deletada, a de Agosto (passada) deve continuar existindo atrelada à série
+        self.assertTrue(Transaction.objects.filter(date=date(2026, 8, 1), recurring=rec).exists())
+        self.assertFalse(Transaction.objects.filter(date=date(2026, 10, 1), recurring=rec).exists())
+
 
