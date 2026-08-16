@@ -14,7 +14,7 @@ class PlanningWebTestCase(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='planner', password='password123')
         self.client.force_login(self.user)
-        self.category = Category.objects.create(user=self.user, name='Alimentação', type=TransactionType.EXPENSE)
+        self.category, _ = Category.objects.get_or_create(user=self.user, name='Alimentação', defaults={'type': TransactionType.EXPENSE})
 
     def test_planning_list_view(self):
         res = self.client.get('/planning/')

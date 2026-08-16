@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models.signals import post_init, post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django_q.tasks import async_task
 
@@ -41,16 +41,18 @@ def create_default_categories(sender, instance, created, **kwargs):
 
 
 
-@receiver(post_init, sender=User)
-def remember_user_state(sender, instance, **kwargs):
-    instance._original_is_active = instance.is_active
+@receiver(pre_save, sender=User)
+def track_user_activation_presave(sender, instance, **kwargs):
+    if not instance.pk:
+        return
+        
+    old_instance = User.objects.filter(pk=instance.pk).values('is_active').first()
+    if old_instance and not old_instance['is_active'] and instance.is_active:
+        instance._just_activated = True
+
 
 @receiver(post_save, sender=User)
-def track_user_activation(sender, instance, created, **kwargs):
-    if created:
-        return
-
-    if hasattr(instance, '_original_is_active') and not instance._original_is_active and instance.is_active:
-            transaction.on_commit(lambda: async_task('users.emails.send_welcome_email', instance.pk))
-            
-    instance._original_is_active = instance.is_active
+def send_welcome_email_postsave(sender, instance, created, **kwargs):
+    if getattr(instance, '_just_activated', False):
+        transaction.on_commit(lambda: async_task('users.emails.send_welcome_email', instance.pk))
+        instance._just_activated = False

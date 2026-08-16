@@ -52,29 +52,30 @@ def get_report_data(user, start_date, end_date):
 
     delta_days = (end_date - start_date).days
     
-    timeline_dict = {}
-    for tx in completed_or_cc_txs:
-        tx_date = tx.date
-        if delta_days <= 60:
-            p_key = tx_date.strftime('%Y-%m-%d')
-            label = tx_date.strftime('%d/%m')
-        else:
-            p_key = tx_date.strftime('%Y-%m-01')
-            label = tx_date.strftime('%m/%Y')
-            
-        if p_key not in timeline_dict:
-            timeline_dict[p_key] = {'income': Decimal('0.00'), 'expense': Decimal('0.00'), 'label': label}
-            
-        if tx.category.type == TransactionType.INCOME:
-            timeline_dict[p_key]['income'] += tx.amount
-        else:
-            timeline_dict[p_key]['expense'] += tx.amount
+    from django.db.models.functions import TruncDay, TruncMonth
 
-    timeline_labels = []
-    timeline_incomes = []
-    timeline_expenses = []
-    
+    timeline_dict = {}
+
     if delta_days <= 60:
+        daily_stats = completed_or_cc_txs.annotate(
+            period=TruncDay('date')
+        ).values('period', 'category__type').annotate(
+            total=Sum('amount')
+        ).order_by('period')
+        
+        for stat in daily_stats:
+            p_key = stat['period'].strftime('%Y-%m-%d')
+            if p_key not in timeline_dict:
+                timeline_dict[p_key] = {'income': Decimal('0.00'), 'expense': Decimal('0.00')}
+            if stat['category__type'] == TransactionType.INCOME:
+                timeline_dict[p_key]['income'] += stat['total']
+            elif stat['category__type'] == TransactionType.EXPENSE:
+                timeline_dict[p_key]['expense'] += stat['total']
+                
+        timeline_labels = []
+        timeline_incomes = []
+        timeline_expenses = []
+        
         current = start_date
         while current <= end_date:
             p_key = current.strftime('%Y-%m-%d')
@@ -82,7 +83,28 @@ def get_report_data(user, start_date, end_date):
             timeline_incomes.append(float(timeline_dict.get(p_key, {}).get('income', 0)))
             timeline_expenses.append(float(timeline_dict.get(p_key, {}).get('expense', 0)))
             current += datetime.timedelta(days=1)
+            
     else:
+        monthly_stats = completed_or_cc_txs.annotate(
+            period=TruncMonth('date')
+        ).values('period', 'category__type').annotate(
+            total=Sum('amount')
+        ).order_by('period')
+        
+        for stat in monthly_stats:
+            p_key = stat['period'].strftime('%Y-%m-01')
+            label = stat['period'].strftime('%m/%Y')
+            if p_key not in timeline_dict:
+                timeline_dict[p_key] = {'income': Decimal('0.00'), 'expense': Decimal('0.00'), 'label': label}
+            if stat['category__type'] == TransactionType.INCOME:
+                timeline_dict[p_key]['income'] += stat['total']
+            elif stat['category__type'] == TransactionType.EXPENSE:
+                timeline_dict[p_key]['expense'] += stat['total']
+                
+        timeline_labels = []
+        timeline_incomes = []
+        timeline_expenses = []
+        
         for p_key in sorted(timeline_dict.keys()):
             timeline_labels.append(timeline_dict[p_key]['label'])
             timeline_incomes.append(float(timeline_dict[p_key]['income']))

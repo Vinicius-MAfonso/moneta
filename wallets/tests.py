@@ -53,8 +53,8 @@ class WalletsWebTestCase(TestCase):
             initial_balance=Decimal('1000.00')
         )
 
-        cat_income = Category.objects.create(user=self.user, name='Salário', type=TransactionType.INCOME)
-        cat_expense = Category.objects.create(user=self.user, name='Aluguel', type=TransactionType.EXPENSE)
+        cat_income, _ = Category.objects.get_or_create(user=self.user, name='Salário', defaults={'type': TransactionType.INCOME})
+        cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Aluguel', defaults={'type': TransactionType.EXPENSE})
 
         Transaction.objects.create(
             user=self.user, account=account, category=cat_income,
@@ -78,7 +78,7 @@ class WalletsWebTestCase(TestCase):
         )
         from moneta.common import TransactionType
         from transactions.models import Category, Transaction
-        cat_income = Category.objects.create(user=self.user, name='Salário', type=TransactionType.INCOME)
+        cat_income, _ = Category.objects.get_or_create(user=self.user, name='Salário', defaults={'type': TransactionType.INCOME})
         Transaction.objects.create(
             user=self.user, account=account, category=cat_income,
             description='Bonus Pendente', amount=Decimal('500.00'), date='2026-08-15',
@@ -105,7 +105,7 @@ class WalletsWebTestCase(TestCase):
             user=self.user, name='Corrente', type=Account.Types.CHECKING, balance=Decimal('2000.00'), initial_balance=Decimal('2000.00')
         )
 
-        cat_expense = Category.objects.create(user=self.user, name='Compras', type=TransactionType.EXPENSE)
+        cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Compras', defaults={'type': TransactionType.EXPENSE})
         
         tx = Transaction.objects.create(
             user=self.user, account=cc_account, category=cat_expense,
@@ -178,7 +178,7 @@ class WalletsServicesTestCase(TestCase):
             reopen_credit_card_bill,
         )
 
-        cat_expense = Category.objects.create(user=self.user, name='Compras', type=TransactionType.EXPENSE)
+        cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Compras', defaults={'type': TransactionType.EXPENSE})
         
         tx = Transaction.objects.create(
             user=self.user, account=self.cc_account, category=cat_expense,

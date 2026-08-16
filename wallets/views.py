@@ -34,25 +34,10 @@ def account_create_view(request):
         form = AccountForm(request.POST)
         if form.is_valid():
             cd = form.cleaned_data
-            account = Account.objects.create(
-                user=request.user,
-                name=cd['name'],
-                type=cd['type'],
-                institution=cd['institution'],
-                balance=cd['balance'],
-                initial_balance=cd['balance'],
-                color=cd['color'],
-            )
+            
+            from wallets.services import create_account
+            account = create_account(request.user, cd)
 
-            if cd['type'] == Account.Types.CREDIT_CARD:
-                from wallets.models import CreditCardDetails
-                CreditCardDetails.objects.create(
-                    account=account,
-                    limit=cd['limit'],
-                    available_limit=cd['limit'],
-                    closing_day=cd['closing_day'],
-                    due_day=cd['due_day'],
-                )
             if request.headers.get('HX-Request'):
                 messages.success(request, "Conta criada com sucesso!")
                 response = HttpResponse(status=204)
@@ -167,9 +152,10 @@ def account_confirm_delete_view(request, pk):
 def account_delete_view(request, pk):
     from django.contrib import messages
     account = get_object_or_404(Account, pk=pk, user=request.user)
-    if request.method == 'POST' or request.headers.get('HX-Request'):
+    if request.method in ['POST', 'DELETE']:
         account_name = account.name
-        account.delete()
+        from wallets.services import delete_account
+        delete_account(account)
         messages.success(request, f"Conta '{account_name}' excluída com sucesso.")
         if request.headers.get('HX-Request'):
             response = HttpResponse(status=204)
@@ -179,33 +165,24 @@ def account_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def bill_detail_view(request, pk):
-    from decimal import Decimal
-
-    from django.db.models import Sum
-
-    from moneta.common import TransactionType
     from wallets.models import Account, CreditCardBill
+    from wallets.services import get_bill_summary
 
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
     transactions = bill.transactions.filter(transfer_in__isnull=True).order_by('-date', '-created_at')
 
-    expenses = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    incomes = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-
-    total = expenses - incomes
-    paid_amount = bill.transactions.filter(transfer_in__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    remaining_amount = total - paid_amount
+    summary = get_bill_summary(bill)
 
     checking_accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
 
     context = {
         'bill': bill,
         'transactions': transactions,
-        'expenses': expenses,
-        'incomes': incomes,
-        'total': total,
-        'paid_amount': paid_amount,
-        'remaining_amount': remaining_amount,
+        'expenses': summary['expenses'],
+        'incomes': summary['incomes'],
+        'total': summary['total'],
+        'paid_amount': summary['paid_amount'],
+        'remaining_amount': summary['remaining_amount'],
         'checking_accounts': checking_accounts,
     }
     return render(request, 'wallets/bill_detail.html', context)
@@ -213,11 +190,9 @@ def bill_detail_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def pay_bill_view(request, pk):
-    from decimal import Decimal
-
     from django.contrib import messages
 
-    from wallets.models import Account, CreditCardBill
+    from wallets.models import CreditCardBill
     from wallets.services import pay_credit_card_bill
 
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
@@ -226,15 +201,6 @@ def pay_bill_view(request, pk):
         payment_account_id = request.POST.get('payment_account')
         payment_amount = request.POST.get('payment_amount')
         try:
-            payment_account = get_object_or_404(Account, pk=payment_account_id, user=request.user)
-            amount_decimal = Decimal(str(payment_amount))
-
-            if payment_account.type != Account.Types.CREDIT_CARD and payment_account.balance < amount_decimal:
-                raise ValueError(
-                    f"Saldo insuficiente na conta '{payment_account.name}'. "
-                    f"Saldo disponível: R$ {payment_account.balance:.2f}."
-                )
-
             pay_credit_card_bill(bill, payment_account_id, payment_amount)
             messages.success(request, f"Pagamento da fatura de {bill.period_date.strftime('%m/%Y')} registrado com sucesso!")
         except Exception as e:
@@ -283,39 +249,17 @@ def bill_list_view(request, account_id):
 def credit_card_dashboard_view(request):
     import datetime
 
-    from dateutil.relativedelta import relativedelta
-    from django.db.models import Sum
-
     from moneta.common import TransactionType
     from transactions.models import Transaction
     from wallets.models import Account
+    from wallets.services import get_credit_card_timeline
 
     accounts = Account.objects.filter(user=request.user, type=Account.Types.CREDIT_CARD, active=True).select_related('credit_card_details')
     
     today = datetime.date.today()
     start_of_month = today.replace(day=1)
     
-    timeline = []
-    for i in range(12):
-        month_date = start_of_month + relativedelta(months=i)
-        
-        total = Transaction.objects.filter(
-            user=request.user,
-            account__type=Account.Types.CREDIT_CARD,
-            status=Transaction.Statuses.PENDING,
-            date__year=month_date.year,
-            date__month=month_date.month,
-            category__type=TransactionType.EXPENSE
-        ).aggregate(sum=Sum('amount'))['sum'] or Decimal('0.00')
-        
-        months_pt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
-        month_name = months_pt[month_date.month - 1]
-        
-        timeline.append({
-            'date': month_date,
-            'label': f"{month_name}/{month_date.year}",
-            'total': total
-        })
+    timeline = get_credit_card_timeline(request.user, start_of_month, months=12)
 
     installments = Transaction.objects.filter(
         user=request.user,

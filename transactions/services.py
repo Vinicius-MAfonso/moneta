@@ -168,7 +168,9 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
         )
 
         if is_recurring:
-            async_task('transactions.services.process_recurring_transactions', user)
+            db_transaction.on_commit(
+                lambda: async_task('transactions.services.process_recurring_transactions', user)
+            )
 
         from wallets.services import recalculate_account_balance
         recalculate_account_balance(out_account)
@@ -259,7 +261,9 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
                 tx.tags.set(tag_ids)
 
             if is_recurring:
-                async_task('transactions.services.process_recurring_transactions', user)
+                db_transaction.on_commit(
+                    lambda u=user: async_task('transactions.services.process_recurring_transactions', u)
+                )
                 
         from wallets.services import recalculate_account_balance
         recalculate_account_balance(account)
@@ -277,6 +281,7 @@ def update_transaction(transaction, validated_data):
         raise ValidationError("Transações de faturas já pagas não podem ser alteradas.")
 
     old_account_id = transaction.account_id
+    old_date = transaction.date
 
     transaction.account_id = validated_data['account']
     transaction.category_id = validated_data['category']
@@ -308,6 +313,14 @@ def update_transaction(transaction, validated_data):
         
         transaction.recurring = None
         
+    elif was_recurring and is_recurring:
+        if old_date != transaction.date:
+            old_date_str = str(old_date)
+            if old_date_str not in transaction.recurring.ignored_dates:
+                transaction.recurring.ignored_dates.append(old_date_str)
+                transaction.recurring.save(update_fields=['ignored_dates'])
+                trigger_async_process = True
+        
     elif not was_recurring and is_recurring:
         from django_q.tasks import async_task
         from transactions.models import Category, RecurringTransaction
@@ -326,11 +339,20 @@ def update_transaction(transaction, validated_data):
             active=True
         )
         transaction.recurring = new_recurring
-        async_task('transactions.services.process_recurring_transactions', transaction.user)
+        trigger_async_process = True
+    else:
+        trigger_async_process = False
 
     transaction.save()
 
     transaction.tags.set(validated_data['tags'])
+
+    if trigger_async_process:
+        from django.db import transaction as db_transaction
+        from django_q.tasks import async_task
+        db_transaction.on_commit(
+            lambda u=transaction.user: async_task('transactions.services.process_recurring_transactions', u)
+        )
 
     recalculate_account_balance(transaction.account)
     if old_account_id != transaction.account_id:

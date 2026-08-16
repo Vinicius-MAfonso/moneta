@@ -60,6 +60,14 @@ def register_view(request):
         elif User.objects.filter(username=username).exists():
             messages.error(request, 'Nome de usuário já em uso.')
         else:
+            try:
+                from django.contrib.auth.password_validation import validate_password
+                from django.core.exceptions import ValidationError
+                validate_password(password)
+            except ValidationError as e:
+                messages.error(request, ' '.join(e.messages))
+                return render(request, 'users/register.html')
+                
             User.objects.create_user(
                 username=username,
                 email=email,
@@ -103,18 +111,8 @@ def import_ofx_view(request):
     if request.method == 'POST' and request.FILES.get('ofx_file'):
         ofx_file = request.FILES['ofx_file']
         try:
-            ofx = OfxParser.parse(ofx_file)
-            transactions = []
-            for account in ofx.accounts:
-                for tx in account.statement.transactions:
-                    transactions.append({
-                        'id': str(uuid.uuid4()),
-                        'date': tx.date.strftime('%d/%m/%Y'),
-                        'date_iso': tx.date.strftime('%Y-%m-%d'),
-                        'payee': getattr(tx, 'payee', '') or getattr(tx, 'memo', '') or getattr(tx, 'name', '') or "Transação sem descrição",
-                        'amount': str(tx.amount),
-                        'type': 'despesa' if tx.amount < 0 else 'receita'
-                    })
+            from users.services import parse_ofx_file
+            transactions = parse_ofx_file(ofx_file)
             
             if not transactions:
                 messages.warning(request, 'O arquivo OFX foi lido, mas não contém nenhuma transação.')
@@ -149,49 +147,10 @@ def import_review_view(request):
             return redirect('users_web:import_review')
             
         account = get_object_or_404(Account, id=account_id, user=request.user)
-        saved_count = 0
-        
-        from django.db import transaction as db_transaction
         
         try:
-            from decimal import ROUND_HALF_UP, Decimal
-
-            from django.db.models.signals import post_delete, post_save
-
-            from transactions.signals import trigger_balance_recalculation
-            from wallets.services import recalculate_account_balance
-
-            post_save.disconnect(trigger_balance_recalculation, sender=Transaction)
-            post_delete.disconnect(trigger_balance_recalculation, sender=Transaction)
-
-            try:
-                with db_transaction.atomic():
-                    for tx in transactions:
-                        cat_id = request.POST.get(f"category_{tx['id']}")
-                        if cat_id and cat_id != 'ignore':
-                            category = Category.objects.filter(id=cat_id, user=request.user).first()
-                            if not category:
-                                raise ValueError(f"Categoria selecionada inválida para a transação '{tx['payee']}'.")
-
-                            raw_amount = Decimal(str(abs(float(tx['amount'])))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-                            custom_description = request.POST.get(f"description_{tx['id']}", tx['payee']).strip() or tx['payee']
-
-                            Transaction.objects.create(
-                                user=request.user,
-                                account=account,
-                                category=category,
-                                amount=raw_amount,
-                                date=tx['date_iso'],
-                                description=custom_description[:255],
-                                status=Transaction.Statuses.COMPLETED
-                            )
-                            saved_count += 1
-            finally:
-                post_save.connect(trigger_balance_recalculation, sender=Transaction)
-                post_delete.connect(trigger_balance_recalculation, sender=Transaction)
-
-            if saved_count > 0:
-                recalculate_account_balance(account)
+            from users.services import process_ofx_transactions
+            saved_count = process_ofx_transactions(request.user, account, transactions, request.POST)
         except Exception as e:
             messages.error(request, f"Erro ao importar transações: {e!s}")
             return redirect('users_web:import_review')

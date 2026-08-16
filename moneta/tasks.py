@@ -22,6 +22,7 @@ def check_and_send_alerts():
         is_due_tomorrow_notified=False
     ).select_related('account', 'account__user')
     
+    notified_bills = []
     for bill in bills_due_tomorrow:
         user = bill.account.user
         if user.email:
@@ -46,11 +47,14 @@ def check_and_send_alerts():
                 msg.send(fail_silently=False)
             except Exception as e:
                 logger.error(f"Erro ao enviar email de fatura para {user.email}: {e}")
-        bill.is_due_tomorrow_notified = True
-        bill.save(update_fields=['is_due_tomorrow_notified'])
+        notified_bills.append(bill.id)
+        
+    if notified_bills:
+        CreditCardBill.objects.filter(id__in=notified_bills).update(is_due_tomorrow_notified=True)
         
     active_goals = Goal.objects.filter(is_near_target_notified=False).select_related('user')
     
+    notified_goals = []
     for goal in active_goals:
         if goal.target_amount > 0 and goal.current_amount >= (goal.target_amount * Decimal('0.9')) and goal.current_amount < goal.target_amount:
             user = goal.user
@@ -77,5 +81,7 @@ def check_and_send_alerts():
                     msg.send(fail_silently=False)
                 except Exception as e:
                     logger.error(f"Erro ao enviar email de meta para {user.email}: {e}")
-            goal.is_near_target_notified = True
-            goal.save(update_fields=['is_near_target_notified'])
+            notified_goals.append(goal.id)
+
+    if notified_goals:
+        Goal.objects.filter(id__in=notified_goals).update(is_near_target_notified=True)

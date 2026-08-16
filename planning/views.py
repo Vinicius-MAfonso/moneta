@@ -11,9 +11,8 @@ from .models import Budget, Goal
 
 @login_required(login_url='users_web:login')
 def planning_list_view(request):
-    from planning.services import calculate_budget_progress
+    from planning.services import get_budgets_with_progress
     
-    raw_budgets = Budget.objects.filter(user=request.user).select_related('category').order_by('-start_date')
     raw_goals = Goal.objects.filter(user=request.user)
 
     goals = []
@@ -24,15 +23,7 @@ def planning_list_view(request):
         goal.bounded_pct_str = str(round(goal.bounded_pct, 2))
         goals.append(goal)
 
-    budgets = []
-    for budget in raw_budgets:
-        prog = calculate_budget_progress(budget)
-        budget.spent = prog['spent']
-        budget.percentage = round(prog['real_percentage'], 1)
-        budget.bounded_pct = prog['percentage']
-        budget.bounded_pct_str = str(round(prog['percentage'], 2))
-        budget.remaining = prog['remaining']
-        budgets.append(budget)
+    budgets = get_budgets_with_progress(request.user)
 
     context = {
         'budgets': budgets,
@@ -52,7 +43,8 @@ def budget_create_view(request):
             start_date = request.POST.get('start_date')
             end_date = request.POST.get('end_date') or None
 
-            Budget.objects.create(
+            from planning.services import create_budget
+            create_budget(
                 user=request.user,
                 category_id=category_id,
                 amount=amount,
@@ -96,8 +88,9 @@ def budget_confirm_delete_view(request, pk):
 @login_required(login_url='users_web:login')
 def budget_delete_view(request, pk):
     budget = get_object_or_404(Budget, pk=pk, user=request.user)
-    if request.method == 'POST' or request.headers.get('HX-Request'):
-        budget.delete()
+    if request.method in ['POST', 'DELETE']:
+        from planning.services import delete_budget
+        delete_budget(budget)
         from django.contrib import messages
         messages.success(request, "Orçamento excluído com sucesso!")
         if request.headers.get('HX-Request'):
@@ -121,7 +114,8 @@ def goal_create_view(request):
             from wallets.models import Account
             account = Account.objects.get(id=account_id, user=request.user) if account_id else None
 
-            Goal.objects.create(
+            from planning.services import create_goal
+            create_goal(
                 user=request.user,
                 account=account,
                 name=name,
@@ -162,8 +156,6 @@ def goal_deposit_view(request, pk):
         try:
             amount = Decimal(request.POST.get('amount') or '0')
             if amount > 0:
-                if goal.account and amount > goal.account.free_balance:
-                    raise ValueError(f"Saldo livre insuficiente na conta '{goal.account.name}'. Saldo disponível: R$ {goal.account.free_balance:.2f}.")
                 from planning.services import deposit_to_goal
                 deposit_to_goal(goal, amount)
             if request.headers.get('HX-Request'):
@@ -203,8 +195,9 @@ def goal_confirm_delete_view(request, pk):
 @login_required(login_url='users_web:login')
 def goal_delete_view(request, pk):
     goal = get_object_or_404(Goal, pk=pk, user=request.user)
-    if request.method == 'POST' or request.headers.get('HX-Request'):
-        goal.delete()
+    if request.method in ['POST', 'DELETE']:
+        from planning.services import delete_goal
+        delete_goal(goal)
         from django.contrib import messages
         messages.success(request, "Objetivo excluído com sucesso!")
         if request.headers.get('HX-Request'):

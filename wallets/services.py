@@ -83,6 +83,60 @@ def calculate_expected_balance(account, end_date=None):
     return account.balance + incomes - expenses - transfers_out + transfers_in
 
 
+def get_expected_balances_bulk(accounts_qs, end_date=None):
+    from decimal import Decimal
+
+    from django.db import models
+
+    from moneta.common import TransactionType
+    from transactions.models import Transaction, Transfer
+
+    account_ids = [a.id for a in accounts_qs]
+    if not account_ids:
+        return {}
+    
+    pending_txs = Transaction.objects.filter(
+        account_id__in=account_ids,
+        status=Transaction.Statuses.PENDING
+    ).exclude(category__type=TransactionType.TRANSFER)
+    if end_date:
+        pending_txs = pending_txs.filter(date__lte=end_date)
+        
+    stats = pending_txs.values('account_id', 'category__type').annotate(total=models.Sum('amount'))
+    
+    transfers_out_qs = Transfer.objects.filter(
+        out_transaction__account_id__in=account_ids,
+        out_transaction__status=Transaction.Statuses.PENDING
+    )
+    if end_date:
+        transfers_out_qs = transfers_out_qs.filter(out_transaction__date__lte=end_date)
+    transfers_out_stats = transfers_out_qs.values('out_transaction__account_id').annotate(total=models.Sum('out_transaction__amount'))
+
+    transfers_in_qs = Transfer.objects.filter(
+        in_transaction__account_id__in=account_ids,
+        in_transaction__status=Transaction.Statuses.PENDING
+    )
+    if end_date:
+        transfers_in_qs = transfers_in_qs.filter(in_transaction__date__lte=end_date)
+    transfers_in_stats = transfers_in_qs.values('in_transaction__account_id').annotate(total=models.Sum('in_transaction__amount'))
+
+    balances = {a.id: a.balance for a in accounts_qs}
+    
+    for s in stats:
+        if s['category__type'] == TransactionType.INCOME:
+            balances[s['account_id']] += s['total']
+        elif s['category__type'] == TransactionType.EXPENSE:
+            balances[s['account_id']] -= s['total']
+            
+    for s in transfers_out_stats:
+        balances[s['out_transaction__account_id']] -= s['total']
+        
+    for s in transfers_in_stats:
+        balances[s['in_transaction__account_id']] += s['total']
+
+    return balances
+
+
 def calculate_balance_at_date(user, target_date, account_id=None):
     from moneta.common import TransactionType
     from transactions.models import Transaction, Transfer
@@ -189,19 +243,24 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
 
     from moneta.common import TransactionType
     from transactions.services import create_transfer
-    from wallets.models import CreditCardBill
+    from wallets.models import Account, CreditCardBill
 
     if bill.status == CreditCardBill.Statuses.PAID:
         raise ValueError("Esta fatura já está paga.")
 
-    expenses = bill.transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    incomes = bill.transactions.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    transfers_in = bill.transactions.filter(transfer_in__isnull=False).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    transfers_out = bill.transactions.filter(transfer_out__isnull=False).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-
-    total_amount = expenses - incomes - transfers_in + transfers_out
+    payment_account = Account.objects.get(id=payment_account_id)
+    
+    summary = get_bill_summary(bill)
+    total_amount = summary['remaining_amount']
+    
     amount_to_pay = Decimal(payment_amount) if payment_amount is not None else total_amount
     amount_to_pay = min(amount_to_pay, total_amount)
+
+    if payment_account.type != Account.Types.CREDIT_CARD and payment_account.balance < amount_to_pay:
+        raise ValueError(
+            f"Saldo insuficiente na conta '{payment_account.name}'. "
+            f"Saldo disponível: R$ {payment_account.balance:.2f}."
+        )
 
     if amount_to_pay <= 0:
         if total_amount <= 0:
@@ -343,3 +402,103 @@ def update_account(account, validated_data):
 
     recalculate_account_balance(account)
     return account
+
+
+def get_bill_summary(bill):
+    from decimal import Decimal
+    from django.db.models import Sum
+    from moneta.common import TransactionType
+    
+    expenses = bill.transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    incomes = bill.transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    transfers_out = bill.transactions.filter(transfer_out__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    paid_amount = bill.transactions.filter(transfer_in__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    total = expenses - incomes + transfers_out
+    remaining_amount = total - paid_amount
+    
+    return {
+        'expenses': expenses,
+        'incomes': incomes,
+        'transfers_out': transfers_out,
+        'total': total,
+        'paid_amount': paid_amount,
+        'remaining_amount': remaining_amount
+    }
+
+
+def create_account(user, account_data):
+    from django.db import transaction
+    from wallets.models import Account, CreditCardDetails
+
+    with transaction.atomic():
+        account = Account.objects.create(
+            user=user,
+            name=account_data['name'],
+            type=account_data['type'],
+            institution=account_data.get('institution'),
+            balance=account_data.get('balance', Decimal('0.00')),
+            initial_balance=account_data.get('balance', Decimal('0.00')),
+            color=account_data.get('color', '#000000'),
+        )
+        if account_data['type'] == Account.Types.CREDIT_CARD:
+            CreditCardDetails.objects.create(
+                account=account,
+                limit=account_data.get('limit', Decimal('0.00')),
+                available_limit=account_data.get('limit', Decimal('0.00')),
+                closing_day=account_data.get('closing_day', 1),
+                due_day=account_data.get('due_day', 10),
+            )
+        return account
+
+
+def delete_account(account):
+    from django.db import transaction
+    with transaction.atomic():
+        account.delete()
+
+
+def get_credit_card_timeline(user, start_date, months=12):
+    import datetime
+    from dateutil.relativedelta import relativedelta
+    from django.db.models import Sum
+    from django.db.models.functions import TruncMonth
+    from moneta.common import TransactionType
+    from transactions.models import Transaction
+    from wallets.models import Account
+
+    end_date = start_date + relativedelta(months=months)
+
+    monthly_totals = Transaction.objects.filter(
+        user=user,
+        account__type=Account.Types.CREDIT_CARD,
+        status=Transaction.Statuses.PENDING,
+        date__gte=start_date,
+        date__lt=end_date,
+        category__type=TransactionType.EXPENSE
+    ).annotate(
+        month=TruncMonth('date')
+    ).values('month').annotate(total=Sum('amount')).order_by('month')
+
+    totals_dict = {item['month'].date(): item['total'] for item in monthly_totals}
+
+    timeline = []
+    months_pt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+    
+    for i in range(months):
+        month_date = start_date + relativedelta(months=i)
+        
+        # O banco pode retornar datas levemente diferentes dependo do banco e timezone,
+        # mas `item['month'].date()` garante correspondência.
+        total = totals_dict.get(month_date, Decimal('0.00'))
+        
+        month_name = months_pt[month_date.month - 1]
+        
+        timeline.append({
+            'date': month_date,
+            'label': f"{month_name}/{month_date.year}",
+            'total': total
+        })
+
+    return timeline

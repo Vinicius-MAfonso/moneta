@@ -26,14 +26,16 @@ def dashboard_view(request):
     async_task('transactions.services.process_recurring_transactions', user, month_ctx['end_date'])
 
     accounts_qs = Account.objects.filter(user=user, active=True).exclude(type=Account.Types.CREDIT_CARD)
-    from wallets.services import calculate_expected_balance
+    from wallets.services import get_expected_balances_bulk
+    
+    expected_balances = get_expected_balances_bulk(accounts_qs, month_ctx['end_date'])
     
     accounts = []
     total_balance = Decimal('0.00')
     total_expected_balance = Decimal('0.00')
     
     for account in accounts_qs:
-        account.expected_balance = calculate_expected_balance(account, month_ctx['end_date'])
+        account.expected_balance = expected_balances.get(account.id, account.balance)
         accounts.append(account)
         if account.type != Account.Types.CREDIT_CARD:
             total_balance += account.balance
@@ -242,5 +244,12 @@ def export_transactions_csv_view(request):
         start_date = default_start
         end_date = today
 
-    report_data = get_report_data(user, start_date, end_date)
-    return generate_csv_export(report_data['transactions_qs'])
+    from transactions.models import Transaction
+
+    transactions = Transaction.objects.filter(
+        user=user,
+        date__gte=start_date,
+        date__lte=end_date,
+    ).select_related('category', 'account').order_by('-date', '-created_at')
+
+    return generate_csv_export(transactions)
