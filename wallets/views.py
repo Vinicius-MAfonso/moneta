@@ -222,10 +222,33 @@ def reopen_bill_view(request, pk):
         try:
             reopen_credit_card_bill(bill)
             messages.success(request, f"O pagamento da fatura de {bill.period_date.strftime('%m/%Y')} foi cancelado e a fatura reaberta.")
+            if request.headers.get('HX-Request'):
+                response = HttpResponse(status=204)
+                response['HX-Redirect'] = reverse('wallets_web:bill_detail', args=[bill.pk])
+                return response
         except Exception as e:
             messages.error(request, f"Erro ao reabrir fatura: {e!s}")
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro ao reabrir fatura: {e!s}', 'type': 'error'}})
+                return response
 
     return redirect('wallets_web:bill_detail', pk=bill.pk)
+
+
+@login_required(login_url='users_web:login')
+def confirm_reopen_bill_view(request, pk):
+    from wallets.models import CreditCardBill
+    bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
+    context = {
+        'title': 'Reabrir Fatura',
+        'message': f"Tem certeza que deseja cancelar o pagamento e reabrir esta fatura? O valor será devolvido para a conta de origem.",
+        'action_url': reverse('wallets_web:reopen_bill', args=[bill.id]),
+        'confirm_btn_text': 'Reabrir Fatura',
+        'confirm_btn_class': 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-lg shadow-rose-600/25',
+    }
+    return render(request, 'partials/confirm_modal.html', context)
 
 
 @login_required(login_url='users_web:login')

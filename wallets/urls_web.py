@@ -16,4 +16,5 @@ urlpatterns = [
     path('fatura/<uuid:pk>/', views.bill_detail_view, name='bill_detail'),
     path('fatura/<uuid:pk>/pagar/', views.pay_bill_view, name='pay_bill'),
     path('fatura/<uuid:pk>/reabrir/', views.reopen_bill_view, name='reopen_bill'),
+    path('fatura/<uuid:pk>/confirmar-reabrir/', views.confirm_reopen_bill_view, name='confirm_reopen_bill'),
 ]
