@@ -396,9 +396,39 @@ def update_account(account, validated_data):
         diff = validated_data['limit'] - cc.limit
         cc.limit = validated_data['limit']
         cc.available_limit = max(Decimal('0.00'), cc.available_limit + diff)
+        old_closing = cc.closing_day
+        old_due = cc.due_day
+
         cc.closing_day = validated_data['closing_day']
         cc.due_day = validated_data['due_day']
         cc.save()
+
+        if old_closing != cc.closing_day or old_due != cc.due_day:
+            import calendar
+            import datetime
+            from wallets.models import CreditCardBill
+            
+            open_bills = account.bills.filter(status=CreditCardBill.Statuses.OPEN)
+            for bill in open_bills:
+                due_month = bill.period_date.month
+                due_year = bill.period_date.year
+                
+                _, max_day = calendar.monthrange(due_year, due_month)
+                bill.due_date = datetime.date(due_year, due_month, min(cc.due_day, max_day))
+                
+                if cc.due_day > cc.closing_day:
+                    cycle_month = due_month
+                    cycle_year = due_year
+                else:
+                    cycle_month = due_month - 1
+                    cycle_year = due_year
+                    if cycle_month < 1:
+                        cycle_month = 12
+                        cycle_year -= 1
+                
+                _, max_day = calendar.monthrange(cycle_year, cycle_month)
+                bill.closing_date = datetime.date(cycle_year, cycle_month, min(cc.closing_day, max_day))
+                bill.save()
 
     recalculate_account_balance(account)
     return account
