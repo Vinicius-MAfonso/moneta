@@ -481,18 +481,24 @@ def get_credit_card_timeline(user, start_date, months=12):
         month=TruncMonth('date')
     ).values('month').annotate(total=Sum('amount')).order_by('month')
 
-    totals_dict = {item['month'].date(): item['total'] for item in monthly_totals}
+    totals_dict = {}
+    for item in monthly_totals:
+        m = item['month']
+        if hasattr(m, 'date'):
+            m_date = m.date()
+        elif isinstance(m, str):
+            import datetime as dt
+            m_date = dt.datetime.strptime(m[:10], '%Y-%m-%d').date()
+        else:
+            m_date = m
+        totals_dict[m_date] = item['total']
 
     timeline = []
     months_pt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
     
     for i in range(months):
         month_date = start_date + relativedelta(months=i)
-        
-        # O banco pode retornar datas levemente diferentes dependo do banco e timezone,
-        # mas `item['month'].date()` garante correspondência.
         total = totals_dict.get(month_date, Decimal('0.00'))
-        
         month_name = months_pt[month_date.month - 1]
         
         timeline.append({

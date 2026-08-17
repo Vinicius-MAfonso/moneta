@@ -1,6 +1,10 @@
 from pathlib import Path
+import os
 
 import environ
+
+if os.name == 'nt':
+    NPM_BIN_PATH = r"C:\Program Files\nodejs\npm.cmd"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -135,3 +139,5 @@ EMAIL_BACKEND = (
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 SITE_URL = env('SITE_URL')
 ANYMAIL = {'BREVO_API_KEY': env('BREVO_API_KEY')}
+
+
