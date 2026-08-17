@@ -619,3 +619,77 @@ def transfer_create_view(request):
         return redirect('transactions_web:list')
 
     return render(request, 'transactions/partials/transfer_form.html', {'accounts': accounts})
+
+
+@login_required(login_url='users_web:login')
+def transaction_pay_view(request, pk):
+    tx = get_object_or_404(Transaction, pk=pk, user=request.user)
+    
+    if tx.status == Transaction.Statuses.COMPLETED:
+        if request.headers.get('HX-Request'):
+            import json
+            response = HttpResponse(status=204)
+            response['HX-Trigger'] = json.dumps({
+                'show-toast': {'message': 'Esta transação já está efetivada.', 'type': 'error'}
+            })
+            return response
+        messages.error(request, "Esta transação já está efetivada.")
+        return redirect('transactions_web:list')
+
+    accounts = Account.objects.filter(user=request.user, active=True)
+
+    if request.method == 'POST':
+        amount_str = request.POST.get('amount')
+        date_str = request.POST.get('date')
+        account_id = request.POST.get('account')
+
+        try:
+            import datetime
+            amount = Decimal(amount_str.replace(',', '.'))
+            date_obj = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+            
+            from transactions.services import update_transaction
+            
+            validated_data = {
+                'account': account_id,
+                'category': str(tx.category.id),
+                'description': tx.description,
+                'amount': amount,
+                'date': date_obj,
+                'status': Transaction.Statuses.COMPLETED,
+                'tags': [t.id for t in tx.tags.all()],
+                'is_recurring': tx.recurring is not None,
+                'frequency': tx.recurring.frequency if tx.recurring else 'monthly',
+                'recurring_end_date': tx.recurring.end_date if tx.recurring else None,
+            }
+            
+            update_transaction(tx, validated_data)
+            
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({
+                    'reload-transactions': '',
+                    'show-toast': {'message': 'Transação efetivada com sucesso!', 'type': 'success'}
+                })
+                return response
+            messages.success(request, "Transação efetivada com sucesso!")
+            return redirect('transactions_web:list')
+            
+        except Exception as e:
+            error_msg = str(e)
+            if request.headers.get('HX-Request'):
+                import json
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({
+                    'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                })
+                return response
+            messages.error(request, f"Erro ao efetivar: {error_msg}")
+            return redirect('transactions_web:list')
+
+    context = {
+        'transaction': tx,
+        'accounts': accounts,
+    }
+    return render(request, 'transactions/partials/pay_modal.html', context)

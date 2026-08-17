@@ -65,4 +65,28 @@ document.addEventListener('alpine:init', () => {
             localStorage.setItem('moneta_tutorial_seen', 'true');
         }
     }));
+
+    Alpine.data('payModal', (initialDate) => ({
+        open: true,
+        dateMode: 'other',
+        dateValue: initialDate,
+        today: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+        yesterday: new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000 - 86400000).toISOString().split('T')[0],
+        init() {
+            if (this.dateValue === this.today) this.dateMode = 'today';
+            else if (this.dateValue === this.yesterday) this.dateMode = 'yesterday';
+        },
+        setDate(mode) {
+            this.dateMode = mode;
+            if (mode === 'today') this.dateValue = this.today;
+            else if (mode === 'yesterday') this.dateValue = this.yesterday;
+        },
+        close() {
+            this.open = false;
+            setTimeout(() => {
+                this.$el.closest('.fixed').remove();
+            }, 300);
+        }
+    }));
 });
+

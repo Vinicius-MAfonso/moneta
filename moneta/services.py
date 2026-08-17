@@ -2,13 +2,7 @@ from django.db.models import Sum
 
 
 def get_category_breakdown(base_tx_qs, tx_type, start_date, end_date):
-    from django.db.models import Q
-
-    from transactions.models import Transaction
-    status_q = Q(status=Transaction.Statuses.COMPLETED) | (Q(status=Transaction.Statuses.PENDING) & Q(account__type='credit_card'))
-
     qs = base_tx_qs.filter(
-        status_q,
         category__type=tx_type,
         date__range=(start_date, end_date),
     ).values('category__name', 'category__color').annotate(total=Sum('amount')).order_by('-total')
@@ -39,10 +33,7 @@ def get_report_data(user, start_date, end_date):
         date__lte=end_date,
     ).select_related('category', 'account')
 
-    from django.db.models import Q
-    status_q = Q(status=Transaction.Statuses.COMPLETED) | (Q(status=Transaction.Statuses.PENDING) & Q(account__type='credit_card'))
-
-    completed_or_cc_txs = transactions.filter(status_q).exclude(category__type=TransactionType.TRANSFER)
+    completed_or_cc_txs = transactions.exclude(category__type=TransactionType.TRANSFER)
 
     total_income = completed_or_cc_txs.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
     total_expense = completed_or_cc_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')

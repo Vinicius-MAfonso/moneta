@@ -10,6 +10,7 @@ urlpatterns = [
     path('<uuid:pk>/edit/', views.transaction_update_view, name='edit'),
     path('<uuid:pk>/confirm-delete/', views.transaction_confirm_delete_view, name='confirm_delete'),
     path('<uuid:pk>/delete/', views.transaction_delete_view, name='delete'),
+    path('<uuid:pk>/pay/', views.transaction_pay_view, name='pay'),
     
 
     
