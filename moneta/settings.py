@@ -122,7 +122,7 @@ AXES_COOLOFF_TIME = 1
 
 Q_CLUSTER = {
     'name': 'moneta_cluster',
-    'workers': 2,
+    'workers': 1,
     'recycle': 500,
     'timeout': 60,
     'compress': True,
@@ -131,7 +131,7 @@ Q_CLUSTER = {
     'cpu_affinity': 1,
     'label': 'Django Q',
     'orm': 'default',
-    'sync': DEBUG,
+    'sync': True,
 }
 
 EMAIL_BACKEND = (

@@ -33,38 +33,118 @@ def health_check_view(request):
         return JsonResponse({'status': 'unhealthy', 'database': 'disconnected'}, status=503)
 
 
-@csrf_exempt
-@require_POST
-def cron_wake_view(request):
-    """Internal endpoint called by Google Cloud Scheduler to wake the container
-    and immediately trigger all overdue background tasks.
-
-    Protected by a shared secret token passed in the Authorization header.
-    Cloud Scheduler should be configured to POST to /internal/cron/wake/
-    with header: Authorization: Bearer <CRON_SECRET>
-    """
+def _verify_cron_auth(request):
     from django.conf import settings
-    from django_q.tasks import async_task
-
     expected_token = getattr(settings, 'CRON_SECRET', '')
     auth_header = request.headers.get('Authorization', '')
     provided_token = auth_header.removeprefix('Bearer ').strip()
+    return bool(expected_token and hmac.compare_digest(provided_token, expected_token))
 
-    if not expected_token or not hmac.compare_digest(provided_token, expected_token):
+
+@csrf_exempt
+@require_POST
+def cron_process_recurring_view(request):
+    """Executa o processamento de transações recorrentes de forma síncrona."""
+    if not _verify_cron_auth(request):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    from transactions.tasks import process_all_recurring_transactions
+    try:
+        process_all_recurring_transactions()
+        return JsonResponse({'status': 'ok', 'task': 'process_all_recurring_transactions'})
+    except Exception:
+        logger.exception("Erro ao processar transações recorrentes via cron.")
+        return JsonResponse({'status': 'error', 'message': 'Falha ao processar recorrências.'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def cron_notify_bills_view(request):
+    """Executa a notificação de faturas a vencer de forma síncrona."""
+    if not _verify_cron_auth(request):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    from wallets.tasks import notify_due_credit_card_bills
+    try:
+        notify_due_credit_card_bills()
+        return JsonResponse({'status': 'ok', 'task': 'notify_due_credit_card_bills'})
+    except Exception:
+        logger.exception("Erro ao notificar faturas via cron.")
+        return JsonResponse({'status': 'error', 'message': 'Falha ao notificar faturas.'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def cron_notify_budgets_view(request):
+    """Executa a notificação de avisos de orçamento de forma síncrona."""
+    if not _verify_cron_auth(request):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    from planning.tasks import notify_budget_warnings
+    try:
+        notify_budget_warnings()
+        return JsonResponse({'status': 'ok', 'task': 'notify_budget_warnings'})
+    except Exception:
+        logger.exception("Erro ao notificar orçamentos via cron.")
+        return JsonResponse({'status': 'error', 'message': 'Falha ao notificar orçamentos.'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def cron_notify_transactions_view(request):
+    """Executa a notificação de transações do dia de forma síncrona."""
+    if not _verify_cron_auth(request):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    from transactions.tasks import notify_due_transactions
+    try:
+        notify_due_transactions()
+        return JsonResponse({'status': 'ok', 'task': 'notify_due_transactions'})
+    except Exception:
+        logger.exception("Erro ao notificar transações via cron.")
+        return JsonResponse({'status': 'error', 'message': 'Falha ao notificar transações.'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def cron_check_alerts_view(request):
+    """Executa a checagem e envio de alertas por e-mail de forma síncrona."""
+    if not _verify_cron_auth(request):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+    from moneta.tasks import check_and_send_alerts
+    try:
+        check_and_send_alerts()
+        return JsonResponse({'status': 'ok', 'task': 'check_and_send_alerts'})
+    except Exception:
+        logger.exception("Erro ao verificar alertas via cron.")
+        return JsonResponse({'status': 'error', 'message': 'Falha ao verificar alertas.'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def cron_wake_view(request):
+    """Endpoint unificado / run-all para executar todas as tarefas agendadas de forma síncrona."""
+    if not _verify_cron_auth(request):
         return JsonResponse({'error': 'Unauthorized'}, status=401)
 
-    tasks_triggered = [
-        'transactions.tasks.process_all_recurring_transactions',
-        'wallets.tasks.notify_due_credit_card_bills',
-        'planning.tasks.notify_budget_warnings',
-        'transactions.tasks.notify_due_transactions',
-        'moneta.tasks.check_and_send_alerts',
+    from moneta.tasks import check_and_send_alerts
+    from planning.tasks import notify_budget_warnings
+    from transactions.tasks import notify_due_transactions, process_all_recurring_transactions
+    from wallets.tasks import notify_due_credit_card_bills
+
+    tasks = [
+        ('process_all_recurring_transactions', process_all_recurring_transactions),
+        ('notify_due_credit_card_bills', notify_due_credit_card_bills),
+        ('notify_budget_warnings', notify_budget_warnings),
+        ('notify_due_transactions', notify_due_transactions),
+        ('check_and_send_alerts', check_and_send_alerts),
     ]
 
-    for task_func in tasks_triggered:
-        async_task(task_func)
+    executed = []
+    for name, func in tasks:
+        try:
+            func()
+            executed.append(name)
+        except Exception:
+            logger.exception(f"Erro ao executar tarefa {name} via cron wake.")
 
-    return JsonResponse({'status': 'ok', 'tasks_queued': len(tasks_triggered)})
+    return JsonResponse({'status': 'ok', 'executed_tasks': executed, 'total': len(executed)})
 
 
 

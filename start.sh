@@ -12,10 +12,6 @@ python manage.py setup_schedules || true
 echo "==> Creating superuser if env vars are present..."
 python manage.py createsuperuser --noinput || true
 
-# Start Django-Q worker in background
-echo "==> Starting Django-Q cluster..."
-python manage.py qcluster &
-
 # Start Gunicorn web server in foreground
 echo "==> Starting Gunicorn on port ${PORT_NUMBER}..."
 exec gunicorn moneta.wsgi:application \
