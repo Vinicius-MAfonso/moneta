@@ -5,7 +5,7 @@
 # Core Django & Server
 Django==5.2.17
 asgiref==3.12.1
-sqlparse==0.5.5
+sqlparse==0.6.0
 tzdata==2026.3
 gunicorn==22.0.0
 psycopg2-binary==2.9.12
