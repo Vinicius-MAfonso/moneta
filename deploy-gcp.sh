@@ -154,10 +154,19 @@ gcloud run deploy "$SERVICE_NAME" \
 
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --project="$PROJECT_ID" --format='value(status.url)')
 
+# Automatically update SITE_URL to match the generated Cloud Run URL
+if [ -n "$SERVICE_URL" ]; then
+    gcloud run services update "$SERVICE_NAME" \
+        --region="$REGION" \
+        --update-env-vars="SITE_URL=${SERVICE_URL}" \
+        --project="$PROJECT_ID" \
+        --quiet &>/dev/null || true
+fi
+
 echo -e "\n${GREEN}=====================================================${NC}"
 echo -e "${GREEN}  🎉 Moneta successfully deployed to Cloud Run!     ${NC}"
 echo -e "${GREEN}=====================================================${NC}"
 echo -e "🌐 Application URL: ${BLUE}${SERVICE_URL}${NC}"
 echo -e "🏥 Health Check:    ${BLUE}${SERVICE_URL}/healthz/${NC}"
 echo -e "🔐 Admin Panel:     ${BLUE}${SERVICE_URL}/admin/${NC}\n"
-echo -e "💡 Remember to update ${YELLOW}SITE_URL=${SERVICE_URL}${NC} and ${YELLOW}CSRF_TRUSTED_ORIGINS=${SERVICE_URL}${NC} in Cloud Run environment variables if needed.\n"
+

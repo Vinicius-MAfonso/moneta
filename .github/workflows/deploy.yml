@@ -1,0 +1,78 @@
+name: Deploy to Google Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: southamerica-east1
+  REPO_NAME: moneta
+  SERVICE_NAME: moneta-web
+
+jobs:
+  deploy:
+    name: Build & Deploy to Cloud Run
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          LATEST_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:latest"
+
+          docker build -t "$IMAGE_TAG" -t "$LATEST_TAG" .
+          docker push "$IMAGE_TAG"
+          docker push "$LATEST_TAG"
+
+      - name: Create Environment Config from GitHub Secrets
+        run: |
+          cat <<EOF > env_vars.yaml
+          DEBUG: "False"
+          SECRET_KEY: "${{ secrets.SECRET_KEY }}"
+          DATABASE_URL: "${{ secrets.DATABASE_URL }}"
+          ALLOWED_HOSTS: "*"
+          CSRF_TRUSTED_ORIGINS: "${{ vars.CSRF_TRUSTED_ORIGINS || 'https://*.run.app,https://*.a.run.app' }}"
+          SITE_URL: "${{ vars.SITE_URL || 'https://moneta-web-j3cwpe5pqa-rj.a.run.app' }}"
+          EOF
+
+          if [ -n "${{ secrets.BREVO_API_KEY }}" ]; then
+            echo 'BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}"' >> env_vars.yaml
+          fi
+
+          if [ -n "${{ vars.DEFAULT_FROM_EMAIL }}" ]; then
+            echo 'DEFAULT_FROM_EMAIL: "${{ vars.DEFAULT_FROM_EMAIL }}"' >> env_vars.yaml
+          fi
+
+      - name: Deploy Revision to Cloud Run
+        run: |
+          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO_NAME }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+
+          gcloud run deploy ${{ env.SERVICE_NAME }} \
+            --image "$IMAGE_TAG" \
+            --region ${{ env.REGION }} \
+            --platform managed \
+            --allow-unauthenticated \
+            --min-instances 0 \
+            --max-instances 2 \
+            --memory 512Mi \
+            --cpu 1 \
+            --port 8080 \
+            --timeout 120 \
+            --env-vars-file env_vars.yaml
