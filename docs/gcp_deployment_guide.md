@@ -38,33 +38,30 @@ O Google Cloud SQL tradicional custa cerca de R$ 80 a R$ 150/mês. Para atingir 
 
 ## 🚀 Passo 2: Deploy no Google Cloud Platform
 
-Você pode fazer o deploy diretamente pelo navegador via **Google Cloud Shell** (sem precisar instalar nada no seu computador) ou pelo terminal local com `gcloud`.
+Você pode configurar o deploy automatizado via **GitHub Actions** (recomendado para CI/CD contínuo) ou executar o deploy manual pelo **Google Cloud Shell** / terminal local.
 
-### Método 1: Via Script Automatizado (Mais Fácil)
+### Método 1: CI/CD Automático com GitHub Actions (Recomendado)
 
-1. Abra o [Google Cloud Shell](https://shell.cloud.google.com).
-2. Clone seu repositório ou acesse a pasta do Moneta:
-   ```bash
-   git clone https://github.com/SEU_USUARIO/moneta.git
-   cd moneta
-   ```
-3. Execute o script de deploy interativo:
-   ```bash
-   ./deploy-gcp.sh
-   ```
-4. O script irá:
-   - Solicitar seu **ID do Projeto GCP**;
-   - Ativar automaticamente as APIs do Cloud Run, Artifact Registry e Cloud Build;
-   - Pedir a sua `DATABASE_URL` do Neon/Supabase;
-   - Compilar a imagem Docker (com Tailwind CSS e WhiteNoise embutidos);
-   - Fazer o deploy no Cloud Run com configuração `min-instances=0` (custo zero quando ocioso);
-   - Executar as migrações do banco e configurar o agendador de tarefas do Django-Q automaticamente.
+O Moneta já vem configurado com um fluxo de CI/CD completo em `.github/workflows/deploy.yml`.
+
+1. Crie uma Service Account no GCP com as permissões necessárias:
+   - `roles/run.admin` (Cloud Run Admin)
+   - `roles/artifactregistry.writer` (Artifact Registry Writer)
+   - `roles/iam.serviceAccountUser` (Service Account User)
+2. Crie uma chave JSON para a Service Account.
+3. No seu repositório GitHub, adicione os seguintes **Secrets** em *Settings -> Secrets and variables -> Actions*:
+   - `GCP_PROJECT_ID`: O ID do seu projeto no Google Cloud
+   - `GCP_SA_KEY`: O conteúdo do arquivo JSON da chave da Service Account
+   - `SECRET_KEY`: Sua chave secreta do Django (gerada com `openssl rand -hex 32`)
+   - `DATABASE_URL`: URL do seu banco PostgreSQL no Neon / Supabase
+   - `BREVO_API_KEY`: (Opcional) Chave de API do Brevo para emails
+4. Pronto! A cada `git push` na branch `main`, o GitHub Actions fará o build da imagem Docker, enviará para o Artifact Registry e atualizará o Cloud Run automaticamente.
 
 ---
 
 ### Método 2: Deploy Manual via Linha de Comando (`gcloud`)
 
-Caso prefira executar cada comando manualmente:
+Caso queira fazer o deploy diretamente pelo terminal:
 
 ```bash
 # 1. Defina as variáveis
@@ -73,20 +70,20 @@ REGION="southamerica-east1" # ou us-central1
 REPO_NAME="moneta"
 SERVICE_NAME="moneta-web"
 
-# 2. Configure o projeto e ative os serviços
+# 2. Configure o projeto e ative os serviços necessários
 gcloud config set project $PROJECT_ID
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com cloudbuild.googleapis.com
 
-# 3. Crie o repositório de containers
+# 3. Crie o repositório no Artifact Registry (se ainda não existir)
 gcloud artifacts repositories create $REPO_NAME \
     --repository-format=docker \
     --location=$REGION \
     --description="Docker repo Moneta"
 
-# 4. Construa e envie a imagem
+# 4. Construa e envie a imagem via Cloud Build
 gcloud builds submit --tag "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest"
 
-# 5. Faça o Deploy no Cloud Run (com delimitador seguro ^||^)
+# 5. Faça o Deploy no Cloud Run
 gcloud run deploy $SERVICE_NAME \
     --image "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest" \
     --region $REGION \
@@ -99,18 +96,6 @@ gcloud run deploy $SERVICE_NAME \
     --port 8080 \
     --set-env-vars "^||^DEBUG=False||SECRET_KEY=$(openssl rand -hex 32)||DATABASE_URL=SUA_DATABASE_URL_DO_NEON||ALLOWED_HOSTS=*||CSRF_TRUSTED_ORIGINS=https://*.run.app,https://*.a.run.app"
 ```
-
----
-
-## 🔄 Passo 3: CI/CD Automático com GitHub (Opcional)
-
-Se quiser que novos `git push` na branch `main` atualizem sua aplicação automaticamente:
-
-1. No Google Cloud Console, acesse **Cloud Build -> Gatilhos (Triggers)**.
-2. Clique em **Criar Gatilho (Create Trigger)**.
-3. Conecte seu repositório GitHub.
-4. Em **Configuração de compilação**, selecione **Arquivo de configuração do Cloud Build (yaml ou json)** e aponte para `cloudbuild.yaml`.
-5. Salve o gatilho. A cada commit na branch `main`, o GCP compilará e atualizará o Cloud Run de forma 100% automatizada!
 
 ---
 

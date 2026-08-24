@@ -53,8 +53,8 @@ COPY --from=builder /app/staticfiles /app/staticfiles
 COPY --from=builder /app/theme/static/css /app/theme/static/css
 
 # Ensure scripts have LF line endings and are executable
-RUN sed -i 's/\r$//' ./start.sh ./entrypoint.sh ./build.sh 2>/dev/null || true && \
-    chmod +x ./start.sh ./entrypoint.sh ./build.sh 2>/dev/null || true
+RUN sed -i 's/\r$//' ./start.sh 2>/dev/null || true && \
+    chmod +x ./start.sh 2>/dev/null || true
 
 EXPOSE 8080
 

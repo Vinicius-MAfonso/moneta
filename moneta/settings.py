@@ -141,4 +141,10 @@ DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Moneta <noreply@moneta.a
 SITE_URL = env('SITE_URL', default='http://localhost:8000')
 ANYMAIL = {'BREVO_API_KEY': env('BREVO_API_KEY', default='')}
 
+# Secret token for the Google Cloud Scheduler cron wake endpoint (/internal/cron/wake/).
+# Generate with: openssl rand -hex 32
+# Set this as a GitHub Actions secret (CRON_SECRET) and in Cloud Scheduler's Authorization header.
+CRON_SECRET = env('CRON_SECRET', default='')
+
+
 

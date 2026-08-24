@@ -5,4 +5,3 @@
 *.sh text eol=lf
 Dockerfile text eol=lf
 .dockerignore text eol=lf
-cloudbuild.yaml text eol=lf

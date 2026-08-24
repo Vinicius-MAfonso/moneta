@@ -56,6 +56,10 @@ jobs:
             echo 'BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}"' >> env_vars.yaml
           fi
 
+          if [ -n "${{ secrets.CRON_SECRET }}" ]; then
+            echo 'CRON_SECRET: "${{ secrets.CRON_SECRET }}"' >> env_vars.yaml
+          fi
+
           if [ -n "${{ vars.DEFAULT_FROM_EMAIL }}" ]; then
             echo 'DEFAULT_FROM_EMAIL: "${{ vars.DEFAULT_FROM_EMAIL }}"' >> env_vars.yaml
           fi

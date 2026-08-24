@@ -4,10 +4,11 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import TemplateView
 
-from .views import dashboard_view, export_transactions_csv_view, health_check_view, reports_view
+from .views import cron_wake_view, dashboard_view, export_transactions_csv_view, health_check_view, reports_view
 
 urlpatterns = [
     path('healthz/', health_check_view, name='health_check'),
+    path('internal/cron/wake/', cron_wake_view, name='cron_wake'),
     path('admin/', admin.site.urls),
     
     # Web / HTMX Routes

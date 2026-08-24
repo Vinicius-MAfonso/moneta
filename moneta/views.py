@@ -1,9 +1,13 @@
+import hmac
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.db.models.functions import Coalesce, TruncMonth
+from django.http import JsonResponse
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 
 from moneta.common import TransactionType, get_month_calendar_grid, get_month_context
 from planning.models import Goal
@@ -17,13 +21,46 @@ from .services import get_category_breakdown
 def health_check_view(request):
     """Health check endpoint for Cloud Run and uptime monitoring."""
     from django.db import connection
-    from django.http import JsonResponse
 
     try:
         connection.ensure_connection()
         return JsonResponse({'status': 'healthy', 'database': 'connected'}, status=200)
     except Exception as e:
         return JsonResponse({'status': 'unhealthy', 'error': str(e)}, status=503)
+
+
+@csrf_exempt
+@require_POST
+def cron_wake_view(request):
+    """Internal endpoint called by Google Cloud Scheduler to wake the container
+    and immediately trigger all overdue background tasks.
+
+    Protected by a shared secret token passed in the Authorization header.
+    Cloud Scheduler should be configured to POST to /internal/cron/wake/
+    with header: Authorization: Bearer <CRON_SECRET>
+    """
+    from django.conf import settings
+    from django_q.tasks import async_task
+
+    expected_token = getattr(settings, 'CRON_SECRET', '')
+    auth_header = request.headers.get('Authorization', '')
+    provided_token = auth_header.removeprefix('Bearer ').strip()
+
+    if not expected_token or not hmac.compare_digest(provided_token, expected_token):
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+    tasks_triggered = [
+        'transactions.tasks.process_all_recurring_transactions',
+        'wallets.tasks.notify_due_credit_card_bills',
+        'planning.tasks.notify_budget_warnings',
+        'transactions.tasks.notify_due_transactions',
+        'moneta.tasks.check_and_send_alerts',
+    ]
+
+    for task_func in tasks_triggered:
+        async_task(task_func)
+
+    return JsonResponse({'status': 'ok', 'tasks_queued': len(tasks_triggered)})
 
 
 

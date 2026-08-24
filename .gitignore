@@ -270,3 +270,5 @@ pyrightconfig.json
 *.pem
 
 AGENTS.md
+
+docs/
