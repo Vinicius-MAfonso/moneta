@@ -39,7 +39,7 @@ jsonschema-specifications==2025.9.1
 lxml==6.1.1
 markdown-it-py==4.2.0
 MarkupSafe==3.0.3
-mcp==1.23.3
+mcp==1.28.1
 mdurl==0.1.2
 multidict==6.7.1
 ofxparse==0.21
@@ -80,7 +80,7 @@ ruamel.yaml.clib==0.2.15
 semantic-version==2.10.0
 six==1.17.0
 soupsieve==2.9.2
-sqlparse==0.5.5
+sqlparse==0.6.0
 sse-starlette==3.4.8
 standardwebhooks==1.1.0
 starlette==1.6.0
