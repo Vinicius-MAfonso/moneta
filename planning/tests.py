@@ -132,3 +132,19 @@ class PlanningWebTestCase(TestCase):
         active_budgets = get_active_budgets(self.user, reference_date=date(2026, 8, 15))
         self.assertEqual(len(active_budgets), 1)
         self.assertEqual(active_budgets[0]['budget'].amount, Decimal('500.00'))
+
+    def test_budget_overlapping_validation(self):
+        from django.core.exceptions import ValidationError
+        
+        Budget.objects.create(
+            user=self.user, category=self.category, amount=Decimal('500.00'),
+            start_date='2026-09-01', end_date='2026-09-30'
+        )
+        
+        # Overlapping budget for same category and user should fail clean/save
+        duplicate_budget = Budget(
+            user=self.user, category=self.category, amount=Decimal('300.00'),
+            start_date='2026-09-15', end_date='2026-10-15'
+        )
+        with self.assertRaises(ValidationError):
+            duplicate_budget.save()

@@ -36,7 +36,7 @@ def account_create_view(request):
             cd = form.cleaned_data
             
             from wallets.services import create_account
-            account = create_account(request.user, cd)
+            create_account(request.user, cd)
 
             if request.headers.get('HX-Request'):
                 messages.success(request, "Conta criada com sucesso!")
@@ -243,7 +243,7 @@ def confirm_reopen_bill_view(request, pk):
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
     context = {
         'title': 'Reabrir Fatura',
-        'message': f"Tem certeza que deseja cancelar o pagamento e reabrir esta fatura? O valor será devolvido para a conta de origem.",
+        'message': "Tem certeza que deseja cancelar o pagamento e reabrir esta fatura? O valor será devolvido para a conta de origem.",
         'action_url': reverse('wallets_web:reopen_bill', args=[bill.id]),
         'confirm_btn_text': 'Reabrir Fatura',
         'confirm_btn_class': 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-lg shadow-rose-600/25',
@@ -272,7 +272,6 @@ def bill_list_view(request, account_id):
 def credit_card_dashboard_view(request):
     import datetime
 
-    from moneta.common import TransactionType
     from transactions.models import Transaction
     from wallets.models import Account
     from wallets.services import get_credit_card_timeline

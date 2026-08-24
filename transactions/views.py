@@ -405,10 +405,7 @@ def transaction_delete_view(request, pk):
             tx.recurring.active = False
             tx.recurring.save(update_fields=['active'])
         else:
-            date_str = str(tx.date)
-            if date_str not in tx.recurring.ignored_dates:
-                tx.recurring.ignored_dates.append(date_str)
-                tx.recurring.save(update_fields=['ignored_dates'])
+            tx.recurring.ignore_date(tx.date)
             tx.delete()
             if tx_to_delete_extra:
                 tx_to_delete_extra.delete()

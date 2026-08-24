@@ -1,26 +1,33 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
-mkdir -p /app/data
+PORT_NUMBER="${PORT:-8080}"
+PROCESS="${PROCESS_TYPE:-web}"
 
-if [ "$PROCESS_TYPE" = "web" ]; then
-    echo "Applying database migrations..."
-    python manage.py migrate --noinput
+if [ "$PROCESS" = "web" ]; then
+    echo "==> Running database migrations..."
+    python manage.py migrate --noinput || true
     
-    echo "Configuring Django-Q schedules..."
-    python manage.py setup_schedules
+    echo "==> Configuring Django-Q schedules..."
+    python manage.py setup_schedules || true
 
-    echo "Creating superuser (if variables are set)..."
+    echo "==> Creating superuser if env vars are set..."
     python manage.py createsuperuser --noinput || true
 
-    echo "Starting Gunicorn (Web Server)..."
-    exec gunicorn moneta.wsgi:application --bind 0.0.0.0:8000 --workers 3
-    
-elif [ "$PROCESS_TYPE" = "worker" ]; then
-    echo "Starting Django-Q worker (Background Tasks)..."
+    echo "==> Starting Gunicorn on port ${PORT_NUMBER}..."
+    exec gunicorn moneta.wsgi:application \
+        --bind 0.0.0.0:${PORT_NUMBER} \
+        --workers 2 \
+        --threads 4 \
+        --timeout 120 \
+        --access-logfile - \
+        --error-logfile -
+        
+elif [ "$PROCESS" = "worker" ]; then
+    echo "==> Starting dedicated Django-Q worker..."
     exec python manage.py qcluster
     
 else
-    echo "Error: PROCESS_TYPE not defined or invalid. Use 'web' or 'worker'."
-    exit 1
+    echo "==> Running custom command: $@"
+    exec "$@"
 fi

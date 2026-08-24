@@ -1,0 +1,38 @@
+steps:
+  # 1. Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:$COMMIT_SHA'
+      - '-t'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:latest'
+      - '.'
+
+  # 2. Push image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web'
+
+  # 3. Deploy to Cloud Run (São Paulo region)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'moneta-web'
+      - '--image=southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:$COMMIT_SHA'
+      - '--region=southamerica-east1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--min-instances=0'
+      - '--max-instances=2'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--port=8080'
+
+images:
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:$COMMIT_SHA'
+  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:latest'

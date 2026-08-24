@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
@@ -25,13 +26,44 @@ class Budget(models.Model):
                 condition=models.Q(end_date__gte=models.F('start_date')),
                 name='budget_end_date_after_start_date',
             ),
+            models.UniqueConstraint(
+                fields=['user', 'category', 'start_date', 'end_date'],
+                name='unique_budget_period_per_user_category',
+            ),
         ]
+
+    def clean(self):
+        super().clean()
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValidationError('A data de término deve ser posterior ou igual à data de início.')
+
+        if self.user_id and self.category_id and self.start_date and self.end_date:
+            overlapping = Budget.objects.filter(
+                user=self.user,
+                category=self.category,
+                start_date__lte=self.end_date,
+                end_date__gte=self.start_date,
+            ).exclude(pk=self.pk)
+            if overlapping.exists():
+                raise ValidationError('Já existe um orçamento cadastrado para esta categoria no período informado.')
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.category.name} - {self.amount} ({self.start_date} to {self.end_date})"
 
 
 class Goal(models.Model):
+    """
+    Objetivos Financeiros ("Caixinhas").
+    
+    Nota de Arquitetura:
+    O campo `current_amount` funciona como um envelope virtual.
+    Quando associado a uma conta (`Account`), o valor de `current_amount`
+    bloqueia o saldo disponível da conta (calculado via `Account.free_balance`).
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='goals', verbose_name='usuário')
     account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='goals', verbose_name='conta', null=True, blank=True)
@@ -54,6 +86,10 @@ class Goal(models.Model):
                 name='goal_end_date_after_start_date',
             ),
         ]
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} - {self.current_amount}/{self.target_amount} ({self.start_date} to {self.end_date})"

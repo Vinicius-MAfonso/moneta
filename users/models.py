@@ -12,7 +12,9 @@ class PushSubscription(models.Model):
     class Meta:
         verbose_name = 'inscrição push'
         verbose_name_plural = 'inscrições push'
-        unique_together = ('user', 'endpoint')
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'endpoint'], name='unique_push_subscription_per_user'),
+        ]
 
     def __str__(self):
         return f"Push para {self.user.username}"

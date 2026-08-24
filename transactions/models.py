@@ -19,7 +19,7 @@ class Category(models.Model):
     icon = models.CharField(max_length=100, blank=True, null=True, verbose_name='ícone')
     color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
     is_system = models.BooleanField(default=False, verbose_name='categoria do sistema')
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, blank=True, null=True, related_name='subcategories', verbose_name='categoria pai')
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='subcategories', verbose_name='categoria pai')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
 
@@ -85,6 +85,8 @@ class Transaction(models.Model):
         ordering = ['-date', '-created_at']
         indexes = [
             models.Index(fields=['user', '-date'], name='transaction_user_date_idx'),
+            models.Index(fields=['bill', 'status'], name='transaction_bill_status_idx'),
+            models.Index(fields=['account', 'status', '-date'], name='tx_acc_status_date_idx'),
         ]
         constraints = [
             models.CheckConstraint(check=models.Q(amount__gte=Decimal('0.01')), name='transaction_amount_positive'),
@@ -176,7 +178,6 @@ class RecurringTransaction(models.Model):
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(blank=True, null=True, verbose_name='data de término')
     active = models.BooleanField(default=True, verbose_name='ativa')
-    ignored_dates = models.JSONField(default=list, blank=True, verbose_name='datas ignoradas')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
 
@@ -184,6 +185,9 @@ class RecurringTransaction(models.Model):
         verbose_name = 'transação recorrente'
         verbose_name_plural = 'transações recorrentes'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'active'], name='recurring_user_active_idx'),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(end_date__isnull=True) | models.Q(end_date__gte=models.F('start_date')),
@@ -196,9 +200,46 @@ class RecurringTransaction(models.Model):
     def type(self):
         return self.category.type
 
+    @property
+    def ignored_dates(self):
+        return [str(item.date) for item in self.ignored_date_entries.all()]
+
+    def is_date_ignored(self, target_date):
+        if isinstance(target_date, str):
+            from datetime import datetime
+            target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+        return self.ignored_date_entries.filter(date=target_date).exists()
+
+    def ignore_date(self, target_date):
+        if isinstance(target_date, str):
+            from datetime import datetime
+            target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+        entry, _ = RecurringTransactionIgnoredDate.objects.get_or_create(recurring=self, date=target_date)
+        return entry
+
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.description} - {self.amount} ({self.category.get_type_display()})"
+
+
+class RecurringTransactionIgnoredDate(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    recurring = models.ForeignKey(RecurringTransaction, on_delete=models.CASCADE, related_name='ignored_date_entries', verbose_name='transação recorrente')
+    date = models.DateField(verbose_name='data ignorada')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
+
+    class Meta:
+        verbose_name = 'data ignorada de recorrência'
+        verbose_name_plural = 'datas ignoradas de recorrência'
+        indexes = [
+            models.Index(fields=['recurring', 'date'], name='rec_ign_rec_date_idx'),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=['recurring', 'date'], name='unique_ignored_date_per_recurring'),
+        ]
+
+    def __str__(self):
+        return f"{self.recurring.description} - {self.date}"

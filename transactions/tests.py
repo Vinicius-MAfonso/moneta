@@ -276,9 +276,9 @@ class TransactionServicesTestCase(TestCase):
             amount=Decimal('40.00'),
             frequency=RecurringTransaction.Frequencies.MONTHLY,
             start_date=date(2026, 8, 1),
-            active=True,
-            ignored_dates=[str(date(2026, 9, 1))]
+            active=True
         )
+        rec.ignore_date(date(2026, 9, 1))
         
         # Rodar primeira vez
         process_recurring_transactions(self.user, target_end_date=date(2026, 10, 31))
@@ -329,7 +329,10 @@ class TransactionServicesTestCase(TestCase):
         self.assertEqual(tx.recurring.frequency, 'monthly')
 
     def test_update_transaction_remove_recurrence(self):
-        from transactions.services import process_recurring_transactions, update_transaction
+        from transactions.services import (
+            process_recurring_transactions,
+            update_transaction,
+        )
         
         rec = RecurringTransaction.objects.create(
             user=self.user,

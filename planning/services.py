@@ -1,12 +1,12 @@
 from decimal import Decimal
 
 from django.db import models
-from django.db.models import Sum, Subquery, OuterRef, Q
+from django.db.models import OuterRef, Q, Subquery, Sum
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
-from planning.models import Budget, Goal
 from moneta.common import TransactionType
+from planning.models import Budget, Goal
 from transactions.models import Transaction
 
 

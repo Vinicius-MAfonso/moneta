@@ -1,6 +1,6 @@
 import json
 import uuid
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
 from django.db import transaction as db_transaction

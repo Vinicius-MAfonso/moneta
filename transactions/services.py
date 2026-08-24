@@ -29,9 +29,12 @@ def process_recurring_transactions(user, target_end_date=None):
     if not target_end_date:
         target_end_date = add_months(today, 2)
 
-    active_recurring = RecurringTransaction.objects.filter(user=user, active=True).select_related('account', 'target_account', 'category')
+    active_recurring = RecurringTransaction.objects.filter(user=user, active=True).select_related(
+        'account', 'target_account', 'category'
+    ).prefetch_related('ignored_date_entries')
 
     for rec in active_recurring:
+        ignored_dates_set = {entry.date for entry in rec.ignored_date_entries.all()}
         current_date = rec.start_date
         rec_end = rec.end_date if rec.end_date else target_end_date
         effective_limit = min(target_end_date, rec_end)
@@ -40,7 +43,7 @@ def process_recurring_transactions(user, target_end_date=None):
         while current_date <= effective_limit and loop_guard < 500:
             loop_guard += 1
             exists = Transaction.objects.filter(recurring=rec, date=current_date).exists()
-            if not exists and str(current_date) not in rec.ignored_dates:
+            if not exists and current_date not in ignored_dates_set:
                 status = Transaction.Statuses.COMPLETED if current_date <= today else Transaction.Statuses.PENDING
 
                 if rec.category.type == TransactionType.TRANSFER and rec.target_account:
@@ -302,6 +305,7 @@ def update_transaction(transaction, validated_data):
     recurring_end_date = validated_data.get('recurring_end_date')
 
     was_recurring = transaction.recurring is not None
+    trigger_async_process = False
 
     if was_recurring and not is_recurring:
         from transactions.models import Transaction
@@ -315,14 +319,12 @@ def update_transaction(transaction, validated_data):
         
     elif was_recurring and is_recurring:
         if old_date != transaction.date:
-            old_date_str = str(old_date)
-            if old_date_str not in transaction.recurring.ignored_dates:
-                transaction.recurring.ignored_dates.append(old_date_str)
-                transaction.recurring.save(update_fields=['ignored_dates'])
-                trigger_async_process = True
+            transaction.recurring.ignore_date(old_date)
+            trigger_async_process = True
         
     elif not was_recurring and is_recurring:
         from django_q.tasks import async_task
+
         from transactions.models import Category, RecurringTransaction
         
         category = Category.objects.get(id=transaction.category_id)
@@ -340,8 +342,6 @@ def update_transaction(transaction, validated_data):
         )
         transaction.recurring = new_recurring
         trigger_async_process = True
-    else:
-        trigger_async_process = False
 
     transaction.save()
 

@@ -1,10 +1,27 @@
 #!/usr/bin/env bash
-# start.sh
+set -e
 
-# Start the Django-Q cluster in the background
-echo "Starting Django-Q cluster..."
+PORT_NUMBER="${PORT:-8080}"
+
+echo "==> Running database migrations..."
+python manage.py migrate --noinput || true
+
+echo "==> Setting up Django-Q background schedules..."
+python manage.py setup_schedules || true
+
+echo "==> Creating superuser if env vars are present..."
+python manage.py createsuperuser --noinput || true
+
+# Start Django-Q worker in background
+echo "==> Starting Django-Q cluster..."
 python manage.py qcluster &
 
-# Start Gunicorn in the foreground
-echo "Starting Gunicorn..."
-gunicorn moneta.wsgi --bind 0.0.0.0:$PORT
+# Start Gunicorn web server in foreground
+echo "==> Starting Gunicorn on port ${PORT_NUMBER}..."
+exec gunicorn moneta.wsgi:application \
+    --bind 0.0.0.0:${PORT_NUMBER} \
+    --workers 2 \
+    --threads 4 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile -

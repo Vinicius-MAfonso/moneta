@@ -67,7 +67,6 @@ class Account(models.Model):
 class CreditCardDetails(models.Model):
     account = models.OneToOneField(Account, on_delete=models.CASCADE, primary_key=True, related_name='credit_card_details', verbose_name='conta')
     limit = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='limite')
-    available_limit = models.DecimalField(max_digits=20, decimal_places=2, default=0.00, verbose_name='limite disponível')
     closing_day = models.PositiveSmallIntegerField(verbose_name='dia de fechamento')
     due_day = models.PositiveSmallIntegerField(verbose_name='dia de vencimento')
 
@@ -76,8 +75,12 @@ class CreditCardDetails(models.Model):
         verbose_name_plural = 'detalhes dos cartões de crédito'
 
     @property
+    def available_limit(self):
+        return max(Decimal('0.00'), self.limit + self.account.balance)
+
+    @property
     def used_limit(self):
-        return max(Decimal('0.00'), self.limit - self.available_limit)
+        return max(Decimal('0.00'), -self.account.balance)
 
     @property
     def limit_usage_pct(self):
@@ -93,8 +96,6 @@ class CreditCardDetails(models.Model):
         super().clean()
         if self.limit < 0:
             raise ValidationError('O limite do cartão de crédito não pode ser negativo.')
-        if self.available_limit < 0:
-            raise ValidationError('O limite disponível do cartão de crédito não pode ser negativo.')
         if self.account.type != Account.Types.CREDIT_CARD:
             raise ValidationError('Os detalhes do cartão de crédito só podem ser associados a uma conta do tipo Cartão de Crédito.')
 
@@ -127,6 +128,9 @@ class CreditCardBill(models.Model):
         verbose_name = 'fatura'
         verbose_name_plural = 'faturas'
         ordering = ['-period_date']
+        indexes = [
+            models.Index(fields=['account', 'status'], name='cc_bill_acc_status_idx'),
+        ]
         constraints = [
             models.UniqueConstraint(fields=['account', 'period_date'], name='unique_bill_per_month')
         ]

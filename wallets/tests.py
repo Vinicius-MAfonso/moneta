@@ -99,7 +99,7 @@ class WalletsWebTestCase(TestCase):
         cc_account = Account.objects.create(
             user=self.user, name='Cartão X', type=Account.Types.CREDIT_CARD, balance=Decimal('0.00'), initial_balance=Decimal('0.00')
         )
-        CreditCardDetails.objects.create(account=cc_account, limit=Decimal('1000.00'), available_limit=Decimal('1000.00'), closing_day=10, due_day=20)
+        CreditCardDetails.objects.create(account=cc_account, limit=Decimal('1000.00'), closing_day=10, due_day=20)
         
         checking_account = Account.objects.create(
             user=self.user, name='Corrente', type=Account.Types.CHECKING, balance=Decimal('2000.00'), initial_balance=Decimal('2000.00')
@@ -135,7 +135,7 @@ class WalletsServicesTestCase(TestCase):
             balance=Decimal('0.00'), initial_balance=Decimal('0.00')
         )
         CreditCardDetails.objects.create(
-            account=self.cc_account, limit=Decimal('5000.00'), available_limit=Decimal('5000.00'),
+            account=self.cc_account, limit=Decimal('5000.00'),
             closing_day=10, due_day=20
         )
         
@@ -239,3 +239,57 @@ class WalletsServicesTestCase(TestCase):
         self.assertIsNotNone(sys_tx)
         self.assertEqual(sys_tx.amount, Decimal('200.00'))
         self.assertEqual(sys_tx.description, 'Reajuste de Saldo')
+
+    def test_credit_card_available_and_used_limit_properties(self):
+        from decimal import Decimal
+
+        from moneta.common import TransactionType
+        from transactions.models import Category, Transaction
+        from wallets.services import recalculate_account_balance
+
+        cc = self.cc_account.credit_card_details
+        self.assertEqual(cc.available_limit, Decimal('5000.00'))
+        self.assertEqual(cc.used_limit, Decimal('0.00'))
+        self.assertEqual(cc.limit_usage_pct, Decimal('0.00'))
+
+        cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Lazer', defaults={'type': TransactionType.EXPENSE})
+        Transaction.objects.create(
+            user=self.user, account=self.cc_account, category=cat_expense,
+            description='Restaurante', amount=Decimal('1500.00'), date='2026-08-10',
+            status=Transaction.Statuses.COMPLETED
+        )
+        recalculate_account_balance(self.cc_account)
+        cc.refresh_from_db()
+
+        self.assertEqual(self.cc_account.balance, Decimal('-1500.00'))
+        self.assertEqual(cc.available_limit, Decimal('3500.00'))
+        self.assertEqual(cc.used_limit, Decimal('1500.00'))
+        self.assertEqual(cc.limit_usage_pct, Decimal('30.00'))
+
+    def test_reconcile_balances_management_command(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        from wallets.models import Account
+
+        # Introduce intentional drift on checking_account
+        Account.objects.filter(id=self.checking_account.id).update(balance=Decimal('9999.00'))
+        self.checking_account.refresh_from_db()
+        self.assertEqual(self.checking_account.balance, Decimal('9999.00'))
+
+        # Run command without --fix
+        out = StringIO()
+        call_command('reconcile_balances', stdout=out)
+        output = out.getvalue()
+        self.assertIn('[MISMATCH]', output)
+        self.checking_account.refresh_from_db()
+        self.assertEqual(self.checking_account.balance, Decimal('9999.00'))
+
+        # Run command with --fix
+        out_fix = StringIO()
+        call_command('reconcile_balances', '--fix', stdout=out_fix)
+        output_fix = out_fix.getvalue()
+        self.assertIn('[FIXED]', output_fix)
+        self.checking_account.refresh_from_db()
+        self.assertEqual(self.checking_account.balance, Decimal('1000.00'))

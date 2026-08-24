@@ -1,5 +1,5 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 import environ
 
@@ -12,10 +12,10 @@ env = environ.Env()
 
 environ.Env.read_env(BASE_DIR / '.env')
 
-DEBUG = env.bool('DEBUG')
-SECRET_KEY = env('SECRET_KEY')
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS')
+DEBUG = env.bool('DEBUG', default=False)
+SECRET_KEY = env('SECRET_KEY', default='django-insecure-moneta-production-change-me')
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['https://*.run.app', 'https://*.a.run.app'])
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -78,7 +78,7 @@ WSGI_APPLICATION = 'moneta.wsgi.application'
 
 
 DATABASES = {
-    'default': env.db('DATABASE_URL')
+    'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')
 }
 
 LANGUAGE_CODE = 'pt-br'
@@ -101,10 +101,11 @@ if not DEBUG:
         },
     }
 
-VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY')
-VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY')
-VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL')
+VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY', default='')
+VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY', default='')
+VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL', default='')
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=not DEBUG)
 CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=not DEBUG)
@@ -136,8 +137,8 @@ Q_CLUSTER = {
 EMAIL_BACKEND = (
     'django.core.mail.backends.console.EmailBackend' if DEBUG else 'anymail.backends.brevo.EmailBackend'
 )
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
-SITE_URL = env('SITE_URL')
-ANYMAIL = {'BREVO_API_KEY': env('BREVO_API_KEY')}
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='Moneta <noreply@moneta.app>')
+SITE_URL = env('SITE_URL', default='http://localhost:8000')
+ANYMAIL = {'BREVO_API_KEY': env('BREVO_API_KEY', default='')}
 
 

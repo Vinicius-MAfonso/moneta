@@ -33,11 +33,6 @@ def recalculate_account_balance(account):
     new_balance = account.initial_balance + incomes - expenses - transfers_out + transfers_in
     new_balance = Decimal(new_balance).quantize(Decimal('.01'))
 
-    if account.type == Account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
-        cc = account.credit_card_details
-        cc.available_limit = max(Decimal('0.00'), cc.limit + new_balance)
-        cc.save()
-
     Account.objects.filter(id=account.id).update(balance=new_balance)
     account.refresh_from_db()
     return new_balance
@@ -84,7 +79,6 @@ def calculate_expected_balance(account, end_date=None):
 
 
 def get_expected_balances_bulk(accounts_qs, end_date=None):
-    from decimal import Decimal
 
     from django.db import models
 
@@ -237,11 +231,9 @@ def get_or_create_bill_for_transaction(account, transaction_date):
 def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
     from decimal import Decimal
 
-    from django.db import models
     from django.db import transaction as db_transaction
     from django.utils import timezone
 
-    from moneta.common import TransactionType
     from transactions.services import create_transfer
     from wallets.models import Account, CreditCardBill
 
@@ -381,7 +373,6 @@ def update_account(account, validated_data):
     """
     Update account data including credit card specifics if applicable.
     """
-    from decimal import Decimal
 
     account.name = validated_data['name']
     account.institution = validated_data['institution']
@@ -393,9 +384,7 @@ def update_account(account, validated_data):
 
     if account.type == account.Types.CREDIT_CARD and hasattr(account, 'credit_card_details'):
         cc = account.credit_card_details
-        diff = validated_data['limit'] - cc.limit
         cc.limit = validated_data['limit']
-        cc.available_limit = max(Decimal('0.00'), cc.available_limit + diff)
         old_closing = cc.closing_day
         old_due = cc.due_day
 
@@ -406,6 +395,7 @@ def update_account(account, validated_data):
         if old_closing != cc.closing_day or old_due != cc.due_day:
             import calendar
             import datetime
+
             from wallets.models import CreditCardBill
             
             open_bills = account.bills.filter(status=CreditCardBill.Statuses.OPEN)
@@ -436,7 +426,9 @@ def update_account(account, validated_data):
 
 def get_bill_summary(bill):
     from decimal import Decimal
+
     from django.db.models import Sum
+
     from moneta.common import TransactionType
     
     expenses = bill.transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
@@ -460,6 +452,7 @@ def get_bill_summary(bill):
 
 def create_account(user, account_data):
     from django.db import transaction
+
     from wallets.models import Account, CreditCardDetails
 
     with transaction.atomic():
@@ -476,7 +469,6 @@ def create_account(user, account_data):
             CreditCardDetails.objects.create(
                 account=account,
                 limit=account_data.get('limit', Decimal('0.00')),
-                available_limit=account_data.get('limit', Decimal('0.00')),
                 closing_day=account_data.get('closing_day', 1),
                 due_day=account_data.get('due_day', 10),
             )
@@ -490,10 +482,10 @@ def delete_account(account):
 
 
 def get_credit_card_timeline(user, start_date, months=12):
-    import datetime
     from dateutil.relativedelta import relativedelta
     from django.db.models import Sum
     from django.db.models.functions import TruncMonth
+
     from moneta.common import TransactionType
     from transactions.models import Transaction
     from wallets.models import Account

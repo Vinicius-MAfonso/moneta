@@ -222,7 +222,7 @@ def export_transactions_csv_view(request):
 
     from django.utils import timezone
 
-    from .services import generate_csv_export, get_report_data
+    from .services import generate_csv_export
     
     user = request.user
     today = timezone.now().date()

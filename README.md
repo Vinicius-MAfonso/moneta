@@ -65,10 +65,30 @@ O projeto foi construído utilizando as seguintes tecnologias:
 
 8. Acesse no navegador: `http://localhost:8000`
 
-## 🚀 Deploy no Render + Supabase
+## 🚀 Deploy no Google Cloud Run (São Paulo)
 
-O Moneta está configurado nativamente para rodar gratuitamente na nuvem usando **Render** (para a aplicação) e **Supabase** (para o banco de dados PostgreSQL). 
-Basta conectar este repositório no Render, configurar o `render.yaml` já incluso, e preencher a variável `DATABASE_URL` com as credenciais do seu Supabase.
+O Moneta está configurado para rodar em arquitetura serverless no **Google Cloud Run** na região do Brasil (`southamerica-east1` — São Paulo) com custo ultra-baixo / Free Tier.
+
+### 1. Configurar credenciais no Secret Manager:
+```bash
+echo -n "postgresql://user:pass@host/moneta_db?sslmode=require" | gcloud secrets create moneta-db-url --data-file=-
+echo -n "sua-chave-secreta-django" | gcloud secrets create moneta-secret-key --data-file=-
+```
+
+### 2. Realizar o Deploy:
+```bash
+gcloud run deploy moneta-web \
+  --source . \
+  --region southamerica-east1 \
+  --allow-unauthenticated \
+  --min-instances 0 \
+  --max-instances 2 \
+  --memory 512Mi \
+  --cpu 1 \
+  --port 8080 \
+  --set-env-vars="DEBUG=False,ALLOWED_HOSTS=*,CSRF_TRUSTED_ORIGINS=https://moneta-web-*.a.run.app" \
+  --set-secrets="DATABASE_URL=moneta-db-url:latest,SECRET_KEY=moneta-secret-key:latest"
+```
 
 ## 🎨 Contribuição
 
