@@ -1,8 +1,8 @@
 const CACHE_NAME = 'moneta-v1';
 const STATIC_ASSETS = [
     '/',
-    '/static/icon-192.png',
-    '/static/icon-512.png',
+    '/static/images/icon-192.png',
+    '/static/images/icon-512.png',
     '/manifest.json'
 ];
 
@@ -55,8 +55,8 @@ self.addEventListener('push', function(event) {
         const data = event.data.json();
         const options = {
             body: data.body,
-            icon: '/static/icon-192.png',
-            badge: '/static/icon-192.png',
+            icon: '/static/images/icon-192.png',
+            badge: '/static/images/icon-192.png',
             vibrate: [100, 50, 100],
             data: {
                 dateOfArrival: Date.now(),
