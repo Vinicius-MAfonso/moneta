@@ -82,7 +82,7 @@
                             <select name="category" :required="txType !== 'transferencia'" class="w-full bg-slate-50  border border-slate-300  rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900  focus:outline-none focus:border-indigo-500">
                                 <option value="" disabled selected>Selecione...</option>
                                 <template x-for="cat in filteredCategories" :key="cat.id">
-                                    <option :value="cat.id" x-text="cat.name" :selected="cat.id === '{{ transaction.category.id|default:'' }}'"></option>
+                                    <option :value="cat.id" x-text="cat.name" :selected="cat.id === '{{ transaction.category.id|default:"" }}'"></option>
                                 </template>
                             </select>
                             {% if not categories %}
@@ -91,7 +91,7 @@
                         </div>
                     </div>
 
-                    <div x-show="txType === 'transferencia'" class="flex flex-col gap-4" x-cloak x-data="{ outAccount: '{{ transfer_accounts.0.id|default:'' }}' }">
+                    <div x-show="txType === 'transferencia'" class="flex flex-col gap-4" x-cloak x-data="{ outAccount: '{{ transfer_accounts.0.id|default:"" }}' }">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600  uppercase tracking-wider mb-1">De (Saída)</label>
                             <select name="out_account" x-model="outAccount" :required="txType === 'transferencia'" class="w-full bg-slate-50  border border-slate-300  rounded-xl px-3.5 pr-10 py-2.5 text-sm text-slate-900  focus:outline-none focus:border-indigo-500">

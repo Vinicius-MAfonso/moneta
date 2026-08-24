@@ -151,18 +151,45 @@
             alert('Falha ao processar notificações: ' + error.message);
         }
     }
-    btnSubscribe.addEventListener('click', subscribeUser);
-    
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-        navigator.serviceWorker.ready.then(async (reg) => {
+    async function updatePushUI() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            statusText.innerText = 'Status: Não suportado';
+            statusText.className = 'text-sm font-semibold text-slate-500';
+            btnSubscribe.innerText = 'Indisponível';
+            btnSubscribe.disabled = true;
+            btnSubscribe.className = 'w-full sm:w-auto px-5 py-2 rounded-xl bg-slate-300 text-slate-500 font-semibold text-sm cursor-not-allowed shrink-0';
+            return;
+        }
+
+        if ('Notification' in window && Notification.permission === 'denied') {
+            statusText.innerText = 'Status: Bloqueado no Navegador';
+            statusText.className = 'text-sm font-semibold text-rose-600';
+            btnSubscribe.innerText = 'Permissão Bloqueada';
+            btnSubscribe.disabled = true;
+            btnSubscribe.className = 'w-full sm:w-auto px-5 py-2 rounded-xl bg-slate-200 text-slate-500 font-semibold text-sm cursor-not-allowed shrink-0';
+            return;
+        }
+
+        try {
+            const reg = await navigator.serviceWorker.ready;
             const sub = await reg.pushManager.getSubscription();
             if (sub) {
                 statusText.innerText = 'Status: Ativo';
                 statusText.className = 'text-sm font-semibold text-emerald-600';
                 btnSubscribe.innerText = 'Desativar Notificações';
-                btnSubscribe.className = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition-all shadow-lg shadow-rose-600/25';
+                btnSubscribe.className = 'w-full sm:w-auto px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-sm transition-all shadow-lg shadow-rose-600/25 shrink-0';
+            } else {
+                statusText.innerText = 'Status: Não Configurado';
+                statusText.className = 'text-sm font-semibold text-slate-900';
+                btnSubscribe.innerText = 'Ativar Notificações';
+                btnSubscribe.className = 'w-full sm:w-auto px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm transition-all shadow-lg shadow-emerald-600/25 shrink-0';
             }
-        });
+        } catch (e) {
+            console.error('Erro ao verificar inscrição push:', e);
+        }
     }
+
+    btnSubscribe.addEventListener('click', subscribeUser);
+    updatePushUI();
 </script>
 {% endblock %}
