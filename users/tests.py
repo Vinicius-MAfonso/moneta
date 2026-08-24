@@ -56,6 +56,23 @@ class UsersWebTestCase(TestCase):
         self.assertEqual(new_user.first_name, 'Vinicius')
         self.assertEqual(new_user.last_name, 'Afonso')
 
+    def test_login_redirect_safe_internal_url(self):
+        self.client.logout()
+        res = self.client.post('/users/login/?next=/wallets/', {'username': 'profileuser', 'password': 'password123'})
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res.url, '/wallets/')
+
+    def test_login_redirect_unsafe_external_url(self):
+        self.client.logout()
+        res = self.client.post('/users/login/?next=https://evil.com/phishing', {'username': 'profileuser', 'password': 'password123'})
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res.url, reverse('dashboard'))
+
+        self.client.logout()
+        res = self.client.post('/users/login/?next=//malicious-site.com', {'username': 'profileuser', 'password': 'password123'})
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res.url, reverse('dashboard'))
+
 
 class AxesSecurityTestCase(TestCase):
     def setUp(self):
@@ -112,3 +129,14 @@ class PushSubscriptionTestCase(TestCase):
         )
         self.assertEqual(res.status_code, 200)
         self.assertFalse(PushSubscription.objects.filter(user=self.user, endpoint='https://push.example.com/endpoint').exists())
+
+    def test_save_push_subscription_invalid_json(self):
+        res = self.client.post(
+            reverse('users_web:save_push_subscription'),
+            data='{invalid json payload',
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 400)
+        data = res.json()
+        self.assertEqual(data['status'], 'error')
+        self.assertEqual(data['message'], 'Falha ao processar assinatura push.')

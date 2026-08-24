@@ -1,4 +1,5 @@
 import hmac
+import logging
 from decimal import Decimal
 
 from django.contrib.auth.decorators import login_required
@@ -17,6 +18,8 @@ from wallets.models import Account
 
 from .services import get_category_breakdown
 
+logger = logging.getLogger(__name__)
+
 
 def health_check_view(request):
     """Health check endpoint for Cloud Run and uptime monitoring."""
@@ -25,8 +28,9 @@ def health_check_view(request):
     try:
         connection.ensure_connection()
         return JsonResponse({'status': 'healthy', 'database': 'connected'}, status=200)
-    except Exception as e:
-        return JsonResponse({'status': 'unhealthy', 'error': str(e)}, status=503)
+    except Exception:
+        logger.exception("Health check failed")
+        return JsonResponse({'status': 'unhealthy', 'database': 'disconnected'}, status=503)
 
 
 @csrf_exempt

@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 
 from django.contrib import messages
@@ -342,9 +343,6 @@ def transaction_confirm_delete_view(request, pk):
 
     if tx.bill and tx.bill.status == 'paid':
         if request.headers.get('HX-Request'):
-            import json
-
-            from django.http import HttpResponse
             response = HttpResponse(status=204)
             response['HX-Trigger'] = json.dumps({
                 'show-toast': {'message': 'Transações de faturas já pagas não podem ser excluídas.', 'type': 'error'}
@@ -375,9 +373,6 @@ def transaction_delete_view(request, pk):
 
     if tx.bill and tx.bill.status == 'paid':
         if request.headers.get('HX-Request'):
-            import json
-
-            from django.http import HttpResponse
             response = HttpResponse(status=204)
             response['HX-Trigger'] = json.dumps({
                 'show-toast': {'message': 'Transações de faturas já pagas não podem ser excluídas.', 'type': 'error'}

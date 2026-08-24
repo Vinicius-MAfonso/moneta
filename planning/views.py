@@ -1,18 +1,28 @@
+import json
 from decimal import Decimal
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from transactions.models import Category
+from wallets.models import Account
 
 from .models import Budget, Goal
+from .services import (
+    create_budget,
+    create_goal,
+    delete_budget,
+    delete_goal,
+    deposit_to_goal,
+    get_budgets_with_progress,
+)
 
 
 @login_required(login_url='users_web:login')
 def planning_list_view(request):
-    from planning.services import get_budgets_with_progress
-    
     raw_goals = Goal.objects.filter(user=request.user)
 
     goals = []
@@ -43,7 +53,6 @@ def budget_create_view(request):
             start_date = request.POST.get('start_date')
             end_date = request.POST.get('end_date') or None
 
-            from planning.services import create_budget
             create_budget(
                 user=request.user,
                 category_id=category_id,
@@ -52,22 +61,16 @@ def budget_create_view(request):
                 end_date=end_date,
             )
             if request.headers.get('HX-Request'):
-                from django.contrib import messages
                 messages.success(request, "Orçamento criado com sucesso!")
-                from django.http import HttpResponse
                 response = HttpResponse(status=204)
                 response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
         except Exception as e:
             if request.headers.get('HX-Request'):
-                import json
-
-                from django.http import HttpResponse
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {e!s}', 'type': 'error'}})
                 return response
-            from django.contrib import messages
             messages.error(request, f"Erro: {e!s}")
             return redirect('planning_web:list')
 
@@ -89,12 +92,9 @@ def budget_confirm_delete_view(request, pk):
 def budget_delete_view(request, pk):
     budget = get_object_or_404(Budget, pk=pk, user=request.user)
     if request.method in ['POST', 'DELETE']:
-        from planning.services import delete_budget
         delete_budget(budget)
-        from django.contrib import messages
         messages.success(request, "Orçamento excluído com sucesso!")
         if request.headers.get('HX-Request'):
-            from django.http import HttpResponse
             response = HttpResponse(status=204)
             response['HX-Redirect'] = reverse('planning_web:list')
             return response
@@ -111,10 +111,8 @@ def goal_create_view(request):
             start_date = request.POST.get('start_date')
             end_date = request.POST.get('end_date') or None
             account_id = request.POST.get('account')
-            from wallets.models import Account
             account = Account.objects.get(id=account_id, user=request.user) if account_id else None
 
-            from planning.services import create_goal
             create_goal(
                 user=request.user,
                 account=account,
@@ -125,26 +123,19 @@ def goal_create_view(request):
                 end_date=end_date,
             )
             if request.headers.get('HX-Request'):
-                from django.contrib import messages
                 messages.success(request, "Objetivo criado com sucesso!")
-                from django.http import HttpResponse
                 response = HttpResponse(status=204)
                 response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
         except Exception as e:
             if request.headers.get('HX-Request'):
-                import json
-
-                from django.http import HttpResponse
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {e!s}', 'type': 'error'}})
                 return response
-            from django.contrib import messages
             messages.error(request, f"Erro: {e!s}")
             return redirect('planning_web:list')
 
-    from wallets.models import Account
     accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
     return render(request, 'planning/partials/goal_form.html', {'accounts': accounts})
 
@@ -156,25 +147,18 @@ def goal_deposit_view(request, pk):
         try:
             amount = Decimal(request.POST.get('amount') or '0')
             if amount > 0:
-                from planning.services import deposit_to_goal
                 deposit_to_goal(goal, amount)
             if request.headers.get('HX-Request'):
-                from django.contrib import messages
                 messages.success(request, "Depósito realizado!")
-                from django.http import HttpResponse
                 response = HttpResponse(status=204)
                 response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
         except Exception as e:
             if request.headers.get('HX-Request'):
-                import json
-
-                from django.http import HttpResponse
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {e!s}', 'type': 'error'}})
                 return response
-            from django.contrib import messages
             messages.error(request, f"Erro: {e!s}")
             return redirect('planning_web:list')
 
@@ -196,13 +180,11 @@ def goal_confirm_delete_view(request, pk):
 def goal_delete_view(request, pk):
     goal = get_object_or_404(Goal, pk=pk, user=request.user)
     if request.method in ['POST', 'DELETE']:
-        from planning.services import delete_goal
         delete_goal(goal)
-        from django.contrib import messages
         messages.success(request, "Objetivo excluído com sucesso!")
         if request.headers.get('HX-Request'):
-            from django.http import HttpResponse
             response = HttpResponse(status=204)
             response['HX-Redirect'] = reverse('planning_web:list')
             return response
         return redirect('planning_web:list')
+

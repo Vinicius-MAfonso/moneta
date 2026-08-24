@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.conf import settings
 from django.contrib import messages
@@ -6,6 +7,7 @@ from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 
 from transactions.models import Category
@@ -13,6 +15,7 @@ from wallets.models import Account
 
 from .models import PushSubscription
 
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -26,9 +29,12 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            next_url = request.GET.get('next') or 'dashboard'
-            from django.utils.http import url_has_allowed_host_and_scheme
-            if next_url != 'dashboard' and not url_has_allowed_host_and_scheme(url=next_url, allowed_hosts={request.get_host()}):
+            next_url = request.GET.get('next')
+            if not next_url or not url_has_allowed_host_and_scheme(
+                url=next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
                 next_url = 'dashboard'
             return redirect(next_url)
         else:
@@ -198,8 +204,9 @@ def save_push_subscription(request):
                 subscription.save()
 
             return JsonResponse({'status': 'success', 'message': 'Subscription saved'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        except Exception:
+            logger.exception("Erro ao salvar assinatura push.")
+            return JsonResponse({'status': 'error', 'message': 'Falha ao processar assinatura push.'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
 
 
@@ -212,6 +219,7 @@ def delete_push_subscription(request):
             if endpoint:
                 PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
             return JsonResponse({'status': 'success', 'message': 'Subscription deleted'})
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        except Exception:
+            logger.exception("Erro ao remover assinatura push.")
+            return JsonResponse({'status': 'error', 'message': 'Falha ao remover assinatura push.'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
