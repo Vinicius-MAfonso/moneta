@@ -4,9 +4,9 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:$COMMIT_SHA'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:$COMMIT_SHA'
       - '-t'
-      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:latest'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:latest'
       - '.'
 
   # 2. Push image to Artifact Registry
@@ -14,17 +14,17 @@ steps:
     args:
       - 'push'
       - '--all-tags'
-      - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}'
 
-  # 3. Deploy to Cloud Run (São Paulo region)
+  # 3. Deploy to Cloud Run (Free Tier Optimized)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
       - 'run'
       - 'deploy'
-      - 'moneta-web'
-      - '--image=southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:$COMMIT_SHA'
-      - '--region=southamerica-east1'
+      - '${_SERVICE_NAME}'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:$COMMIT_SHA'
+      - '--region=${_REGION}'
       - '--platform=managed'
       - '--allow-unauthenticated'
       - '--min-instances=0'
@@ -32,7 +32,14 @@ steps:
       - '--memory=512Mi'
       - '--cpu=1'
       - '--port=8080'
+      - '--timeout=120'
+
+substitutions:
+  _REGION: 'southamerica-east1'
+  _REPO_NAME: 'moneta'
+  _SERVICE_NAME: 'moneta-web'
 
 images:
-  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:$COMMIT_SHA'
-  - 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/moneta/moneta-web:latest'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:$COMMIT_SHA'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO_NAME}/${_SERVICE_NAME}:latest'
+

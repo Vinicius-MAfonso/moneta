@@ -14,6 +14,19 @@ from wallets.models import Account
 from .services import get_category_breakdown
 
 
+def health_check_view(request):
+    """Health check endpoint for Cloud Run and uptime monitoring."""
+    from django.db import connection
+    from django.http import JsonResponse
+
+    try:
+        connection.ensure_connection()
+        return JsonResponse({'status': 'healthy', 'database': 'connected'}, status=200)
+    except Exception as e:
+        return JsonResponse({'status': 'unhealthy', 'error': str(e)}, status=503)
+
+
+
 @login_required(login_url='users_web:login')
 def dashboard_view(request):
     user = request.user
