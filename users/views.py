@@ -30,13 +30,13 @@ def login_view(request):
         if user is not None:
             login(request, user)
             next_url = request.GET.get('next')
-            if not next_url or not url_has_allowed_host_and_scheme(
+            if next_url and url_has_allowed_host_and_scheme(
                 url=next_url,
                 allowed_hosts={request.get_host()},
                 require_https=request.is_secure(),
             ):
-                next_url = 'dashboard'
-            return redirect(next_url)
+                return redirect(next_url)
+            return redirect('dashboard')
         else:
             user_obj = User.objects.filter(username=username).first()
             if user_obj and user_obj.check_password(password) and not user_obj.is_active:
