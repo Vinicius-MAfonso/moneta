@@ -86,7 +86,7 @@ gcloud artifacts repositories create $REPO_NAME \
 # 4. Construa e envie a imagem
 gcloud builds submit --tag "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest"
 
-# 5. Faça o Deploy no Cloud Run
+# 5. Faça o Deploy no Cloud Run (com delimitador seguro ^||^)
 gcloud run deploy $SERVICE_NAME \
     --image "${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest" \
     --region $REGION \
@@ -97,7 +97,7 @@ gcloud run deploy $SERVICE_NAME \
     --memory 512Mi \
     --cpu 1 \
     --port 8080 \
-    --set-env-vars "DEBUG=False,SECRET_KEY=$(openssl rand -hex 32),DATABASE_URL=SUA_DATABASE_URL_DO_NEON,ALLOWED_HOSTS=*,CSRF_TRUSTED_ORIGINS=https://*.run.app"
+    --set-env-vars "^||^DEBUG=False||SECRET_KEY=$(openssl rand -hex 32)||DATABASE_URL=SUA_DATABASE_URL_DO_NEON||ALLOWED_HOSTS=*||CSRF_TRUSTED_ORIGINS=https://*.run.app,https://*.a.run.app"
 ```
 
 ---

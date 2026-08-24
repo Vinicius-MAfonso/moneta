@@ -112,20 +112,29 @@ gcloud builds submit \
 
 echo -e "\n${YELLOW}==> Deploying service '${SERVICE_NAME}' to Cloud Run...${NC}"
 
-ENV_VARS="DEBUG=False"
-ENV_VARS+=",SECRET_KEY=${SECRET_KEY}"
-ENV_VARS+=",DATABASE_URL=${DATABASE_URL}"
-ENV_VARS+=",ALLOWED_HOSTS=*"
-ENV_VARS+=",CSRF_TRUSTED_ORIGINS=https://*.run.app,https://*.a.run.app"
+# Write temporary YAML env file to avoid comma/delimiter escaping issues in gcloud
+ENV_FILE=$(mktemp ./env_vars.XXXXXX.yaml)
+chmod 600 "$ENV_FILE"
+trap 'rm -f "$ENV_FILE"' EXIT
+
+cat <<EOF > "$ENV_FILE"
+DEBUG: "False"
+SECRET_KEY: "${SECRET_KEY}"
+DATABASE_URL: "${DATABASE_URL}"
+ALLOWED_HOSTS: "*"
+CSRF_TRUSTED_ORIGINS: "https://*.run.app,https://*.a.run.app"
+EOF
 
 if [ -n "$BREVO_API_KEY" ]; then
-    ENV_VARS+=",BREVO_API_KEY=${BREVO_API_KEY}"
+    echo "BREVO_API_KEY: \"${BREVO_API_KEY}\"" >> "$ENV_FILE"
 fi
 
 if [ -n "$DJANGO_SUPERUSER_USERNAME" ]; then
-    ENV_VARS+=",DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}"
-    ENV_VARS+=",DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}"
-    ENV_VARS+=",DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}"
+    cat <<EOF >> "$ENV_FILE"
+DJANGO_SUPERUSER_USERNAME: "${DJANGO_SUPERUSER_USERNAME}"
+DJANGO_SUPERUSER_EMAIL: "${DJANGO_SUPERUSER_EMAIL}"
+DJANGO_SUPERUSER_PASSWORD: "${DJANGO_SUPERUSER_PASSWORD}"
+EOF
 fi
 
 gcloud run deploy "$SERVICE_NAME" \
@@ -139,8 +148,9 @@ gcloud run deploy "$SERVICE_NAME" \
     --cpu=1 \
     --port=8080 \
     --timeout=120 \
-    --set-env-vars="$ENV_VARS" \
+    --env-vars-file="$ENV_FILE" \
     --project="$PROJECT_ID"
+
 
 SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --region="$REGION" --project="$PROJECT_ID" --format='value(status.url)')
 
