@@ -266,6 +266,71 @@ class WalletsServicesTestCase(TestCase):
         self.assertEqual(cc.used_limit, Decimal('1500.00'))
         self.assertEqual(cc.limit_usage_pct, Decimal('30.00'))
 
+    def test_credit_card_limit_recurring_vs_installments(self):
+        from datetime import timedelta
+        from decimal import Decimal
+
+        from django.utils import timezone
+
+        from moneta.common import TransactionType
+        from transactions.models import Category, RecurringTransaction, Transaction
+        from wallets.services import recalculate_account_balance
+
+        cc = self.cc_account.credit_card_details
+        self.assertEqual(cc.available_limit, Decimal('5000.00'))
+        self.assertEqual(cc.used_limit, Decimal('0.00'))
+
+        cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Streaming', defaults={'type': TransactionType.EXPENSE})
+        today = timezone.now().date()
+
+        # 1. Add recurring subscription (e.g. Netflix 50.00) with 1 current charge and 5 future projections
+        recurring = RecurringTransaction.objects.create(
+            user=self.user, account=self.cc_account, category=cat_expense,
+            description='Netflix', amount=Decimal('50.00'), frequency='monthly',
+            start_date=today
+        )
+
+        # Current occurrence (today)
+        Transaction.objects.create(
+            user=self.user, account=self.cc_account, category=cat_expense,
+            description='Netflix 1', amount=Decimal('50.00'), date=today,
+            status=Transaction.Statuses.PENDING, recurring=recurring
+        )
+
+        # 5 Future occurrences
+        for i in range(1, 6):
+            future_date = today + timedelta(days=30 * i)
+            Transaction.objects.create(
+                user=self.user, account=self.cc_account, category=cat_expense,
+                description=f'Netflix {i+1}', amount=Decimal('50.00'), date=future_date,
+                status=Transaction.Statuses.PENDING, recurring=recurring
+            )
+
+        recalculate_account_balance(self.cc_account)
+        cc.refresh_from_db()
+
+        # Only the current occurrence (50.00) should consume the limit, NOT all 6 occurrences (300.00)
+        self.assertEqual(cc.used_limit, Decimal('50.00'))
+        self.assertEqual(cc.available_limit, Decimal('4950.00'))
+
+        # 2. Add an installment purchase (e.g. Smartphone 3x 500.00 = 1500.00)
+        # All installments (including future ones) MUST consume the limit upfront
+        for i in range(3):
+            inst_date = today + timedelta(days=30 * i)
+            Transaction.objects.create(
+                user=self.user, account=self.cc_account, category=cat_expense,
+                description=f'Smartphone ({i+1}/3)', amount=Decimal('500.00'), date=inst_date,
+                status=Transaction.Statuses.PENDING,
+                installment_number=i + 1, total_installments=3
+            )
+
+        recalculate_account_balance(self.cc_account)
+        cc.refresh_from_db()
+
+        # Total used should now be 50.00 (subscription) + 1500.00 (installments) = 1550.00
+        self.assertEqual(cc.used_limit, Decimal('1550.00'))
+        self.assertEqual(cc.available_limit, Decimal('3450.00'))
+
     def test_reconcile_balances_management_command(self):
         from io import StringIO
 

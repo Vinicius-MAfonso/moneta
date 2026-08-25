@@ -4,6 +4,7 @@ from django.db import models
 
 
 def recalculate_account_balance(account):
+    from django.utils import timezone
     from moneta.common import TransactionType
     from transactions.models import Transaction, Transfer
     from wallets.models import Account
@@ -12,23 +13,52 @@ def recalculate_account_balance(account):
     if account.type == Account.Types.CREDIT_CARD:
         status_filter.append(Transaction.Statuses.PENDING)
 
-    completed_txs = Transaction.objects.filter(
+    txs_query = Transaction.objects.filter(
         account=account,
         status__in=status_filter,
     ).exclude(category__type=TransactionType.TRANSFER)
 
-    incomes = completed_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    expenses = completed_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-
-    transfers_out = Transfer.objects.filter(
+    transfers_out_query = Transfer.objects.filter(
         out_transaction__account=account,
         out_transaction__status__in=status_filter,
-    ).aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
+    )
 
-    transfers_in = Transfer.objects.filter(
+    transfers_in_query = Transfer.objects.filter(
         in_transaction__account=account,
         in_transaction__status__in=status_filter,
-    ).aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
+    )
+
+    if account.type == Account.Types.CREDIT_CARD:
+        today = timezone.now().date()
+        # Future projections/subscriptions (recurring or single transactions without installments)
+        # should not consume the credit card limit upfront.
+        # Only installments (installment_number is not null) consume the limit upfront across future months.
+        future_exclusion = models.Q(
+            status=Transaction.Statuses.PENDING,
+            date__gt=today,
+            installment_number__isnull=True
+        )
+        txs_query = txs_query.exclude(future_exclusion)
+
+        future_transfer_out_exclusion = models.Q(
+            out_transaction__status=Transaction.Statuses.PENDING,
+            out_transaction__date__gt=today,
+            out_transaction__installment_number__isnull=True
+        )
+        transfers_out_query = transfers_out_query.exclude(future_transfer_out_exclusion)
+
+        future_transfer_in_exclusion = models.Q(
+            in_transaction__status=Transaction.Statuses.PENDING,
+            in_transaction__date__gt=today,
+            in_transaction__installment_number__isnull=True
+        )
+        transfers_in_query = transfers_in_query.exclude(future_transfer_in_exclusion)
+
+    incomes = txs_query.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+    expenses = txs_query.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+
+    transfers_out = transfers_out_query.aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
+    transfers_in = transfers_in_query.aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
 
     new_balance = account.initial_balance + incomes - expenses - transfers_out + transfers_in
     new_balance = Decimal(new_balance).quantize(Decimal('.01'))
