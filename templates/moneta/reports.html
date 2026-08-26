@@ -12,14 +12,14 @@
         
         <form method="GET" action="{% url 'reports' %}" class="flex flex-wrap items-center gap-3">
             <div class="flex items-center space-x-2">
-                <input type="date" name="start_date" value="{{ start_date }}" class="bg-white border border-slate-300 text-sm rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500">
-                <span class="text-slate-500">até</span>
-                <input type="date" name="end_date" value="{{ end_date }}" class="bg-white border border-slate-300 text-sm rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500">
+                <input type="date" name="start_date" aria-label="Data inicial" value="{{ start_date }}" class="bg-white border border-slate-300 text-sm rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
+                <span class="text-xs font-semibold text-slate-500">até</span>
+                <input type="date" name="end_date" aria-label="Data final" value="{{ end_date }}" class="bg-white border border-slate-300 text-sm rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
             </div>
-            <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-lg shadow transition">
+            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition">
                 Filtrar
             </button>
-            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="px-4 py-2 bg-slate-200 text-slate-800 hover:bg-slate-300 text-sm font-semibold rounded-lg transition inline-flex items-center gap-2">
+            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl transition shadow-sm inline-flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 Exportar CSV
             </a>
@@ -110,14 +110,20 @@
 {{ pie_colors|json_script:"pie-colors" }}
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const timelineLabels = JSON.parse(document.getElementById('timeline-labels').textContent);
+    function renderReportsCharts() {
+        const timelineLabelsEl = document.getElementById('timeline-labels');
+        if (!timelineLabelsEl) return;
+        
+        const timelineLabels = JSON.parse(timelineLabelsEl.textContent);
         const timelineIncomes = JSON.parse(document.getElementById('timeline-incomes').textContent);
         const timelineExpenses = JSON.parse(document.getElementById('timeline-expenses').textContent);
         
         const timelineCtx = document.getElementById('timelineChart');
         if (timelineCtx) {
-            new Chart(timelineCtx, {
+            if (window.reportsTimelineChartInstance) {
+                window.reportsTimelineChartInstance.destroy();
+            }
+            window.reportsTimelineChartInstance = new Chart(timelineCtx, {
                 type: 'line',
                 data: {
                     labels: timelineLabels,
@@ -166,7 +172,7 @@
                         y: { 
                             ticks: { 
                                 color: '#475569',
-                                callback: function(value, index, values) {
+                                callback: function(value) {
                                     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: "compact", compactDisplay: "short" }).format(value);
                                 }
                             }, 
@@ -177,13 +183,20 @@
             });
         }
 
-        const pieLabels = JSON.parse(document.getElementById('pie-labels').textContent);
-        const pieData = JSON.parse(document.getElementById('pie-data').textContent);
-        const pieColors = JSON.parse(document.getElementById('pie-colors').textContent);
-        
+        const pieLabelsEl = document.getElementById('pie-labels');
+        const pieDataEl = document.getElementById('pie-data');
+        const pieColorsEl = document.getElementById('pie-colors');
         const categoryCtx = document.getElementById('categoryChart');
-        if (categoryCtx) {
-            new Chart(categoryCtx, {
+
+        if (categoryCtx && pieLabelsEl && pieDataEl && pieColorsEl) {
+            const pieLabels = JSON.parse(pieLabelsEl.textContent);
+            const pieData = JSON.parse(pieDataEl.textContent);
+            const pieColors = JSON.parse(pieColorsEl.textContent);
+            
+            if (window.reportsCategoryChartInstance) {
+                window.reportsCategoryChartInstance.destroy();
+            }
+            window.reportsCategoryChartInstance = new Chart(categoryCtx, {
                 type: 'doughnut',
                 data: {
                     labels: pieLabels,
@@ -215,6 +228,9 @@
                 }
             });
         }
-    });
+    }
+
+    document.addEventListener("DOMContentLoaded", renderReportsCharts);
+    document.addEventListener("htmx:afterSettle", renderReportsCharts);
 </script>
 {% endblock %}

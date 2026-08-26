@@ -72,7 +72,7 @@ def register_view(request):
             except ValidationError as e:
                 messages.error(request, ' '.join(e.messages))
                 return render(request, 'users/register.html')
-                
+
             User.objects.create_user(
                 username=username,
                 email=email,
@@ -112,37 +112,53 @@ def settings_view(request):
 
 @csrf_exempt
 @login_required(login_url='users_web:login')
-def import_ofx_view(request):
-    if request.method == 'POST' and request.FILES.get('ofx_file'):
-        ofx_file = request.FILES['ofx_file']
+def import_file_view(request):
+    upload_file = request.FILES.get('file') or request.FILES.get('ofx_file')
+    if request.method == 'POST' and upload_file:
+        filename = upload_file.name.lower()
         try:
-            from users.services import parse_ofx_file
-            transactions = parse_ofx_file(ofx_file)
-            
+            from users.services import parse_csv_file, parse_ofx_file
+
+            if filename.endswith('.ofx'):
+                transactions = parse_ofx_file(upload_file)
+            elif filename.endswith(('.csv', '.txt')):
+                transactions = parse_csv_file(upload_file)
+            else:
+                # Tenta OFX primeiro, se falhar tenta CSV
+                try:
+                    transactions = parse_ofx_file(upload_file)
+                except Exception:
+                    transactions = parse_csv_file(upload_file)
+
             if not transactions:
-                messages.warning(request, 'O arquivo OFX foi lido, mas não contém nenhuma transação.')
+                messages.warning(request, 'O arquivo foi lido, mas nenhuma transação válida foi encontrada.')
                 return redirect('users_web:settings')
-                
-            request.session['ofx_transactions'] = transactions
-            messages.info(request, f'Foram lidas {len(transactions)} transações. Revise-as abaixo.')
+
+            request.session['import_transactions'] = transactions
+            request.session['ofx_transactions'] = transactions  # retrocompatibilidade
+            messages.info(request, f'Foram lidas {len(transactions)} transações do extrato. Revise os lançamentos abaixo.')
             return redirect('users_web:import_review')
-            
-        except Exception:
-            messages.error(request, 'Erro ao ler arquivo OFX. Verifique se o formato é válido.')
+
+        except Exception as e:
+            messages.error(request, f'Erro ao processar arquivo: {e!s}')
             return redirect('users_web:settings')
     else:
-        messages.warning(request, 'Nenhum arquivo OFX foi enviado.')
-            
+        messages.warning(request, 'Nenhum arquivo de extrato (.OFX ou .CSV) foi enviado.')
+
     return redirect('users_web:settings')
+
+
+# Alias para retrocompatibilidade
+import_ofx_view = import_file_view
 
 
 @csrf_exempt
 @login_required(login_url='users_web:login')
 def import_review_view(request):
-    transactions = request.session.get('ofx_transactions', [])
-    
+    transactions = request.session.get('import_transactions') or request.session.get('ofx_transactions', [])
+
     if not transactions:
-        messages.warning(request, 'Nenhuma transação na memória. Faça o upload novamente.')
+        messages.warning(request, 'Nenhuma transação na memória. Faça o upload do extrato novamente.')
         return redirect('users_web:settings')
 
     if request.method == 'POST':
@@ -150,33 +166,53 @@ def import_review_view(request):
         if not account_id:
             messages.error(request, 'Selecione uma conta de destino.')
             return redirect('users_web:import_review')
-            
+
         account = get_object_or_404(Account, id=account_id, user=request.user)
-        
+
         try:
-            from users.services import process_ofx_transactions
-            saved_count = process_ofx_transactions(request.user, account, transactions, request.POST)
+            from users.services import process_import_transactions
+            saved_count = process_import_transactions(request.user, account, transactions, request.POST)
         except Exception as e:
             messages.error(request, f"Erro ao importar transações: {e!s}")
             return redirect('users_web:import_review')
-                
+
+        if 'import_transactions' in request.session:
+            del request.session['import_transactions']
         if 'ofx_transactions' in request.session:
             del request.session['ofx_transactions']
-            
+
         messages.success(request, f'{saved_count} transações importadas com sucesso!')
         return redirect('dashboard')
 
-    accounts = Account.objects.filter(user=request.user, type='checking')
+    from users.services import enrich_transactions_with_suggestions_and_duplicates
+    transactions = enrich_transactions_with_suggestions_and_duplicates(request.user, transactions)
+    # Atualiza sessão com os enriquecimentos
+    request.session['import_transactions'] = transactions
+
+    # Suporta Contas Correntes e Outras contas (Poupança/Investimentos)
+    accounts = Account.objects.filter(
+        user=request.user,
+        type__in=[Account.Types.CHECKING, Account.Types.OTHER],
+        active=True
+    ).order_by('name')
+
     categories = Category.objects.filter(user=request.user, is_system=False).order_by('type', 'name')
-    
+
+    suggestions_count = sum(1 for t in transactions if t.get('suggested_category_id'))
+    duplicates_count = sum(1 for t in transactions if t.get('is_duplicate'))
+
     context = {
         'transactions': transactions,
         'accounts': accounts,
         'categories': categories,
+        'total_count': len(transactions),
+        'suggestions_count': suggestions_count,
+        'duplicates_count': duplicates_count,
     }
     return render(request, 'users/import_review.html', context)
 
 
+@csrf_exempt
 @login_required
 def save_push_subscription(request):
     if request.method == 'POST':
@@ -188,7 +224,7 @@ def save_push_subscription(request):
             auth = keys.get('auth')
 
             if not endpoint or not p256dh or not auth:
-                return JsonResponse({'status': 'error', 'message': 'Invalid data'}, status=400)
+                return JsonResponse({'status': 'error', 'message': 'Invalid subscription payload'}, status=400)
 
             subscription, created = PushSubscription.objects.get_or_create(
                 user=request.user,
@@ -198,7 +234,6 @@ def save_push_subscription(request):
                     'auth': auth
                 }
             )
-            
             if not created:
                 subscription.p256dh = p256dh
                 subscription.auth = auth
@@ -224,3 +259,4 @@ def delete_push_subscription(request):
             logger.exception("Erro ao remover assinatura push.")
             return JsonResponse({'status': 'error', 'message': 'Falha ao remover assinatura push.'}, status=400)
     return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
+

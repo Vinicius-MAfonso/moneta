@@ -4,7 +4,7 @@
 <div class="space-y-6 max-w-4xl">
     <div>
         <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Perfil & Configurações</h2>
-        <p class="text-slate-500 text-sm mt-1">Gerencie suas informações pessoais, foto de perfil, moeda padrão e fuso horário</p>
+        <p class="text-slate-500 text-sm mt-1">Gerencie suas informações de perfil, notificações push e importações de extratos bancários</p>
     </div>
     <div class="glass-panel p-6 rounded-2xl">
         <form method="POST" action="{% url 'users_web:settings' %}" enctype="multipart/form-data" class="space-y-6">
@@ -53,15 +53,15 @@
         <div>
             <h3 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
                 <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                <span>Importar Extrato Bancário</span>
+                <span>Importar Extrato Bancário (OFX / CSV)</span>
             </h3>
-            <p class="text-sm text-slate-500 mt-1">Faça upload do extrato em formato <strong>.OFX</strong> fornecido pelo seu banco para lançar as transações automaticamente.</p>
+            <p class="text-sm text-slate-500 mt-1">Faça upload do extrato bancário em formato <strong>.OFX</strong> ou <strong>.CSV</strong> (Nubank, Inter, Itaú, BB, etc.) com auto-sugestão de categorias e detecção de duplicatas.</p>
         </div>
         
-        <form method="POST" action="{% url 'users_web:import_ofx' %}" enctype="multipart/form-data" class="mt-5 space-y-4">
+        <form method="POST" action="{% url 'users_web:import_file' %}" enctype="multipart/form-data" class="mt-5 space-y-4">
             {% csrf_token %}
             <div>
-                <input type="file" name="ofx_file" accept=".ofx" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer transition">
+                <input type="file" name="file" aria-label="Arquivo de extrato bancário (.OFX ou .CSV)" accept=".ofx,.csv,.txt" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer transition">
             </div>
             <div class="flex justify-end">
                 <button type="submit" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm transition-all shadow-lg">

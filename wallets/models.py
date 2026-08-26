@@ -146,3 +146,13 @@ class CreditCardBill(models.Model):
 
     def __str__(self):
         return f"Fatura {self.period_date.strftime('%m/%Y')} - {self.account.name}"
+
+    @property
+    def total_amount(self):
+        from wallets.services import get_bill_summary
+        return get_bill_summary(self)['total']
+
+    @property
+    def remaining_amount(self):
+        from wallets.services import get_bill_summary
+        return get_bill_summary(self)['remaining_amount']
