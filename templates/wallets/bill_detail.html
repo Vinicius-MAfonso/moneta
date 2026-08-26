@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}Fatura {{ bill.period_date|date:"F Y" }} - {{ bill.account.name }} - Moneta{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
@@ -72,7 +73,7 @@
                             <span class="text-lg">{{ tx.category.icon|default:"" }}</span>
                         </div>
                         <div class="min-w-0">
-                            {% if hasattr_transfer_in and tx.transfer_in %}
+                            {% if tx.transfer_in %}
                                 <p class="font-semibold text-violet-700 text-sm truncate flex items-center gap-1.5">
                                     <span>💳</span><span>Pagamento da Fatura</span>
                                 </p>
@@ -81,7 +82,7 @@
                             {% endif %}
                             <div class="flex items-center gap-2 mt-0.5 overflow-hidden flex-wrap">
                                 <span class="text-xs text-slate-500 whitespace-nowrap">{{ tx.date|date:"d M, Y" }}</span>
-                                {% if not hasattr_transfer_in or not tx.transfer_in %}
+                                {% if not tx.transfer_in %}
                                     <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium truncate max-w-full">{{ tx.category.name }}</span>
                                 {% endif %}
                             </div>
@@ -109,12 +110,12 @@
 </div>
 <div x-data="{ open: false }" @open-pay-modal.window="open = true" @keydown.esc.window="open = false">
     <template x-teleport="body">
-        <div x-show="open" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-transition.opacity style="display: none;" x-cloak>
+        <div x-show="open" role="dialog" aria-modal="true" aria-labelledby="pay-bill-modal-title" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" x-transition.opacity x-cloak>
             <div @click.away="open = false" x-show="open" x-transition.scale class="bg-white text-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-5 space-y-4 relative max-h-[90vh] overflow-y-auto">
                 <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-                    <h3 class="text-lg font-bold text-slate-900">Pagar Fatura</h3>
-                    <button @click="open = false" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <h3 id="pay-bill-modal-title" class="text-lg font-bold text-slate-900">Pagar Fatura</h3>
+                    <button @click="open = false" aria-label="Fechar modal" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition">
+                        <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
                 <form method="POST" action="{% url 'wallets_web:pay_bill' pk=bill.pk %}" class="space-y-4" x-data="{ selectedAccountBalance: null, paymentAmount: {{ remaining_amount|stringformat:'.2f' }} }">

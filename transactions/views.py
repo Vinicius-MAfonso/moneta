@@ -226,6 +226,8 @@ def transaction_create_view(request):
         'isRecurring': False,
         'frequency': 'monthly',
         'recurringEndDate': '',
+        'selectedCategoryId': '',
+        'status': 'concluída',
     }
 
     context = {
@@ -325,6 +327,8 @@ def transaction_update_view(request, pk):
         'isRecurring': transaction.recurring is not None,
         'frequency': transaction.recurring.frequency if transaction.recurring else 'monthly',
         'recurringEndDate': str(transaction.recurring.end_date) if transaction.recurring and transaction.recurring.end_date else '',
+        'selectedCategoryId': str(transaction.category.id) if transaction.category else '',
+        'status': transaction.status,
     }
 
     context = {

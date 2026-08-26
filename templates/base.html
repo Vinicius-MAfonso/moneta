@@ -88,9 +88,9 @@
             </div>
             <span class="font-bold text-xl tracking-tight text-slate-900">Moneta</span>
         </div>
-        <button @click="sidebarOpen = !sidebarOpen"
+        <button @click="sidebarOpen = !sidebarOpen" aria-label="Abrir menu de navegação"
             class="p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-6 h-6" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16">
                 </path>
             </svg>
@@ -257,11 +257,16 @@
         {% if messages %}
             <script>
                 document.addEventListener('DOMContentLoaded', () => {
-                    setTimeout(() => {
+                    const dispatchToasts = () => {
                         {% for msg in messages %}
                             window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: '{{ msg.message|escapejs }}', type: '{{ msg.tags }}' } }));
                         {% endfor %}
-                    }, 50);
+                    };
+                    if (window.Alpine) {
+                        queueMicrotask(dispatchToasts);
+                    } else {
+                        document.addEventListener('alpine:initialized', dispatchToasts, { once: true });
+                    }
                 });
             </script>
         {% endif %}
@@ -301,8 +306,8 @@
                     <span x-text="toast.message"></span>
                 </div>
                 
-                <button @click="removeToast(toast.id)" class="shrink-0 text-slate-400 hover:text-slate-700 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button @click="removeToast(toast.id)" aria-label="Fechar notificação" class="shrink-0 text-slate-400 hover:text-slate-700 transition">
+                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
         </template>

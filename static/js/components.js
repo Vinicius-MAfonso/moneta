@@ -10,6 +10,8 @@ document.addEventListener('alpine:init', () => {
         selectedAccountId: initialData.selectedAccountId,
         originalAmount: initialData.originalAmount,
         selectedAccountLimit: initialData.selectedAccountLimit,
+        selectedCategoryId: initialData.selectedCategoryId || '',
+        status: initialData.status || 'concluída',
         categories: initialData.categories,
         
         get availableLimit() {

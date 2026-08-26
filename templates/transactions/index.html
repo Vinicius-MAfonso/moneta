@@ -12,24 +12,24 @@
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
             <div class="inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-2xl px-3 py-1.5 shadow-sm text-sm font-bold text-slate-800">
-                <a href="?{{ request.GET.urlencode }}&month={{ month_info.prev_month }}" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                <a href="?{{ request.GET.urlencode }}&month={{ month_info.prev_month }}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                 </a>
                 <span class="px-2 min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs md:text-sm">{{ month_info.month_label }}</span>
-                <a href="?{{ request.GET.urlencode }}&month={{ month_info.next_month }}" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                <a href="?{{ request.GET.urlencode }}&month={{ month_info.next_month }}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </a>
             </div>
 
             <button hx-get="{% url 'transactions_web:create' %}" hx-target="#modal-container" class="inline-flex items-center space-x-2 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs md:text-sm transition-all shadow-lg shadow-indigo-600/25">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span>Nova Transação</span>
             </button>
         </div>
     </div>
 
     <div class="glass-panel p-4 rounded-2xl">
-        <form id="filter-form" hx-get="{% url 'transactions_web:list' %}" hx-target="#transaction-table-wrapper" hx-trigger="submit, change from:select, keyup delay:300ms from:input[name='search']" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+        <form id="filter-form" aria-label="Filtros de transações" hx-get="{% url 'transactions_web:list' %}" hx-target="#transaction-table-wrapper" hx-trigger="submit, change from:select, keyup delay:300ms from:input[name='search']" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <input type="hidden" name="month" value="{{ month_info.current_month_str }}">
             
             <div>

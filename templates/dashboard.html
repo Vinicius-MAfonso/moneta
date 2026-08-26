@@ -22,13 +22,13 @@
                 </select>
             </form>
 
-            <div class="inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-2xl px-3 py-1.5 shadow-sm text-sm font-bold text-slate-800 ">
-                <a href="?month={{ month_info.prev_month }}{% if selected_account_id %}&account_id={{ selected_account_id }}{% endif %}" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+            <div class="inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-2xl px-3 py-1.5 shadow-sm text-sm font-bold text-slate-800">
+                <a href="?month={{ month_info.prev_month }}{% if selected_account_id %}&account_id={{ selected_account_id }}{% endif %}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                 </a>
                 <span class="px-2 min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs md:text-sm">{{ month_info.month_label }}</span>
-                <a href="?month={{ month_info.next_month }}{% if selected_account_id %}&account_id={{ selected_account_id }}{% endif %}" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                <a href="?month={{ month_info.next_month }}{% if selected_account_id %}&account_id={{ selected_account_id }}{% endif %}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </a>
             </div>
 
@@ -82,18 +82,18 @@
             </div>
         </div>
 
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 ">Despesas (Mês)</span>
-                <div class="p-2 rounded-xl bg-rose-500/10 text-rose-500 ">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Despesas (Mês)</span>
+                <div class="p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                    <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
                 </div>
             </div>
             <p class="text-2xl md:text-3xl font-extrabold text-rose-600 mt-3">- R$ {{ monthly_expense|floatformat:2 }}</p>
             
-            <div class="mt-4 pt-3 border-t border-slate-200 ">
+            <div class="mt-4 pt-3 border-t border-slate-200">
                 <div class="flex items-center justify-between text-[11px] mb-1.5 font-semibold">
-                    <span class="text-slate-500 ">Gasto da Receita</span>
+                    <span class="text-slate-500">Gasto da Receita</span>
                     <span class="{% if economy_status == 'danger' %}text-rose-500{% elif economy_status == 'warning' %}text-amber-500{% else %}text-emerald-500{% endif %} font-bold">{{ economy_pct|floatformat:1 }}%</span>
                 </div>
                 <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
@@ -105,15 +105,15 @@
 
         <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 ">Balanço (Mês)</span>
-                <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 ">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 01-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Balanço (Mês)</span>
+                <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                    <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 01-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 </div>
             </div>
             <p class="text-2xl md:text-3xl font-extrabold {% if monthly_net_balance < 0 %}text-rose-600{% else %}text-emerald-600{% endif %} mt-3">
                 R$ {{ monthly_net_balance|floatformat:2 }}
             </p>
-            <div class="mt-3 flex items-center text-xs text-slate-500 ">
+            <div class="mt-3 flex items-center text-xs text-slate-500">
                 <span>Receitas vs Despesas</span>
             </div>
         </div>
@@ -168,7 +168,7 @@
                             <span class="text-slate-900 font-bold">R$ {{ item.total|floatformat:2 }} ({{ item.percentage }}%)</span>
                         </div>
                         <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                            <div class="h-full rounded-full transition-all duration-500" style="width: {{ item.percentage }}%; background-color: {{ item.color }};"></div>
+                            <div class="h-full rounded-full transition-all duration-500" style="width: min({{ item.percentage|floatformat:0 }}%, 100%); background-color: {{ item.color }};"></div>
                         </div>
                     </div>
                 {% empty %}
@@ -242,38 +242,37 @@
             </div>
         </div>
 
-            <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
-                <div>
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold text-slate-900 ">Minhas Contas</h3>
-                        <a href="{% url 'wallets_web:list' %}" class="text-xs text-indigo-600 hover:underline font-medium">Ver todas &rarr;</a>
-                    </div>
-                    <div class="space-y-3">
-                        {% for account in accounts %}
-                            <div class="p-3 rounded-xl bg-slate-100/80 border border-slate-200 ">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-3">
-                                        {% if account.icon %}
-                                            <span class="text-xl">{{ account.icon }}</span>
-                                        {% else %}
-                                            <div class="w-3 h-3 rounded-full" style="background-color: {{ account.color }};"></div>
-                                        {% endif %}
-                                        <div>
-                                            <p class="text-sm font-semibold text-slate-900 ">{{ account.name }}</p>
-                                            <p class="text-xs text-slate-500 capitalize">{{ account.get_type_display }}</p>
-                                        </div>
-                                    </div>
-                                    <span class="text-sm font-bold text-slate-900 ">R$ {{ account.balance|floatformat:2 }}</span>
-                                </div>
-
-                            </div>
-                        {% empty %}
-                            <p class="text-xs text-slate-500 py-4 text-center">Nenhuma conta cadastrada.</p>
-                        {% endfor %}
-                    </div>
+        <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold text-slate-900">Minhas Contas</h3>
+                    <a href="{% url 'wallets_web:list' %}" class="text-xs text-indigo-600 hover:underline font-medium">Ver todas &rarr;</a>
                 </div>
+                <div class="space-y-3">
+                    {% for account in accounts %}
+                        <div class="p-3 rounded-xl bg-slate-100/80 border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    {% if account.icon %}
+                                        <span class="text-xl">{{ account.icon }}</span>
+                                    {% else %}
+                                        <div class="w-3 h-3 rounded-full" style="background-color: {{ account.color }};"></div>
+                                    {% endif %}
+                                    <div>
+                                        <p class="text-sm font-semibold text-slate-900">{{ account.name }}</p>
+                                        <p class="text-xs text-slate-500 capitalize">{{ account.get_type_display }}</p>
+                                    </div>
+                                </div>
+                                <span class="text-sm font-bold text-slate-900">R$ {{ account.balance|floatformat:2 }}</span>
+                            </div>
+
+                        </div>
+                    {% empty %}
+                        <p class="text-xs text-slate-500 py-4 text-center">Nenhuma conta cadastrada.</p>
+                    {% endfor %}
                 </div>
             </div>
+        </div>
 
         <div class="lg:col-span-2 glass-panel p-6 rounded-2xl">
             <div class="flex items-center justify-between mb-6">

@@ -1,10 +1,10 @@
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4" x-data="payModal('{{ transaction.date|date:'Y-m-d' }}')" x-show="open" x-transition @keydown.escape.window="close()">
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" x-data="payModal('{{ transaction.date|date:"Y-m-d" }}')" x-show="open" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title" x-transition @keydown.escape.window="close()">
     <div class="bg-white text-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4 relative animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto" @click.stop>
         
         <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-            <h3 class="text-lg font-bold text-slate-900">Efetivar {% if transaction.category.type == 'despesa' %}Despesa{% elif transaction.category.type == 'receita' %}Receita{% else %}Transferência{% endif %}</h3>
-            <button @click="close()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            <h3 id="pay-modal-title" class="text-lg font-bold text-slate-900">Efetivar {% if transaction.category.type == 'despesa' %}Despesa{% elif transaction.category.type == 'receita' %}Receita{% else %}Transferência{% endif %}</h3>
+            <button @click="close()" aria-label="Fechar modal" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition">
+                <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
 
