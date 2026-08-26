@@ -146,3 +146,33 @@ def get_month_calendar_grid(user, start_date, end_date, account=None):
         })
 
     return grid
+
+
+def format_form_errors(form):
+    """
+    Retorna a primeira mensagem de erro limpa e amigável para exibição em toasts,
+    removendo a sintaxe de asteriscos e nomes técnicos de campos do Django.
+    """
+    if not form or not form.errors:
+        return "Preencha todos os campos obrigatórios corretamente."
+
+    for field, errors in form.errors.items():
+        if errors:
+            err = str(errors[0])
+            err = err.replace('0.01', '0,01')
+            if field == 'amount':
+                return f"Valor: {err}"
+            elif field == 'description':
+                return f"Descrição: {err}"
+            elif field == 'date':
+                return f"Data: {err}"
+            elif field == 'account':
+                return f"Conta: {err}"
+            elif field == 'category':
+                return f"Categoria: {err}"
+            elif field != '__all__':
+                field_label = form.fields.get(field).label if hasattr(form, 'fields') and field in form.fields and form.fields[field].label else field
+                return f"{field_label}: {err}" if field_label else err
+            return err
+
+    return "Verifique os dados informados no formulário."

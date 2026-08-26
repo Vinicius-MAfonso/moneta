@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from moneta.common import format_form_errors
 from wallets.models import Account
 
 
@@ -39,7 +40,7 @@ def account_create_view(request):
             messages.success(request, "Conta criada com sucesso!")
             return redirect('wallets_web:list')
         else:
-            error_msg = form.errors.as_text()
+            error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})
@@ -73,7 +74,7 @@ def account_update_view(request, pk):
             messages.success(request, "Conta atualizada com sucesso!")
             return redirect('wallets_web:list')
         else:
-            error_msg = form.errors.as_text()
+            error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})

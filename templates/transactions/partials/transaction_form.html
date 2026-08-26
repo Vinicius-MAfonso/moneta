@@ -43,9 +43,28 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="flex flex-col gap-6">
 
-                    <div>
+                    <div class="relative" @click.outside="showSuggestions = false">
                         <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Descrição</label>
-                        <input type="text" name="description" required value="{{ transaction.description|default:'' }}" :placeholder="txType === 'transferencia' ? 'Ex: Reserva, Nubank...' : 'Ex: Supermercado, Salário...'" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
+                        <input type="text" name="description" x-ref="descInput" required autocomplete="off" value="{{ transaction.description|default:'' }}" @input.debounce.200ms="onDescriptionInput($event.target.value)" @focus="if (matchingSuggestions.length > 0) showSuggestions = true" @blur="setTimeout(() => { showSuggestions = false }, 150)" @keydown.escape="showSuggestions = false" :placeholder="txType === 'transferencia' ? 'Ex: Reserva, Nubank...' : 'Ex: Supermercado, Salário...'" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
+
+                        <!-- Dropdown de Sugestões (apenas a partir da 3ª letra) -->
+                        <div x-show="showSuggestions && matchingSuggestions.length > 0" x-cloak
+                             class="absolute left-0 right-0 z-50 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                            <template x-for="(sug, idx) in matchingSuggestions" :key="sug">
+                                <button type="button" @mousedown.prevent="selectSuggestion(sug)"
+                                        :class="idx > 0 ? 'border-t border-slate-100' : ''"
+                                        class="w-full px-3.5 py-2.5 text-left text-xs font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 flex items-center justify-between transition">
+                                    <span x-text="sug" class="truncate font-semibold"></span>
+                                    <span class="text-[11px] text-indigo-500 shrink-0 ml-2 font-normal">Sugestão ✨</span>
+                                </button>
+                            </template>
+                        </div>
+
+                        <div x-show="autoFillActive" x-cloak class="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200/80 text-indigo-700 text-xs font-semibold animate-in fade-in duration-150">
+                            <span>✨</span>
+                            <span>Preenchimento automático</span>
+                            <button type="button" @click="clearAutoFill()" class="ml-1 text-indigo-400 hover:text-indigo-700 font-bold transition" aria-label="Fechar auto-preenchimento">×</button>
+                        </div>
                     </div>
 
                     <div class="flex flex-col gap-4">
@@ -149,7 +168,7 @@
                             <div class="flex flex-wrap gap-2 p-2.5 bg-slate-50  border border-slate-300  rounded-xl min-h-[42px] max-h-32 overflow-y-auto items-center">
                                 {% for tag in tags %}
                                     <label class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border text-slate-800  transition-all hover:scale-105 shadow-sm" style="background-color: {{ tag.color }}20; border-color: {{ tag.color }}50;">
-                                        <input type="checkbox" name="tags" value="{{ tag.id }}" aria-label="Tag {{ tag.name }}" class="rounded text-indigo-600 focus:ring-0" {% if transaction and tag in transaction.tags.all %}checked{% endif %}>
+                                        <input type="checkbox" name="tags" value="{{ tag.id }}" x-model="selectedTagIds" aria-label="Tag {{ tag.name }}" class="rounded text-indigo-600 focus:ring-0">
                                         <span class="w-2 h-2 rounded-full shadow-sm" style="background-color: {{ tag.color }}; border: 1px solid {{ tag.color }}80;"></span>
                                         <span>{{ tag.name }}</span>
                                     </label>

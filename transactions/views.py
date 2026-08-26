@@ -9,7 +9,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from moneta.common import TransactionType, get_month_context
+from moneta.common import TransactionType, format_form_errors, get_month_context
 from wallets.models import Account
 
 from .models import Category, Tag, Transaction
@@ -160,7 +160,7 @@ def transaction_create_view(request):
                 messages.success(request, "Transferência criada com sucesso!")
                 return redirect('transactions_web:list')
             else:
-                error_msg = form.errors.as_text()
+                error_msg = format_form_errors(form)
                 if request.headers.get('HX-Request'):
                     import json
                     response = HttpResponse(status=204)
@@ -211,7 +211,7 @@ def transaction_create_view(request):
             messages.success(request, "Transação criada com sucesso!")
             return redirect('transactions_web:list')
         else:
-            error_msg = form.errors.as_text()
+            error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 import json
                 response = HttpResponse(status=204)
@@ -221,6 +221,9 @@ def transaction_create_view(request):
                 return response
             messages.error(request, f"Erro ao criar transação: {error_msg}")
             return redirect('transactions_web:list')
+
+    from .services import get_user_description_habits
+    description_habits = get_user_description_habits(request.user)
 
     initial_tx_data = {
         'txType': 'despesa',
@@ -234,7 +237,9 @@ def transaction_create_view(request):
         'frequency': 'monthly',
         'recurringEndDate': '',
         'selectedCategoryId': '',
+        'selectedTagIds': [],
         'status': 'concluída',
+        'descriptionHabits': description_habits,
     }
 
     context = {
@@ -243,6 +248,7 @@ def transaction_create_view(request):
         'categories': categories,
         'tags': tags,
         'initial_tx_data': initial_tx_data,
+        'description_habits': description_habits,
     }
     return render(request, 'transactions/partials/transaction_form.html', context)
 
@@ -312,7 +318,7 @@ def transaction_update_view(request, pk):
             messages.success(request, "Transação atualizada com sucesso!")
             return redirect('transactions_web:list')
         else:
-            error_msg = form.errors.as_text()
+            error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 import json
                 response = HttpResponse(status=204)
@@ -335,7 +341,9 @@ def transaction_update_view(request, pk):
         'frequency': transaction.recurring.frequency if transaction.recurring else 'monthly',
         'recurringEndDate': str(transaction.recurring.end_date) if transaction.recurring and transaction.recurring.end_date else '',
         'selectedCategoryId': str(transaction.category.id) if transaction.category else '',
+        'selectedTagIds': [str(t.id) for t in transaction.tags.all()],
         'status': transaction.status,
+        'descriptionHabits': {},
     }
 
     context = {
@@ -461,7 +469,7 @@ def category_create_view(request):
             messages.success(request, "Categoria criada com sucesso!")
             return redirect('transactions_web:category_list')
         else:
-            error_msg = form.errors.as_text()
+            error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 import json
                 response = HttpResponse(status=204)
@@ -549,7 +557,7 @@ def tag_create_view(request):
             messages.success(request, "Tag criada com sucesso!")
             return redirect('transactions_web:category_list')
         else:
-            error_msg = form.errors.as_text()
+            error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 import json
                 response = HttpResponse(status=204)

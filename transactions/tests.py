@@ -376,4 +376,49 @@ class TransactionServicesTestCase(TestCase):
         self.assertTrue(Transaction.objects.filter(date=date(2026, 8, 1), recurring=rec).exists())
         self.assertFalse(Transaction.objects.filter(date=date(2026, 10, 1), recurring=rec).exists())
 
+    def test_get_user_description_habits(self):
+        from transactions.services import get_user_description_habits
+
+        tag_delivery = Tag.objects.create(user=self.user, name='Delivery', color='#FF5500')
+        tx = Transaction.objects.create(
+            user=self.user,
+            account=self.account1,
+            category=self.cat_expense,
+            description='iFood Lanche',
+            amount=Decimal('42.00'),
+            date=date(2026, 8, 15),
+            status=Transaction.Statuses.COMPLETED,
+        )
+        tx.tags.add(tag_delivery)
+
+        habits = get_user_description_habits(self.user)
+        self.assertIn('iFood Lanche', habits)
+        habit = habits['iFood Lanche']
+        self.assertEqual(habit['type'], TransactionType.EXPENSE)
+        self.assertEqual(habit['category_id'], str(self.cat_expense.id))
+        self.assertEqual(habit['account_id'], str(self.account1.id))
+        self.assertIn(str(tag_delivery.id), habit['tag_ids'])
+
+    def test_transaction_create_view_contains_description_habits(self):
+        self.client.force_login(self.user)
+        Transaction.objects.create(
+            user=self.user,
+            account=self.account1,
+            category=self.cat_expense,
+            description='Uber Viagem (1/2)',
+            amount=Decimal('25.50'),
+            date=date(2026, 8, 20),
+            status=Transaction.Statuses.COMPLETED,
+        )
+
+        res = self.client.get('/transactions/create/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIn('description_habits', res.context)
+        # Suffix (1/2) is cleanly stripped to 'Uber Viagem'
+        self.assertIn('Uber Viagem', res.context['description_habits'])
+        self.assertContains(res, 'Uber Viagem')
+        self.assertContains(res, 'Preenchimento automático')
+
+
+
 

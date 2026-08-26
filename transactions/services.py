@@ -360,3 +360,59 @@ def update_transaction(transaction, validated_data):
         recalculate_account_balance(old_account)
 
     return transaction
+
+
+def get_user_description_habits(user, limit=50):
+    """
+    Retorna um dicionário com os hábitos de transação do usuário por descrição limpa.
+    Ex: {'iFood': {'type': 'despesa', 'category_id': '...', 'account_id': '...', 'tag_ids': [...]}}
+    """
+    import re
+
+    from moneta.common import TransactionType
+    from transactions.models import Transaction
+
+    recent_txs = (
+        Transaction.objects.filter(user=user)
+        .exclude(category__type=TransactionType.TRANSFER)
+        .select_related('category', 'account')
+        .prefetch_related('tags')
+        .order_by('-created_at')[:300]
+    )
+
+    habits = {}
+    for tx in recent_txs:
+        raw_desc = (tx.description or '').strip()
+        if not raw_desc:
+            continue
+
+        # Limpa sufixos de parcelas como (1/3), (2/12) e (Recorrente)
+        desc = re.sub(r'\s*\(\d+/\d+\)', '', raw_desc)
+        desc = re.sub(r'\s*\(Recorrente\)', '', desc, flags=re.IGNORECASE)
+        desc = desc.strip()
+        if not desc:
+            continue
+
+        # Ignora reajustes automáticos de saldo
+        if desc.lower().startswith('reajuste de saldo'):
+            continue
+
+        desc_lower = desc.lower()
+        if any(k.lower() == desc_lower for k in habits):
+            continue
+
+        if not tx.account or not tx.account.active or not tx.category:
+            continue
+
+        habits[desc] = {
+            'type': tx.category.type,
+            'category_id': str(tx.category_id),
+            'account_id': str(tx.account_id),
+            'tag_ids': [str(t.id) for t in tx.tags.all()],
+        }
+        if len(habits) >= limit:
+            break
+
+    return habits
+
+

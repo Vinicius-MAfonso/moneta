@@ -66,8 +66,13 @@ document.addEventListener('alpine:init', () => {
         amount: initialData.amount !== undefined ? initialData.amount : (parseFloat(initialData.originalAmount) || 0),
         selectedAccountLimit: initialData.selectedAccountLimit,
         selectedCategoryId: initialData.selectedCategoryId || '',
+        selectedTagIds: initialData.selectedTagIds || [],
         status: initialData.status || 'concluída',
-        categories: initialData.categories,
+        categories: initialData.categories || [],
+        descriptionHabits: initialData.descriptionHabits || {},
+        descriptionQuery: '',
+        showSuggestions: false,
+        autoFillActive: false,
         
         init() {
             this.$watch('txType', () => this.handleTxTypeChange());
@@ -97,6 +102,62 @@ document.addEventListener('alpine:init', () => {
                     this.selectedCategoryId = '';
                 }
             }
+        },
+
+        get matchingSuggestions() {
+            const q = (this.descriptionQuery || '').trim().toLowerCase();
+            if (q.length < 3 || !this.descriptionHabits) return [];
+            return Object.keys(this.descriptionHabits)
+                .filter(desc => desc.toLowerCase().includes(q))
+                .slice(0, 5);
+        },
+
+        onDescriptionInput(value) {
+            this.descriptionQuery = value || '';
+            this.showSuggestions = this.matchingSuggestions.length > 0;
+            this.autoFillActive = false;
+        },
+
+        selectSuggestion(desc) {
+            this.descriptionQuery = desc;
+            if (this.$refs.descInput) {
+                this.$refs.descInput.value = desc;
+            }
+            this.showSuggestions = false;
+            const habit = this.descriptionHabits[desc];
+            if (habit) {
+                this.applyHabit(habit);
+            }
+        },
+
+        applyHabit(habit) {
+            if (habit.type && habit.type !== this.txType) {
+                this.setTxType(habit.type);
+            }
+
+            if (habit.account_id && this.$refs.accountSelect) {
+                const opt = Array.from(this.$refs.accountSelect.options).find(o => o.value === habit.account_id && !o.disabled);
+                if (opt) {
+                    this.$refs.accountSelect.value = habit.account_id;
+                    this.selectedAccountId = habit.account_id;
+                    this.selectedAccountType = opt.dataset.type || '';
+                    this.selectedAccountLimit = parseFloat(opt.dataset.limit || 0);
+                }
+            }
+
+            if (habit.category_id) {
+                this.selectedCategoryId = habit.category_id;
+            }
+
+            if (Array.isArray(habit.tag_ids)) {
+                this.selectedTagIds = [...habit.tag_ids];
+            }
+
+            this.autoFillActive = true;
+        },
+
+        clearAutoFill() {
+            this.autoFillActive = false;
         },
 
         get availableLimit() {
