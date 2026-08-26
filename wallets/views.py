@@ -11,15 +11,7 @@ from wallets.models import Account
 
 @login_required(login_url='users_web:login')
 def account_list_view(request):
-
-    accounts_qs = Account.objects.filter(user=request.user).select_related('credit_card_details')
-    from wallets.services import calculate_expected_balance
-
-    accounts = []
-    for account in accounts_qs:
-        account.expected_balance = calculate_expected_balance(account)
-        accounts.append(account)
-
+    accounts = Account.objects.filter(user=request.user).select_related('credit_card_details')
     context = {
         'accounts': accounts,
     }

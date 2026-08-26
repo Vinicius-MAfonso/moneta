@@ -56,10 +56,6 @@
                             </div>
                         </div>
                         {% endif %}
-
-                        <div class="mt-1 flex items-center space-x-1.5 text-xs font-medium {% if account.expected_balance >= account.balance %}text-emerald-600{% else %}text-rose-600{% endif %}">
-                            <span>Previsto: R$ {{ account.expected_balance|floatformat:2 }}</span>
-                        </div>
                     {% endif %}
                 </div>
                 {% if account.type == 'credit_card' and account.credit_card_details %}
