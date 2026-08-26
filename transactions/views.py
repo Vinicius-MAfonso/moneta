@@ -85,12 +85,19 @@ def transaction_list_view(request):
             'balance': calculate_balance_at_date(request.user, date, account_id)
         })
 
+    query_params_prev = request.GET.copy()
+    query_params_prev['month'] = month_ctx['prev_month']
+    query_params_next = request.GET.copy()
+    query_params_next['month'] = month_ctx['next_month']
+
     context = {
         'transactions': transactions,
         'tx_by_date': tx_by_date,
         'accounts': Account.objects.filter(user=request.user),
         'categories': Category.objects.filter(user=request.user, is_system=False),
         'month_info': month_ctx,
+        'prev_month_url': query_params_prev.urlencode(),
+        'next_month_url': query_params_next.urlencode(),
         'month_net_balance': month_net_balance,
     }
 
@@ -355,9 +362,10 @@ def transaction_confirm_delete_view(request, pk):
         messages.error(request, "Transações de faturas já pagas não podem ser excluídas.")
         return redirect('transactions_web:list')
 
+    amount_str = f"{tx.amount:.2f}".replace('.', ',')
     context = {
         'title': 'Excluir Transação',
-        'message': f"Tem certeza que deseja excluir a transação '{tx.description}' no valor de R$ {tx.amount}?",
+        'message': f"Tem certeza que deseja excluir a transação '{tx.description}' no valor de R$ {amount_str}?",
         'action_url': reverse('transactions_web:delete', args=[tx.id]),
     }
 

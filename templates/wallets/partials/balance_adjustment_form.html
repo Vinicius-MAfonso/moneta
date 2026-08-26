@@ -29,12 +29,12 @@
                     <div class="grid grid-cols-2 gap-2">
                         <label class="relative flex items-center justify-center p-3 cursor-pointer rounded-xl border border-slate-200 hover:bg-slate-50 transition"
                             :class="{ 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50': adjustmentType === 'transaction' }">
-                            <input type="radio" name="adjustment_type" value="transaction" x-model="adjustmentType" class="sr-only">
+                            <input type="radio" name="adjustment_type" value="transaction" x-model="adjustmentType" aria-label="Criar Transação de Reajuste" class="sr-only">
                             <span class="text-xs font-bold text-center text-slate-700">Criar Transação<br/><span class="text-[10px] font-normal text-slate-500 block mt-1">(Recomendado)</span></span>
                         </label>
                         <label class="relative flex items-center justify-center p-3 cursor-pointer rounded-xl border border-slate-200 hover:bg-slate-50 transition"
                             :class="{ 'ring-2 ring-indigo-500 border-indigo-500 bg-indigo-50': adjustmentType === 'initial' }">
-                            <input type="radio" name="adjustment_type" value="initial" x-model="adjustmentType" class="sr-only">
+                            <input type="radio" name="adjustment_type" value="initial" x-model="adjustmentType" aria-label="Alterar Saldo Inicial" class="sr-only">
                             <span class="text-xs font-bold text-center text-slate-700">Alterar Saldo Inicial<br/><span class="text-[10px] font-normal text-slate-500 block mt-1">(Muda o histórico)</span></span>
                         </label>
                     </div>

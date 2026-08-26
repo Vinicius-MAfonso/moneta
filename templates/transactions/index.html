@@ -12,11 +12,11 @@
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
             <div class="inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-2xl px-3 py-1.5 shadow-sm text-sm font-bold text-slate-800">
-                <a href="?{{ request.GET.urlencode }}&month={{ month_info.prev_month }}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                <a href="?{{ prev_month_url }}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
                     <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                 </a>
                 <span class="px-2 min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs md:text-sm">{{ month_info.month_label }}</span>
-                <a href="?{{ request.GET.urlencode }}&month={{ month_info.next_month }}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                <a href="?{{ next_month_url }}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
                     <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </a>
             </div>

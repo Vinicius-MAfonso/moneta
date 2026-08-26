@@ -280,9 +280,10 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
     amount_to_pay = min(amount_to_pay, total_amount)
 
     if payment_account.type != Account.Types.CREDIT_CARD and payment_account.balance < amount_to_pay:
+        bal_str = f"{payment_account.balance:.2f}".replace('.', ',')
         raise ValueError(
             f"Saldo insuficiente na conta '{payment_account.name}'. "
-            f"Saldo disponível: R$ {payment_account.balance:.2f}."
+            f"Saldo disponível: R$ {bal_str}."
         )
 
     if amount_to_pay <= 0:

@@ -210,7 +210,8 @@ def dashboard_view(request):
     economy_pct_clamped = min(economy_pct, Decimal('100.00'))
     if economy_pct >= 100:
         economy_status = 'danger'
-        economy_message = f"Cuidado! Este mês você gastou R$ {monthly_expense - monthly_income:.2f} a mais do que ganhou."
+        diff_str = f"{monthly_expense - monthly_income:.2f}".replace('.', ',')
+        economy_message = f"Cuidado! Este mês você gastou R$ {diff_str} a mais do que ganhou."
     elif economy_pct >= 80:
         economy_status = 'warning'
         economy_message = "Atenção! Você já gastou a maior parte da sua renda neste mês."

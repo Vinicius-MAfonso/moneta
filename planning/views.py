@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from moneta.common import TransactionType
 from transactions.models import Category
 from wallets.models import Account
 
@@ -44,7 +45,7 @@ def planning_list_view(request):
 
 @login_required(login_url='users_web:login')
 def budget_create_view(request):
-    categories = Category.objects.filter(user=request.user, is_system=False)
+    categories = Category.objects.filter(user=request.user, is_system=False, type=TransactionType.EXPENSE)
 
     if request.method == 'POST':
         try:

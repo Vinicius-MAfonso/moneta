@@ -134,7 +134,8 @@ def deposit_to_goal(goal, amount):
         return False
         
     if goal.account and amount > goal.account.free_balance:
-        raise ValueError(f"Saldo livre insuficiente na conta '{goal.account.name}'. Saldo disponível: R$ {goal.account.free_balance:.2f}.")
+        bal_str = f"{goal.account.free_balance:.2f}".replace('.', ',')
+        raise ValueError(f"Saldo livre insuficiente na conta '{goal.account.name}'. Saldo disponível: R$ {bal_str}.")
         
     goal.__class__.objects.filter(pk=goal.pk).update(
         current_amount=models.F('current_amount') + amount

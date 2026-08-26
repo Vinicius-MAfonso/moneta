@@ -149,7 +149,7 @@
                             <div class="flex flex-wrap gap-2 p-2.5 bg-slate-50  border border-slate-300  rounded-xl min-h-[42px] max-h-32 overflow-y-auto items-center">
                                 {% for tag in tags %}
                                     <label class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border text-slate-800  transition-all hover:scale-105 shadow-sm" style="background-color: {{ tag.color }}20; border-color: {{ tag.color }}50;">
-                                        <input type="checkbox" name="tags" value="{{ tag.id }}" class="rounded text-indigo-600 focus:ring-0" {% if transaction and tag in transaction.tags.all %}checked{% endif %}>
+                                        <input type="checkbox" name="tags" value="{{ tag.id }}" aria-label="Tag {{ tag.name }}" class="rounded text-indigo-600 focus:ring-0" {% if transaction and tag in transaction.tags.all %}checked{% endif %}>
                                         <span class="w-2 h-2 rounded-full shadow-sm" style="background-color: {{ tag.color }}; border: 1px solid {{ tag.color }}80;"></span>
                                         <span>{{ tag.name }}</span>
                                     </label>
@@ -162,7 +162,7 @@
                         <div class="pt-2 border-t border-slate-200  space-y-3" x-show="!(selectedAccountType === 'credit_card' && installments > 1)" x-cloak>
                             <label class="flex items-center justify-between cursor-pointer">
                                 <span class="text-xs font-bold uppercase tracking-wider text-slate-700 " x-text="txType === 'transferencia' ? 'Repetir esta transferência' : 'Repetir esta transação'">Repetir esta transação</span>
-                                <input type="checkbox" name="is_recurring" x-model="isRecurring" class="sr-only peer">
+                                <input type="checkbox" name="is_recurring" x-model="isRecurring" aria-label="Repetir esta transação" class="sr-only peer">
                                 <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all  peer-checked:bg-indigo-600 relative"></div>
                             </label>
 

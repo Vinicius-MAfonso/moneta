@@ -38,7 +38,7 @@
                     <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Opções de exclusão:</label>
                     {% for opt in options %}
                         <label class="flex items-center space-x-2.5 text-xs font-semibold text-slate-700 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer">
-                            <input type="radio" name="delete_mode" value="{{ opt.value }}" {% if forloop.first %}checked{% endif %} class="text-rose-600 focus:ring-rose-500">
+                            <input type="radio" name="delete_mode" value="{{ opt.value }}" aria-label="{{ opt.label }}" {% if forloop.first %}checked{% endif %} class="text-rose-600 focus:ring-rose-500">
                             <span>{{ opt.label }}</span>
                         </label>
                     {% endfor %}
