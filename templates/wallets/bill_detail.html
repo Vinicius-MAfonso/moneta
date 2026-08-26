@@ -88,7 +88,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="text-right whitespace-nowrap shrink-0">
+                    <div class="text-right max-w-[45%] break-all">
                         {% if tx.is_incoming %}
                         <p class="font-bold text-emerald-600">
                             +R$ {{ tx.amount|floatformat:2 }}
@@ -121,11 +121,7 @@
                 <form method="POST" action="{% url 'wallets_web:pay_bill' pk=bill.pk %}" class="space-y-4" x-data="{ selectedAccountBalance: null, paymentAmount: {{ remaining_amount|stringformat:'.2f' }} }">
                     {% csrf_token %}
                     <p class="text-sm text-slate-600">
-                        {% if paid_amount > 0 %}
-                            Saldo restante de <strong class="text-slate-900">R$ {{ remaining_amount|floatformat:2 }}</strong> a ser pago (Total: R$ {{ total|floatformat:2 }}). Selecione a conta de origem:
-                        {% else %}
-                            O valor total de <strong class="text-slate-900">R$ {{ total|floatformat:2 }}</strong> será pago. Selecione a conta de origem:
-                        {% endif %}
+                        O valor total de <strong class="text-slate-900">R$ {{ total|floatformat:2 }}</strong> será pago. Selecione a conta de origem:
                     </p>
                     <div x-data="moneyInput('{{ remaining_amount|stringformat:'.2f' }}')" @money-changed="paymentAmount = $event.detail.rawValue">
                         <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Valor a Pagar (R$)</label>

@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% block title %}Faturas - {{ account.name }} - Moneta{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
@@ -30,25 +29,19 @@
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ bill.period_date|date:"F Y" }}</span>
                         {% if bill.status == 'paid' %}
-                            <span class="px-2 py-0.5 rounded-lg text-[10px] bg-emerald-100 text-emerald-700 font-bold uppercase">Paga</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-700 font-bold uppercase">Paga</span>
                         {% elif bill.status == 'closed' %}
-                            <span class="px-2 py-0.5 rounded-lg text-[10px] bg-rose-100 text-rose-700 font-bold uppercase">Fechada</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] bg-rose-100 text-rose-700 font-bold uppercase">Fechada</span>
                         {% else %}
-                            <span class="px-2 py-0.5 rounded-lg text-[10px] bg-indigo-100 text-indigo-700 font-bold uppercase">Aberta</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] bg-indigo-100 text-indigo-700 font-bold uppercase">Aberta</span>
                         {% endif %}
                     </div>
                     
-                    <p class="text-2xl font-extrabold {% if bill.status == 'paid' %}text-emerald-600{% elif bill.total_amount > 0 %}text-rose-600{% else %}text-slate-900{% endif %} mt-3">
-                        R$ {{ bill.total_amount|floatformat:2 }}
-                    </p>
-
-                    <div class="flex items-center justify-between text-xs text-slate-500 mt-2">
-                        <span>Vencimento:</span>
-                        <span class="font-semibold text-slate-700">{{ bill.due_date|date:"d/m/Y" }}</span>
-                    </div>
+                    <p class="text-xs text-slate-500 mt-4">Vencimento</p>
+                    <p class="text-lg font-bold text-slate-900 mt-1">{{ bill.due_date|date:"d/m/Y" }}</p>
                 </div>
-                <div class="mt-5 pt-3 border-t border-slate-100 flex justify-between items-center group-hover:border-indigo-100 transition">
-                    <span class="text-indigo-600 text-xs font-semibold">Ver detalhes &rarr;</span>
+                <div class="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center group-hover:border-indigo-100 transition">
+                    <span class="text-indigo-600 text-sm font-semibold">Ver detalhes &rarr;</span>
                 </div>
             </a>
         {% empty %}
