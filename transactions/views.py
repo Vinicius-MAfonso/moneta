@@ -144,7 +144,7 @@ def transaction_create_view(request):
                         import json
                         response = HttpResponse(status=204)
                         response['HX-Trigger'] = json.dumps({
-                            'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                            'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                         })
                         return response
                     messages.error(request, f"Erro na transferência: {error_msg}")
@@ -165,7 +165,7 @@ def transaction_create_view(request):
                     import json
                     response = HttpResponse(status=204)
                     response['HX-Trigger'] = json.dumps({
-                        'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                        'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
                     return response
                 messages.error(request, f"Erro na transferência: {error_msg}")
@@ -195,7 +195,7 @@ def transaction_create_view(request):
                     import json
                     response = HttpResponse(status=204)
                     response['HX-Trigger'] = json.dumps({
-                        'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                        'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
                     return response
                 messages.error(request, f"Erro ao criar transação: {error_msg}")
@@ -216,7 +216,7 @@ def transaction_create_view(request):
                 import json
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({
-                    'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                    'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                 })
                 return response
             messages.error(request, f"Erro ao criar transação: {error_msg}")
@@ -301,10 +301,10 @@ def transaction_update_view(request, pk):
                     import json
                     response = HttpResponse(status=204)
                     response['HX-Trigger'] = json.dumps({
-                        'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                        'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
                     return response
-                messages.error(request, f"Erro: {error_msg}")
+                messages.error(request, f"{error_msg}")
                 return redirect('transactions_web:list')
 
             if request.headers.get('HX-Request'):
@@ -323,10 +323,10 @@ def transaction_update_view(request, pk):
                 import json
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({
-                    'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                    'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                 })
                 return response
-            messages.error(request, f"Erro: {error_msg}")
+            messages.error(request, f"{error_msg}")
             return redirect('transactions_web:list')
 
     initial_tx_data = {
@@ -473,7 +473,7 @@ def category_create_view(request):
             if request.headers.get('HX-Request'):
                 import json
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{error_msg}', 'type': 'error'}})
                 return response
             messages.error(request, f"Erro ao criar categoria: {error_msg}")
             return redirect('transactions_web:category_list')
@@ -561,7 +561,7 @@ def tag_create_view(request):
             if request.headers.get('HX-Request'):
                 import json
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{error_msg}', 'type': 'error'}})
                 return response
             messages.error(request, f"Erro ao criar tag: {error_msg}")
             return redirect('transactions_web:category_list')
@@ -692,7 +692,7 @@ def transaction_pay_view(request, pk):
                 import json
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({
-                    'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}
+                    'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                 })
                 return response
             messages.error(request, f"Erro ao efetivar: {error_msg}")

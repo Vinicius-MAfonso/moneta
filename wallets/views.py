@@ -43,7 +43,7 @@ def account_create_view(request):
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{error_msg}', 'type': 'error'}})
                 return response
             messages.error(request, f"Erro ao criar conta: {error_msg}")
             return redirect('wallets_web:list')
@@ -77,7 +77,7 @@ def account_update_view(request, pk):
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {error_msg}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{error_msg}', 'type': 'error'}})
                 return response
             context = {'account': account, 'form': form}
             return render(request, 'wallets/partials/account_form.html', context)

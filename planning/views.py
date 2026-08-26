@@ -70,9 +70,9 @@ def budget_create_view(request):
         except Exception as e:
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {e!s}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{e!s}', 'type': 'error'}})
                 return response
-            messages.error(request, f"Erro: {e!s}")
+            messages.error(request, f"{e!s}")
             return redirect('planning_web:list')
 
     return render(request, 'planning/partials/budget_form.html', {'categories': categories})
@@ -132,9 +132,9 @@ def goal_create_view(request):
         except Exception as e:
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {e!s}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{e!s}', 'type': 'error'}})
                 return response
-            messages.error(request, f"Erro: {e!s}")
+            messages.error(request, f"{e!s}")
             return redirect('planning_web:list')
 
     accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
@@ -158,9 +158,9 @@ def goal_deposit_view(request, pk):
         except Exception as e:
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro: {e!s}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{e!s}', 'type': 'error'}})
                 return response
-            messages.error(request, f"Erro: {e!s}")
+            messages.error(request, f"{e!s}")
             return redirect('planning_web:list')
 
     return render(request, 'planning/partials/goal_deposit_form.html', {'goal': goal})
