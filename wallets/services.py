@@ -5,6 +5,7 @@ from django.db import models
 
 def recalculate_account_balance(account):
     from django.utils import timezone
+
     from moneta.common import TransactionType
     from transactions.models import Transaction, Transfer
     from wallets.models import Account
@@ -512,12 +513,15 @@ def delete_account(account):
 
 
 def get_credit_card_timeline(user, start_date, months=12):
+    from datetime import timedelta
+
     from dateutil.relativedelta import relativedelta
-    from django.db.models import Sum
+    from django.db.models import Q, Sum
     from django.db.models.functions import TruncMonth
 
     from moneta.common import TransactionType
-    from transactions.models import Transaction
+    from transactions.models import RecurringTransaction, Transaction
+    from transactions.services import add_months, add_years
     from wallets.models import Account
 
     end_date = start_date + relativedelta(months=months)
@@ -544,6 +548,66 @@ def get_credit_card_timeline(user, start_date, months=12):
         else:
             m_date = m
         totals_dict[m_date] = item['total']
+
+    active_recurring = RecurringTransaction.objects.filter(
+        user=user,
+        active=True,
+        account__active=True,
+        account__type=Account.Types.CREDIT_CARD,
+        category__type=TransactionType.EXPENSE
+    ).filter(
+        Q(end_date__isnull=True) | Q(end_date__gte=start_date)
+    ).prefetch_related('ignored_date_entries')
+
+    if active_recurring.exists():
+        existing_recurring_dates = set(
+            Transaction.objects.filter(
+                recurring__in=active_recurring,
+                date__gte=start_date,
+                date__lt=end_date
+            ).values_list('recurring_id', 'date')
+        )
+
+        for rec in active_recurring:
+            ignored_dates_set = {entry.date for entry in rec.ignored_date_entries.all()}
+            current_date = rec.start_date
+
+            if current_date < start_date:
+                if rec.frequency == RecurringTransaction.Frequencies.DAILY:
+                    current_date = start_date
+                elif rec.frequency == RecurringTransaction.Frequencies.WEEKLY:
+                    weeks_diff = max(0, (start_date - current_date).days // 7)
+                    current_date += timedelta(weeks=weeks_diff)
+                    while current_date < start_date:
+                        current_date += timedelta(weeks=1)
+                elif rec.frequency == RecurringTransaction.Frequencies.MONTHLY:
+                    months_diff = (start_date.year - current_date.year) * 12 + (start_date.month - current_date.month)
+                    current_date = add_months(rec.start_date, months_diff)
+                    if current_date < start_date:
+                        current_date = add_months(current_date, 1)
+                elif rec.frequency == RecurringTransaction.Frequencies.YEARLY:
+                    years_diff = max(0, start_date.year - current_date.year)
+                    current_date = add_years(rec.start_date, years_diff)
+                    if current_date < start_date:
+                        current_date = add_years(current_date, 1)
+
+            loop_guard = 0
+            while current_date < end_date and (rec.end_date is None or current_date <= rec.end_date) and loop_guard < 500:
+                loop_guard += 1
+                if current_date >= start_date and current_date not in ignored_dates_set and (rec.id, current_date) not in existing_recurring_dates:
+                    month_key = current_date.replace(day=1)
+                    totals_dict[month_key] = totals_dict.get(month_key, Decimal('0.00')) + rec.amount
+
+                if rec.frequency == RecurringTransaction.Frequencies.DAILY:
+                    current_date += timedelta(days=1)
+                elif rec.frequency == RecurringTransaction.Frequencies.WEEKLY:
+                    current_date += timedelta(weeks=1)
+                elif rec.frequency == RecurringTransaction.Frequencies.MONTHLY:
+                    current_date = add_months(current_date, 1)
+                elif rec.frequency == RecurringTransaction.Frequencies.YEARLY:
+                    current_date = add_years(current_date, 1)
+                else:
+                    break
 
     timeline = []
     months_pt = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']

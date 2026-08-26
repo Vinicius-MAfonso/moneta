@@ -358,3 +358,55 @@ class WalletsServicesTestCase(TestCase):
         self.assertIn('[FIXED]', output_fix)
         self.checking_account.refresh_from_db()
         self.assertEqual(self.checking_account.balance, Decimal('1000.00'))
+
+    def test_get_credit_card_timeline_recurring_subscriptions(self):
+        import datetime
+        from decimal import Decimal
+
+        from moneta.common import TransactionType
+        from transactions.models import Category, RecurringTransaction, Transaction
+        from wallets.services import get_credit_card_timeline
+
+        cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Serviços', defaults={'type': TransactionType.EXPENSE})
+        start_date = datetime.date(2026, 8, 1)
+
+        recurring = RecurringTransaction.objects.create(
+            user=self.user,
+            account=self.cc_account,
+            category=cat_expense,
+            description='Netflix',
+            amount=Decimal('50.00'),
+            frequency='monthly',
+            start_date=datetime.date(2026, 8, 10),
+            active=True
+        )
+
+        Transaction.objects.create(
+            user=self.user, account=self.cc_account, category=cat_expense,
+            description='Netflix (Recorrente)', amount=Decimal('50.00'), date=datetime.date(2026, 8, 10),
+            status=Transaction.Statuses.PENDING, recurring=recurring
+        )
+        Transaction.objects.create(
+            user=self.user, account=self.cc_account, category=cat_expense,
+            description='Netflix (Recorrente)', amount=Decimal('50.00'), date=datetime.date(2026, 9, 10),
+            status=Transaction.Statuses.PENDING, recurring=recurring
+        )
+
+        for i in range(3):
+            tx_month = datetime.date(2026, 8 + i, 15)
+            Transaction.objects.create(
+                user=self.user, account=self.cc_account, category=cat_expense,
+                description=f'Parcela ({i+1}/3)', amount=Decimal('100.00'), date=tx_month,
+                status=Transaction.Statuses.PENDING, installment_number=i+1, total_installments=3
+            )
+
+        timeline = get_credit_card_timeline(self.user, start_date, months=12)
+        self.assertEqual(len(timeline), 12)
+
+        self.assertEqual(timeline[0]['total'], Decimal('150.00'))  # Ago/2026
+        self.assertEqual(timeline[1]['total'], Decimal('150.00'))  # Set/2026
+        self.assertEqual(timeline[2]['total'], Decimal('150.00'))  # Out/2026
+
+        for m in timeline[3:]:
+            self.assertEqual(m['total'], Decimal('50.00'))
+
