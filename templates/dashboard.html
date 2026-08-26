@@ -274,7 +274,7 @@
             </div>
         </div>
 
-        <div class="lg:col-span-2 glass-panel p-6 rounded-2xl">
+        <div class="{% if top_budgets %}lg:col-span-2{% else %}lg:col-span-3{% endif %} glass-panel p-6 rounded-2xl">
             <div class="flex items-center justify-between mb-6">
                 <div>
                     <h3 class="text-lg font-bold text-slate-900 ">Balanço (Receitas - Despesas) nos últimos 6 meses</h3>
