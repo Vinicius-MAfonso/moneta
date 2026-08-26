@@ -69,6 +69,36 @@ document.addEventListener('alpine:init', () => {
         status: initialData.status || 'concluída',
         categories: initialData.categories,
         
+        init() {
+            this.$watch('txType', () => this.handleTxTypeChange());
+        },
+
+        setTxType(type) {
+            this.txType = type;
+            this.handleTxTypeChange();
+        },
+
+        handleTxTypeChange() {
+            if (this.txType === 'receita' && this.selectedAccountType === 'credit_card') {
+                const accountSelect = this.$refs.accountSelect;
+                if (accountSelect) {
+                    const validOption = Array.from(accountSelect.options).find(opt => opt.dataset.type !== 'credit_card' && !opt.disabled && opt.value);
+                    if (validOption) {
+                        accountSelect.value = validOption.value;
+                        this.selectedAccountId = validOption.value;
+                        this.selectedAccountType = validOption.dataset.type;
+                        this.selectedAccountLimit = parseFloat(validOption.dataset.limit || 0);
+                    }
+                }
+            }
+            if (this.selectedCategoryId) {
+                const cat = this.categories.find(c => c.id === this.selectedCategoryId);
+                if (cat && cat.type !== this.txType) {
+                    this.selectedCategoryId = '';
+                }
+            }
+        },
+
         get availableLimit() {
             return this.selectedAccountId === this.originalAccountId 
                 ? this.selectedAccountLimit + this.originalAmount 
