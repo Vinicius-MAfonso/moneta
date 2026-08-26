@@ -45,12 +45,13 @@
                             class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
                     </div>
                     {% if not account %}
-                    <div x-show="!isCreditCard">
+                    <div x-show="!isCreditCard" x-data="moneyInput('0.00')">
                         <label
                             class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Saldo
                             Inicial (R$)</label>
-                        <input type="number" step="0.01" name="balance" :min="!isCreditCard ? '0' : ''" :required="!isCreditCard" :disabled="isCreditCard" value="{% if account %}{{ account.initial_balance|stringformat:'.2f' }}{% else %}0.00{% endif %}"
+                        <input type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" :required="!isCreditCard" :disabled="isCreditCard" :value="displayValue" @input="onInput($event)" @focus="$event.target.select()"
                             class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
+                        <input type="hidden" name="balance" :value="rawValue" :disabled="isCreditCard">
                     </div>
                     {% else %}
                     <input type="hidden" name="balance" value="{{ account.initial_balance|floatformat:2 }}">
@@ -67,12 +68,13 @@
                     class="space-y-4 pt-3 border-t border-slate-200">
                     <h4 class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Detalhes
                         do Cartão de Crédito</h4>
-                    <div>
+                    <div x-data="moneyInput('{% if account and account.type == 'credit_card' %}{{ account.credit_card_details.limit|stringformat:'.2f' }}{% else %}5000.00{% endif %}')">
                         <label
                             class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Limite
                             Total (R$)</label>
-                        <input type="number" step="0.01" min="0.01" name="limit" placeholder="5000.00" value="{% if account and account.type == 'credit_card' %}{{ account.credit_card_details.limit|stringformat:'.2f' }}{% endif %}"
+                        <input type="text" inputmode="decimal" autocomplete="off" placeholder="5.000,00" :value="displayValue" @input="onInput($event)" @focus="$event.target.select()"
                             class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500">
+                        <input type="hidden" name="limit" :value="rawValue">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>

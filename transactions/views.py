@@ -416,8 +416,6 @@ def transaction_delete_view(request, pk):
     messages.success(request, "Transação excluída com sucesso.")
 
     if request.headers.get('HX-Request'):
-        from django.http import HttpResponse
-        from django.urls import reverse
         response = HttpResponse(status=204)
         response['HX-Redirect'] = reverse('transactions_web:list')
         return response

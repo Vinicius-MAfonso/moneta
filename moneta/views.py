@@ -125,7 +125,10 @@ def cron_wake_view(request):
 
     from moneta.tasks import check_and_send_alerts
     from planning.tasks import notify_budget_warnings
-    from transactions.tasks import notify_due_transactions, process_all_recurring_transactions
+    from transactions.tasks import (
+        notify_due_transactions,
+        process_all_recurring_transactions,
+    )
     from wallets.tasks import notify_due_credit_card_bills
 
     tasks = [

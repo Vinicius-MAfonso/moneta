@@ -1,4 +1,58 @@
 document.addEventListener('alpine:init', () => {
+    Alpine.data('moneyInput', (initialValue = 0, allowNegative = false) => ({
+        displayValue: '',
+        rawValue: '0.00',
+        isNegative: false,
+        allowNegative: allowNegative,
+        
+        init() {
+            let num = 0;
+            if (typeof initialValue === 'number') {
+                num = initialValue;
+            } else if (typeof initialValue === 'string' && initialValue.trim() !== '') {
+                num = parseFloat(initialValue.replace(',', '.')) || 0;
+            }
+            if (this.allowNegative && num < 0) {
+                this.isNegative = true;
+                num = Math.abs(num);
+            }
+            const cents = Math.round(num * 100);
+            this.updateFromCents(cents);
+        },
+
+        format(cents) {
+            const val = cents / 100;
+            const formatted = val.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            return this.isNegative ? `-${formatted}` : formatted;
+        },
+
+        updateFromCents(cents) {
+            const val = cents / 100;
+            const numVal = this.isNegative ? -val : val;
+            this.rawValue = numVal.toFixed(2);
+            this.displayValue = this.format(cents);
+        },
+
+        onInput(event) {
+            const inputVal = event.target.value;
+            if (this.allowNegative) {
+                if (inputVal.includes('-')) {
+                    this.isNegative = true;
+                } else if (event.data !== null && inputVal.startsWith('+')) {
+                    this.isNegative = false;
+                }
+            }
+            const digits = inputVal.replace(/\D/g, '');
+            const cents = digits ? parseInt(digits, 10) : 0;
+            this.updateFromCents(cents);
+            event.target.value = this.displayValue;
+            this.$dispatch('money-changed', { rawValue: parseFloat(this.rawValue) });
+        }
+    }));
+
     Alpine.data('transactionForm', (initialData) => ({
         txType: initialData.txType,
         isRecurring: initialData.isRecurring || false,
@@ -9,6 +63,7 @@ document.addEventListener('alpine:init', () => {
         originalAccountId: initialData.originalAccountId,
         selectedAccountId: initialData.selectedAccountId,
         originalAmount: initialData.originalAmount,
+        amount: initialData.amount !== undefined ? initialData.amount : (parseFloat(initialData.originalAmount) || 0),
         selectedAccountLimit: initialData.selectedAccountLimit,
         selectedCategoryId: initialData.selectedCategoryId || '',
         status: initialData.status || 'concluída',
@@ -25,8 +80,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         get isAmountOverLimit() {
-            const amountInput = this.$refs.amountInput;
-            const amount = parseFloat(amountInput ? amountInput.value : 0);
+            const amount = typeof this.amount === 'number' ? this.amount : parseFloat(this.amount || 0);
             return this.txType === 'despesa' && 
                    this.selectedAccountType === 'credit_card' && 
                    amount > this.availableLimit;

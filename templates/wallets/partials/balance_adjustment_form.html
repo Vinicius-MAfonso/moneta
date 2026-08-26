@@ -18,10 +18,11 @@
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Saldo Atual</label>
                     <p class="text-sm font-bold {% if account.balance >= 0 %}text-emerald-600{% else %}text-rose-600{% endif %}">R$ {{ account.balance|floatformat:2 }}</p>
                 </div>
-                <div>
+                <div x-data="moneyInput('0.00', {% if account.type == 'credit_card' %}true{% else %}false{% endif %})">
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Novo Saldo (R$)</label>
-                    <input type="number" step="0.01" name="new_balance" required placeholder="0.00" {% if account.type != 'credit_card' %}min="0"{% endif %}
+                    <input type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" required :value="displayValue" @input="onInput($event)" @focus="$event.target.select()"
                         class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 transition">
+                    <input type="hidden" name="new_balance" :value="rawValue">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">Forma de Reajuste</label>
