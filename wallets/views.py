@@ -57,7 +57,7 @@ def account_update_view(request, pk):
 
     from .forms import AccountForm
 
-    account = get_object_or_404(Account, pk=pk, user=request.user)
+    account = get_object_or_404(Account.objects.select_related('credit_card_details'), pk=pk, user=request.user)
 
     if request.method == 'POST':
         form = AccountForm(request.POST)
@@ -92,7 +92,7 @@ def account_balance_adjustment_view(request, pk):
     from django.contrib import messages
 
 
-    account = get_object_or_404(Account, pk=pk, user=request.user)
+    account = get_object_or_404(Account.objects.select_related('credit_card_details'), pk=pk, user=request.user)
 
     if request.method == 'POST':
         new_balance_str = request.POST.get('new_balance')

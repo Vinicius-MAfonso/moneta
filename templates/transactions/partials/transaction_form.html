@@ -208,3 +208,10 @@
                     {% elif transaction %}
                         Salvar Transação
                     {% else %}
+                        <span x-text="txType === 'transferencia' ? 'Salvar Transferência' : 'Salvar Transação'">Salvar Transação</span>
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

@@ -427,7 +427,7 @@ def get_user_description_habits(user, limit=50):
         .exclude(category__type=TransactionType.TRANSFER)
         .select_related('category', 'account')
         .prefetch_related('tags')
-        .order_by('-created_at')[:300]
+        .order_by('-created_at')[:60]
     )
 
     habits = {}

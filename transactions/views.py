@@ -109,10 +109,10 @@ def transaction_list_view(request):
 
 @login_required(login_url='users_web:login')
 def transaction_create_view(request):
-    accounts = Account.objects.filter(user=request.user, active=True)
-    transfer_accounts = accounts.exclude(type='credit_card')
-    categories = Category.objects.filter(user=request.user, is_system=False)
-    tags = Tag.objects.filter(user=request.user)
+    accounts = list(Account.objects.filter(user=request.user, active=True).select_related('credit_card_details'))
+    transfer_accounts = [a for a in accounts if a.type != 'credit_card']
+    categories = list(Category.objects.filter(user=request.user, is_system=False))
+    tags = list(Tag.objects.filter(user=request.user))
 
     from .forms import TransactionForm, TransferForm
 
@@ -255,20 +255,113 @@ def transaction_create_view(request):
 
 @login_required(login_url='users_web:login')
 def transaction_update_view(request, pk):
+    from django.db import models
 
-    transaction = get_object_or_404(Transaction, pk=pk, user=request.user)
+    transaction = get_object_or_404(
+        Transaction.objects.select_related(
+            'category',
+            'account__credit_card_details',
+            'recurring',
+            'bill',
+            'transfer_out__in_transaction__account',
+            'transfer_out__out_transaction__account',
+            'transfer_in__in_transaction__account',
+            'transfer_in__out_transaction__account',
+        ).prefetch_related('tags'),
+        pk=pk,
+        user=request.user
+    )
 
-    accounts = Account.objects.filter(user=request.user, active=True)
-    categories = Category.objects.filter(user=request.user, is_system=False)
-    tags = Tag.objects.filter(user=request.user)
-    transfer_accounts = Account.objects.filter(user=request.user, active=True).exclude(type=Account.Types.CREDIT_CARD)
+    accounts = list(Account.objects.filter(user=request.user, active=True).select_related('credit_card_details'))
+    categories = list(Category.objects.filter(user=request.user, is_system=False))
+    tags = list(Tag.objects.filter(user=request.user))
+    transfer_accounts = [a for a in accounts if a.type != 'credit_card']
 
     transfer = getattr(transaction, 'transfer_out', None) or getattr(transaction, 'transfer_in', None)
     if not transfer and transaction.category and transaction.category.type == TransactionType.TRANSFER:
         from transactions.models import Transfer
         transfer = Transfer.objects.filter(models.Q(out_transaction=transaction) | models.Q(in_transaction=transaction)).first()
 
+    if transfer:
+        if request.method == 'POST':
+            from .forms import TransferForm
+            form = TransferForm(request.POST, user=request.user)
             if form.is_valid():
+                cd = form.cleaned_data
+                from django.core.exceptions import ValidationError
+                from .services import update_transfer
+                try:
+                    update_transfer(transfer, cd)
+                except ValidationError as e:
+                    error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
+                    if request.headers.get('HX-Request'):
+                        import json
+                        response = HttpResponse(status=204)
+                        response['HX-Trigger'] = json.dumps({
+                            'show-toast': {'message': f'{error_msg}', 'type': 'error'}
+                        })
+                        return response
+                    messages.error(request, f"{error_msg}")
+                    return redirect('transactions_web:list')
+
+                if request.headers.get('HX-Request'):
+                    import json
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({
+                        'reload-transactions': '',
+                        'show-toast': {'message': 'Transferência atualizada com sucesso!', 'type': 'success'}
+                    })
+                    return response
+                messages.success(request, "Transferência atualizada com sucesso!")
+                return redirect('transactions_web:list')
+            else:
+                error_msg = format_form_errors(form)
+                if request.headers.get('HX-Request'):
+                    import json
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({
+                        'show-toast': {'message': f'{error_msg}', 'type': 'error'}
+                    })
+                    return response
+                messages.error(request, f"{error_msg}")
+                return redirect('transactions_web:list')
+
+        import re
+        raw_desc = transfer.out_transaction.description or ''
+        clean_desc = re.sub(r'^Transferência (p/|de) [^:]+:\s*', '', raw_desc).strip()
+
+        initial_tx_data = {
+            'txType': 'transferencia',
+            'selectedAccountType': transfer.out_transaction.account.type,
+            'originalAccountId': str(transfer.out_transaction.account.id),
+            'selectedAccountId': str(transfer.out_transaction.account.id),
+            'outAccount': str(transfer.out_transaction.account.id),
+            'inAccount': str(transfer.in_transaction.account.id),
+            'originalAmount': float(transfer.out_transaction.amount),
+            'amount': float(transfer.out_transaction.amount),
+            'selectedAccountLimit': 0,
+            'categories': [],
+            'isRecurring': transfer.out_transaction.recurring is not None,
+            'frequency': transfer.out_transaction.recurring.frequency if transfer.out_transaction.recurring else 'monthly',
+            'recurringEndDate': str(transfer.out_transaction.recurring.end_date) if transfer.out_transaction.recurring and transfer.out_transaction.recurring.end_date else '',
+            'selectedCategoryId': str(transaction.category.id) if transaction.category else '',
+            'selectedTagIds': [str(t.id) for t in transfer.out_transaction.tags.all()],
+            'status': transfer.out_transaction.status,
+            'descriptionHabits': {},
+        }
+
+        context = {
+            'transaction': transaction,
+            'transfer': transfer,
+            'clean_description': clean_desc,
+            'accounts': accounts,
+            'transfer_accounts': transfer_accounts,
+            'categories': categories,
+            'tags': tags,
+            'initial_tx_data': initial_tx_data,
+            'description_habits': {},
+        }
+        return render(request, 'transactions/partials/transaction_form.html', context)
 
     if request.method == 'POST':
         from .forms import TransactionForm
@@ -619,7 +712,7 @@ def transfer_create_view(request):
 
 @login_required(login_url='users_web:login')
 def transaction_pay_view(request, pk):
-    tx = get_object_or_404(Transaction, pk=pk, user=request.user)
+    tx = get_object_or_404(Transaction.objects.select_related('category', 'account'), pk=pk, user=request.user)
     
     if tx.status == Transaction.Statuses.COMPLETED:
         if request.headers.get('HX-Request'):
@@ -632,7 +725,7 @@ def transaction_pay_view(request, pk):
         messages.error(request, "Esta transação já está efetivada.")
         return redirect('transactions_web:list')
 
-    accounts = Account.objects.filter(user=request.user, active=True)
+    accounts = list(Account.objects.filter(user=request.user, active=True))
 
     if request.method == 'POST':
         amount_str = request.POST.get('amount')
