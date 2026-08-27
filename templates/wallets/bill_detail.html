@@ -2,37 +2,38 @@
 {% block title %}Fatura {{ bill.period_date|date:"F Y" }} - {{ bill.account.name }} - Moneta{% endblock %}
 {% block content %}
 <div class="max-w-4xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
                 Fatura - {{ bill.period_date|date:"F Y" }}
             </h1>
-            <p class="text-slate-500 mt-1">
+            <p class="text-slate-500 text-sm mt-0.5 sm:mt-1">
                 Cartão: {{ bill.account.name }}
             </p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'wallets_web:list' %}" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 transition shadow-sm">
-                Voltar
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+            <a href="{% url 'wallets_web:list' %}" class="flex-1 sm:flex-none inline-flex items-center justify-center space-x-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 transition shadow-sm">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                <span>Voltar</span>
             </a>
             {% if bill.status == 'paid' %}
                 <button type="button" 
                         hx-get="{% url 'wallets_web:confirm_reopen_bill' bill.pk %}" 
                         hx-target="#modal-container"
-                        class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-rose-600/30 transition">
+                        class="flex-1 sm:flex-none px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-rose-600/30 transition text-center">
                     Reabrir Fatura
                 </button>
             {% elif bill.status != 'paid' and remaining_amount > 0 %}
-                <button type="button" @click="$dispatch('open-pay-modal')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/30 transition">
+                <button type="button" @click="$dispatch('open-pay-modal')" class="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-indigo-600/30 transition text-center">
                     Pagar Fatura
                 </button>
             {% endif %}
         </div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p class="text-sm font-medium text-slate-500">Status</p>
-            <p class="text-xl font-bold mt-1 text-slate-900">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs sm:text-sm font-medium text-slate-500">Status</p>
+            <p class="text-lg sm:text-xl font-bold mt-1 text-slate-900">
                 {% if bill.status == 'paid' %}
                     <span class="text-emerald-500">Paga</span>
                 {% elif bill.status == 'closed' %}
@@ -42,23 +43,23 @@
                 {% endif %}
             </p>
         </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
-            <p class="text-sm font-medium text-slate-500">Total da Fatura</p>
-            <p class="text-xl font-bold mt-1 text-slate-900">R$ {{ total|floatformat:2 }}</p>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+            <p class="text-xs sm:text-sm font-medium text-slate-500">Total da Fatura</p>
+            <p class="text-lg sm:text-xl font-bold mt-1 text-slate-900 truncate">R$ {{ total|floatformat:2 }}</p>
             {% if paid_amount > 0 %}
-                <div class="mt-2 text-xs flex justify-between">
+                <div class="mt-2 text-[10px] sm:text-xs flex flex-col sm:flex-row sm:justify-between gap-0.5">
                     <span class="text-emerald-500 font-semibold">Pago: R$ {{ paid_amount|floatformat:2 }}</span>
-                    <span class="text-slate-500">Restante: R$ {{ remaining_amount|floatformat:2 }}</span>
+                    <span class="text-slate-500">Rest.: R$ {{ remaining_amount|floatformat:2 }}</span>
                 </div>
             {% endif %}
         </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p class="text-sm font-medium text-slate-500">Fechamento</p>
-            <p class="text-xl font-bold mt-1 text-slate-900">{{ bill.closing_date|date:"d/m/Y" }}</p>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs sm:text-sm font-medium text-slate-500">Fechamento</p>
+            <p class="text-lg sm:text-xl font-bold mt-1 text-slate-900">{{ bill.closing_date|date:"d/m/Y" }}</p>
         </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <p class="text-sm font-medium text-slate-500">Vencimento</p>
-            <p class="text-xl font-bold mt-1 text-rose-500">{{ bill.due_date|date:"d/m/Y" }}</p>
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <p class="text-xs sm:text-sm font-medium text-slate-500">Vencimento</p>
+            <p class="text-lg sm:text-xl font-bold mt-1 text-rose-500">{{ bill.due_date|date:"d/m/Y" }}</p>
         </div>
     </div>
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -88,7 +89,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="text-right max-w-[45%] break-all">
+                    <div class="text-right whitespace-nowrap shrink-0">
                         {% if tx.is_incoming %}
                         <p class="font-bold text-emerald-600">
                             +R$ {{ tx.amount|floatformat:2 }}
