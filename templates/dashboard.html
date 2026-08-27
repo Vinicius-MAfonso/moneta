@@ -15,36 +15,25 @@
         <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <form method="GET" action="{% url 'dashboard' %}" class="inline-block flex-1 sm:flex-none">
                 <input type="hidden" name="month" value="{{ month_info.current_month_str }}">
-                <select name="account_id" onchange="this.form.submit()" class="w-full sm:w-auto bg-white border border-slate-200 rounded-xl pl-3.5 pr-8 py-2 text-xs sm:text-sm font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none">
-                    <option value="" {% if not selected_account_id %}selected{% endif %}>Todas as Contas</option>
-                    {% for acc in accounts %}
-                        <option value="{{ acc.id }}" {% if selected_account_id == acc.id|stringformat:"s" %}selected{% endif %}>{{ acc.name }}</option>
-                    {% endfor %}
-                </select>
-            </form>
-
-            <div class="inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-xl px-2.5 py-2 shadow-sm text-xs sm:text-sm font-bold text-slate-800">
-                <a href="?month={{ month_info.prev_month }}{% if selected_account_id %}&amp;account_id={{ selected_account_id }}{% endif %}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
-                </a>
-                <span class="px-1.5 min-w-[90px] md:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs sm:text-sm">{{ month_info.month_label }}</span>
-                <a href="?month={{ month_info.next_month }}{% if selected_account_id %}&amp;account_id={{ selected_account_id }}{% endif %}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                <div class="relative w-full sm:w-auto flex items-center">
+                    <select name="account_id" onchange="this.form.submit()" class="h-10 w-full sm:w-auto bg-white border border-slate-200 rounded-xl pl-3.5 pr-8 text-xs sm:text-sm font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none">
+                        <option value="" {% if not selected_account_id %}selected{% endif %}>Todas as Contas</option>
+                        {% for acc in accounts %}
+                            <option value="{{ acc.id }}" {% if selected_account_id == acc.id|stringformat:"s" %}selected{% endif %}>{{ acc.name }}</option>
+                        {% endfor %}
+                <span class="px-1.5 min-w-[85px] sm:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs sm:text-sm whitespace-nowrap select-none">{{ month_info.month_label }}</span>
+                <a href="?month={{ month_info.next_month }}{% if selected_account_id %}&amp;account_id={{ selected_account_id }}{% endif %}" aria-label="Próximo mês" class="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-indigo-600 rounded-lg hover:bg-slate-100 transition">
                     <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </a>
-            </div>
-
-            <button hx-get="{% url 'transactions_web:create' %}" hx-target="#modal-container" class="hidden sm:inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 shrink-0">
+            <button hx-get="{% url 'transactions_web:create' %}" hx-target="#modal-container" class="h-10 hidden sm:inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 shrink-0 whitespace-nowrap">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span>Nova Transação</span>
             </button>
-        </div>
-    </div>
 
     <!-- 4 KPI Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
         
         <!-- Saldo Atual -->
-        <div class="glass-panel p-3.5 md:p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500">Saldo Atual</span>
                 <div class="p-1.5 md:p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
