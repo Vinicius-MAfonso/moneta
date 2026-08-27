@@ -6,11 +6,11 @@ x-transition:enter-end="opacity-100"
 x-transition:leave="transition ease-in duration-200"
 x-transition:leave-start="opacity-100"
 x-transition:leave-end="opacity-0"
-class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overscroll-none"
 x-cloak>
 
     <div @click.away="close()"
-         class="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-3xl w-full max-w-lg overflow-hidden flex flex-col relative"
+         class="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-3xl w-full max-w-lg overflow-hidden flex flex-col relative overscroll-contain"
          x-transition:enter="transition ease-out duration-300 transform"
          x-transition:enter-start="opacity-0 scale-95 translate-y-8"
          x-transition:enter-end="opacity-100 scale-100 translate-y-0"

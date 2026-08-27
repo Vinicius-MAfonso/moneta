@@ -66,6 +66,22 @@
             background-color: #f8fafc;
             color: #0f172a;
         }
+
+        body.modal-open,
+        main.modal-open {
+            overflow: hidden !important;
+            touch-action: none;
+        }
+
+        .overscroll-contain {
+            overscroll-behavior: contain !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .overscroll-none {
+            overscroll-behavior: none !important;
+            touch-action: none;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -476,6 +492,39 @@
                 }
             }));
         });
+
+        // Modal Background Scroll Lock Manager
+        (function() {
+            function updateModalScrollLock() {
+                const modalContainer = document.getElementById('modal-container');
+                const hasHtmxModal = modalContainer && modalContainer.children.length > 0;
+                const hasVisibleDialog = document.querySelector('.fixed[role="dialog"]:not([style*="display: none"])') !== null;
+                const isLocked = hasHtmxModal || hasVisibleDialog;
+
+                if (isLocked) {
+                    document.body.classList.add('modal-open');
+                    const mainEl = document.querySelector('main');
+                    if (mainEl) mainEl.classList.add('modal-open');
+                } else {
+                    document.body.classList.remove('modal-open');
+                    const mainEl = document.querySelector('main');
+                    if (mainEl) mainEl.classList.remove('modal-open');
+                }
+            }
+
+            const modalContainer = document.getElementById('modal-container');
+            if (modalContainer) {
+                const observer = new MutationObserver(() => {
+                    updateModalScrollLock();
+                });
+                observer.observe(modalContainer, { childList: true, subtree: true });
+            }
+
+            document.addEventListener('htmx:afterSwap', updateModalScrollLock);
+            document.addEventListener('htmx:afterSettle', updateModalScrollLock);
+            document.addEventListener('open-pay-modal', () => setTimeout(updateModalScrollLock, 50));
+            document.addEventListener('DOMContentLoaded', updateModalScrollLock);
+        })();
     </script>
     
     {% include 'components/tutorial_modal.html' %}

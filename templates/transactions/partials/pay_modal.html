@@ -1,5 +1,5 @@
-<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" x-data="payModal('{{ transaction.date|date:"Y-m-d" }}')" x-show="open" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title" x-transition @keydown.escape.window="close()">
-    <div class="bg-white text-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-4 relative animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto" @click.stop>
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 overscroll-none" x-data="payModal('{{ transaction.date|date:"Y-m-d" }}')" x-show="open" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title" x-transition @keydown.escape.window="close()">
+    <div class="bg-white text-slate-900 w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-5 md:p-6 space-y-4 relative animate-in fade-in zoom-in duration-150 max-h-[90vh] overflow-y-auto overscroll-contain" @click.stop>
         
         <div class="flex items-center justify-between border-b border-slate-200 pb-3">
             <h3 id="pay-modal-title" class="text-lg font-bold text-slate-900">Efetivar {% if transaction.category.type == 'despesa' %}Despesa{% elif transaction.category.type == 'receita' %}Receita{% else %}Transferência{% endif %}</h3>
@@ -12,13 +12,13 @@
             {% csrf_token %}
             <input type="hidden" name="date" :value="dateValue">
 
-            <div class="mb-6">
-                <p class="text-sm text-slate-500 leading-relaxed">
+            <div class="mb-4">
+                <p class="text-xs sm:text-sm text-slate-500 leading-relaxed">
                     Ao efetivar, o valor abaixo será contabilizado na sua conta e o status mudará para concluído.
                 </p>
             </div>
 
-            <div class="flex flex-col gap-6">
+            <div class="flex flex-col gap-5">
                 <div x-data="moneyInput('{{ transaction.amount|stringformat:'.2f'|default:'0.00' }}')">
                     <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Valor (R$)</label>
                     <input type="text" inputmode="decimal" autocomplete="off" required :value="displayValue" @input="onInput($event)" @focus="$event.target.select()"
@@ -49,19 +49,19 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-between gap-3 mt-8 pt-5 border-t border-slate-200">
+            <div class="flex items-center justify-between gap-3 mt-6 pt-4 border-t border-slate-200">
                 <button type="button" hx-get="{% url 'transactions_web:edit' transaction.id %}" hx-target="#modal-container" class="inline-flex md:hidden items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-2.5 py-1.5 rounded-lg transition">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                     <span>Editar detalhes</span>
                 </button>
                 <div class="flex items-center gap-2 ml-auto">
-                    <button type="button" @click="close()" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition">Cancelar</button>
-                    <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-bold transition shadow-lg flex items-center gap-2
+                    <button type="button" @click="close()" class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition border border-slate-200/80 shadow-sm">Cancelar</button>
+                    <button type="submit" class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition shadow-lg flex items-center justify-center gap-2
                         {% if transaction.category.type == 'despesa' %}bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30
                         {% elif transaction.category.type == 'receita' %}bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30
                         {% else %}bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30{% endif %}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        {% if transaction.category.type == 'despesa' %}Pagar{% elif transaction.category.type == 'receita' %}Receber{% else %}Efetivar{% endif %}
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <span>{% if transaction.category.type == 'despesa' %}Pagar{% elif transaction.category.type == 'receita' %}Receber{% else %}Efetivar{% endif %}</span>
                     </button>
                 </div>
             </div>
