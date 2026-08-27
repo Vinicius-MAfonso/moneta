@@ -258,31 +258,17 @@ def transaction_update_view(request, pk):
 
     transaction = get_object_or_404(Transaction, pk=pk, user=request.user)
 
-    if transaction.category.type == TransactionType.TRANSFER:
-        if request.headers.get('HX-Request'):
-            import json
-            response = HttpResponse(status=204)
-            response['HX-Trigger'] = json.dumps({
-                'show-toast': {'message': 'Edição de transferências não permitida.', 'type': 'error'}
-            })
-            return response
-        messages.error(request, "Não é possível editar transferências.")
-        return redirect('transactions_web:list')
-
-    if transaction.bill and transaction.bill.status == 'paid':
-        if request.headers.get('HX-Request'):
-            import json
-            response = HttpResponse(status=204)
-            response['HX-Trigger'] = json.dumps({
-                'show-toast': {'message': 'Transações de faturas já pagas não podem ser editadas.', 'type': 'error'}
-            })
-            return response
-        messages.error(request, "Transações de faturas já pagas não podem ser editadas.")
-        return redirect('transactions_web:list')
-
     accounts = Account.objects.filter(user=request.user, active=True)
     categories = Category.objects.filter(user=request.user, is_system=False)
     tags = Tag.objects.filter(user=request.user)
+    transfer_accounts = Account.objects.filter(user=request.user, active=True).exclude(type=Account.Types.CREDIT_CARD)
+
+    transfer = getattr(transaction, 'transfer_out', None) or getattr(transaction, 'transfer_in', None)
+    if not transfer and transaction.category and transaction.category.type == TransactionType.TRANSFER:
+        from transactions.models import Transfer
+        transfer = Transfer.objects.filter(models.Q(out_transaction=transaction) | models.Q(in_transaction=transaction)).first()
+
+            if form.is_valid():
 
     if request.method == 'POST':
         from .forms import TransactionForm

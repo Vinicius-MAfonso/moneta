@@ -182,6 +182,56 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
         return transfer
 
 
+def update_transfer(transfer, validated_data):
+    import re
+    from django.core.exceptions import ValidationError
+    from django.db import transaction as db_transaction
+    from wallets.models import Account
+    from wallets.services import recalculate_account_balance
+
+    out_account = Account.objects.get(id=validated_data['out_account'])
+    in_account = Account.objects.get(id=validated_data['in_account'])
+    if out_account.id == in_account.id:
+        raise ValidationError("A conta de origem e a conta de destino não podem ser a mesma.")
+
+    amount = validated_data['amount']
+    tx_date = validated_data['date']
+    description = (validated_data.get('description') or '').strip()
+    clean_desc = re.sub(r'^Transferência (p/|de) [^:]+:\s*', '', description).strip() or 'Transferência entre contas'
+
+    out_tx = transfer.out_transaction
+    in_tx = transfer.in_transaction
+
+    old_out_account = out_tx.account
+    old_in_account = in_tx.account
+
+    with db_transaction.atomic():
+        out_tx.account = out_account
+        out_tx.amount = amount
+        out_tx.date = tx_date
+        out_tx.description = f"Transferência p/ {in_account.name}: {clean_desc}"
+        out_tx.save()
+
+        in_tx.account = in_account
+        in_tx.amount = amount
+        in_tx.date = tx_date
+        in_tx.description = f"Transferência de {out_account.name}: {clean_desc}"
+        in_tx.save()
+
+        if 'tags' in validated_data and validated_data['tags'] is not None:
+            tag_ids = [t.id for t in validated_data['tags']]
+            out_tx.tags.set(tag_ids)
+            in_tx.tags.set(tag_ids)
+
+        transfer.save()
+
+        accounts_to_recalc = {out_account, in_account, old_out_account, old_in_account}
+        for acc in accounts_to_recalc:
+            recalculate_account_balance(acc)
+
+    return transfer
+
+
 def create_regular_transaction(user, account_id, category_id, description, amount, tx_date, status, tag_ids=None, is_recurring=False, frequency='monthly', recurring_end_date=None, installments=1):
     from decimal import Decimal
     

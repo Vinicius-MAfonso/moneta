@@ -131,6 +131,9 @@
                         <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 active:bg-slate-100 transition cursor-pointer"
                              {% if tx.related_bill_payment %}
                                  onclick="window.location.href='{% url 'wallets_web:bill_detail' tx.related_bill_payment.id %}'"
+                             {% elif tx.status == 'pendente' %}
+                                 hx-get="{% url 'transactions_web:pay' tx.id %}"
+                                 hx-target="#modal-container"
                              {% else %}
                                  hx-get="{% url 'transactions_web:edit' tx.id %}"
                                  hx-target="#modal-container"
@@ -178,12 +181,14 @@
                                 </p>
                                 <div class="flex items-center justify-end mt-0.5">
                                     {% if tx.status == 'concluída' %}
-                                        <span class="inline-flex items-center text-[10px] font-semibold text-emerald-600" title="Concluída">
+                                        <span class="inline-flex items-center text-[10px] font-medium text-emerald-600 gap-1" title="Concluída">
                                             <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                            <span>Concluída</span>
                                         </span>
                                     {% else %}
-                                        <span class="inline-flex items-center text-[10px] font-semibold text-amber-500" title="Pendente">
+                                        <span class="inline-flex items-center text-[10px] font-semibold text-amber-500 gap-1" title="Pendente">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            <span>Pendente</span>
                                         </span>
                                     {% endif %}
                                 </div>
