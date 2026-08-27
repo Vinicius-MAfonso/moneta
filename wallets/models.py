@@ -3,7 +3,13 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import models
+
+HEX_COLOR_VALIDATOR = RegexValidator(
+    regex=r'^#[0-9A-Fa-f]{6}$',
+    message='Insira uma cor hexadecimal válida no formato #RRGGBB.'
+)
 
 
 class Account(models.Model):
@@ -19,7 +25,7 @@ class Account(models.Model):
     institution = models.CharField(max_length=100, blank=True, null=True, verbose_name='instituição')
     balance = models.DecimalField(max_digits=20, decimal_places=2, default=0.00, verbose_name='saldo')
     initial_balance = models.DecimalField(max_digits=20, decimal_places=2, default=0.00, verbose_name='saldo inicial')
-    color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
+    color = models.CharField(max_length=7, default='#000000', verbose_name='cor', validators=[HEX_COLOR_VALIDATOR])
     icon = models.CharField(max_length=5, blank=True, null=True, verbose_name='ícone')
     active = models.BooleanField(default=True, verbose_name='ativa')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')

@@ -47,7 +47,7 @@ def get_active_budgets(user, reference_date=None):
         user=user,
         start_date__lte=reference_date,
         end_date__gte=reference_date
-    )
+    ).select_related('category')
     
     progress_list = []
     for b in budgets:

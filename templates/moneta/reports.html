@@ -7,49 +7,49 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
             <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Relatórios de Fluxo de Caixa</h2>
-            <p class="text-slate-500 text-sm mt-1">Análise detalhada de suas finanças e exportação de dados</p>
+            <p class="text-slate-500 text-xs md:text-sm mt-0.5 md:mt-1">Análise detalhada de suas finanças e exportação de dados</p>
         </div>
         
-        <form method="GET" action="{% url 'reports' %}" class="flex flex-wrap items-center gap-3">
-            <div class="flex items-center space-x-2">
-                <input type="date" name="start_date" aria-label="Data inicial" value="{{ start_date }}" class="bg-white border border-slate-300 text-sm rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
-                <span class="text-xs font-semibold text-slate-500">até</span>
-                <input type="date" name="end_date" aria-label="Data final" value="{{ end_date }}" class="bg-white border border-slate-300 text-sm rounded-xl px-3.5 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
+        <form method="GET" action="{% url 'reports' %}" class="grid grid-cols-2 sm:flex sm:items-center gap-2.5 w-full md:w-auto">
+            <div class="col-span-2 sm:col-span-1 flex items-center gap-1.5 w-full sm:w-auto">
+                <input type="date" name="start_date" aria-label="Data inicial" value="{{ start_date }}" class="w-full sm:w-auto bg-white border border-slate-300 text-xs md:text-sm rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
+                <span class="text-xs font-semibold text-slate-400">até</span>
+                <input type="date" name="end_date" aria-label="Data final" value="{{ end_date }}" class="w-full sm:w-auto bg-white border border-slate-300 text-xs md:text-sm rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
             </div>
-            <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition">
+            <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs md:text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition">
                 Filtrar
             </button>
-            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold rounded-xl transition shadow-sm inline-flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <a href="{% url 'export_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="w-full sm:w-auto px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs md:text-sm font-semibold rounded-xl transition shadow-sm inline-flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 Exportar CSV
             </a>
         </form>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="glass-panel p-6 rounded-2xl">
-            <p class="text-sm font-semibold text-slate-500">Total Receitas</p>
-            <p class="text-2xl font-extrabold text-emerald-600 mt-2">R$ {{ report_data.total_income|floatformat:2 }}</p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6">
+        <div class="glass-panel p-4 md:p-6 rounded-2xl">
+            <p class="text-xs md:text-sm font-semibold text-slate-500">Total Receitas</p>
+            <p class="text-xl md:text-2xl font-extrabold text-emerald-600 mt-1 md:mt-2 truncate">+ R$ {{ report_data.total_income|floatformat:2 }}</p>
         </div>
-        <div class="glass-panel p-6 rounded-2xl">
-            <p class="text-sm font-semibold text-slate-500">Total Despesas</p>
-            <p class="text-2xl font-extrabold text-rose-600 mt-2">R$ {{ report_data.total_expense|floatformat:2 }}</p>
+        <div class="glass-panel p-4 md:p-6 rounded-2xl">
+            <p class="text-xs md:text-sm font-semibold text-slate-500">Total Despesas</p>
+            <p class="text-xl md:text-2xl font-extrabold text-rose-600 mt-1 md:mt-2 truncate">- R$ {{ report_data.total_expense|floatformat:2 }}</p>
         </div>
-        <div class="glass-panel p-6 rounded-2xl">
-            <p class="text-sm font-semibold text-slate-500">Saldo no Período</p>
-            <p class="text-2xl font-extrabold {% if report_data.net_savings >= 0 %}text-indigo-600{% else %}text-rose-600{% endif %} mt-2">R$ {{ report_data.net_savings|floatformat:2 }}</p>
+        <div class="glass-panel p-4 md:p-6 rounded-2xl">
+            <p class="text-xs md:text-sm font-semibold text-slate-500">Saldo no Período</p>
+            <p class="text-xl md:text-2xl font-extrabold {% if report_data.net_savings >= 0 %}text-indigo-600{% else %}text-rose-600{% endif %} mt-1 md:mt-2 truncate">R$ {{ report_data.net_savings|floatformat:2 }}</p>
         </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 glass-panel p-6 rounded-2xl">
-            <h3 class="text-lg font-bold text-slate-900 mb-4">Evolução do Saldo</h3>
+        <div class="lg:col-span-2 glass-panel p-5 md:p-6 rounded-2xl">
+            <h3 class="text-base md:text-lg font-bold text-slate-900 mb-4">Evolução do Saldo</h3>
             <div class="h-72">
                 <canvas id="timelineChart"></canvas>
             </div>
         </div>
-        <div class="glass-panel p-6 rounded-2xl">
-            <h3 class="text-lg font-bold text-slate-900 mb-4">Despesas por Categoria</h3>
+        <div class="glass-panel p-5 md:p-6 rounded-2xl">
+            <h3 class="text-base md:text-lg font-bold text-slate-900 mb-4">Despesas por Categoria</h3>
             <div class="h-80 relative">
                 {% if report_data.expenses_by_category %}
                     <canvas id="categoryChart"></canvas>
@@ -62,9 +62,11 @@
         </div>
     </div>
 
-    <div class="glass-panel p-6 rounded-2xl">
-        <h3 class="text-lg font-bold text-slate-900 mb-4">Maiores Despesas no Período</h3>
-        <div class="overflow-x-auto">
+    <div class="glass-panel p-5 md:p-6 rounded-2xl">
+        <h3 class="text-base md:text-lg font-bold text-slate-900 mb-4">Maiores Despesas no Período</h3>
+        
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
             <table class="w-full text-left text-sm text-slate-700">
                 <thead class="text-xs uppercase bg-slate-100 text-slate-600 border-b border-slate-200">
                     <tr>
@@ -98,6 +100,39 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+
+        <!-- Mobile Card List -->
+        <div class="block md:hidden divide-y divide-slate-100 -mx-2">
+            {% for tx in report_data.top_transactions %}
+                <div class="p-3 flex items-center justify-between gap-3">
+                    <div class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-sm"
+                         style="background-color: {{ tx.category.color }}20; color: {{ tx.category.color }};">
+                        {% if tx.category.icon %}
+                            <span>{{ tx.category.icon }}</span>
+                        {% else %}
+                            <div class="w-3 h-3 rounded-full" style="background-color: {{ tx.category.color }};"></div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 truncate">{{ tx.description }}</p>
+                        <div class="flex items-center space-x-1.5 text-xs text-slate-500 mt-0.5 truncate">
+                            <span>{{ tx.category.name }}</span>
+                            <span>•</span>
+                            <span>{{ tx.account.name }}</span>
+                            <span>•</span>
+                            <span class="font-medium text-slate-600">{{ tx.date|date:"d/m" }}</span>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="text-sm font-extrabold text-rose-600">
+                            - R$ {{ tx.amount|floatformat:2 }}
+                        </p>
+                    </div>
+                </div>
+            {% empty %}
+                <p class="p-4 text-center text-xs text-slate-500">Nenhuma despesa encontrada.</p>
+            {% endfor %}
         </div>
     </div>
 </div>

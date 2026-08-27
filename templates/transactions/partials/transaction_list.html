@@ -1,4 +1,5 @@
-<div class="space-y-3">
+<div class="space-y-4">
+    <!-- Header de Balanço Geral do Mês -->
     <div class="flex items-center justify-center py-1">
         <div class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-600 shadow-sm">
             <span>Balanço Geral em <strong class="text-indigo-600 capitalize">{{ month_info.month_label }}</strong>:</span>
@@ -8,93 +9,94 @@
         </div>
     </div>
 
-    <div class="overflow-x-auto">
+    <!-- VISUALIZAÇÃO DESKTOP: TABELA COMPLETA (hidden md:block) -->
+    <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-left text-sm text-slate-700">
             <thead class="text-xs uppercase bg-slate-100 text-slate-600 border-b border-slate-200 whitespace-nowrap">
                 <tr>
-                    <th class="px-4 py-3">Descrição</th>
-                    <th class="px-4 py-3">Categoria</th>
-                    <th class="px-4 py-3">Conta</th>
-                    <th class="px-4 py-3">Tags</th>
-                    <th class="px-4 py-3">Data</th>
-                    <th class="px-4 py-3">Status</th>
-                    <th class="px-4 py-3 text-right">Valor</th>
-                    <th class="px-4 py-3 text-center">Ações</th>
+                    <th class="px-2.5 py-2.5 font-semibold">Descrição</th>
+                    <th class="px-2.5 py-2.5 font-semibold">Categoria</th>
+                    <th class="px-2.5 py-2.5 font-semibold">Conta</th>
+                    <th class="px-2.5 py-2.5 font-semibold">Tags</th>
+                    <th class="px-2.5 py-2.5 font-semibold">Data</th>
+                    <th class="px-2.5 py-2.5 font-semibold">Status</th>
+                    <th class="px-2.5 py-2.5 font-semibold text-right">Valor</th>
+                    <th class="px-2.5 py-2.5 font-semibold text-center">Ações</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 whitespace-nowrap">
                 {% for day in tx_by_date %}
                     <tr class="bg-slate-50">
-                        <td colspan="7" class="px-4 py-2 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
+                        <td colspan="7" class="px-2.5 py-1.5 text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
                             {{ day.date|date:"d M Y" }}
                         </td>
-                        <td class="px-4 py-2 text-[11px] uppercase tracking-wider font-extrabold text-right {% if day.balance < 0 %}text-rose-500{% else %}text-emerald-500{% endif %}">
+                        <td class="px-2.5 py-1.5 text-[11px] uppercase tracking-wider font-extrabold text-right {% if day.balance < 0 %}text-rose-500{% else %}text-emerald-500{% endif %}">
                             R$ {{ day.balance|floatformat:2 }}
                         </td>
                     </tr>
                     {% for tx in day.list %}
                     <tr class="hover:bg-slate-50 transition" id="tx-{{ tx.id }}">
-                        <td class="px-4 py-3.5 align-middle font-medium text-slate-900 whitespace-normal min-w-[200px]">
+                        <td class="px-2.5 py-2.5 align-middle font-medium text-slate-900 max-w-[180px] lg:max-w-[240px] truncate" title="{% if tx.related_bill_payment %}Pagamento Fatura - Cartão {{ tx.related_bill_payment.account.name }}{% else %}{{ tx.description }}{% endif %}">
                             {% if tx.related_bill_payment %}
                                 Pagamento Fatura - Cartão {{ tx.related_bill_payment.account.name }}
                             {% else %}
                                 {{ tx.description }}
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3.5 align-middle text-xs text-slate-500">
+                        <td class="px-2.5 py-2.5 align-middle text-xs text-slate-500 max-w-[120px] truncate">
                             {% if tx.related_bill_payment %}
-                                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-violet-50 text-violet-700 border border-violet-200 whitespace-nowrap" style="border-left: 3px solid #8B5CF6;">
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200 whitespace-nowrap" style="border-left: 3px solid #8B5CF6;">
                                     <span>💳</span><span>Fatura Paga</span>
                                 </span>
                             {% else %}
-                                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 border border-slate-200 whitespace-nowrap" style="border-left: 3px solid {{ tx.category.color }};">
-                                    {% if tx.category.icon %}<span>{{ tx.category.icon }}</span>{% endif %}<span>{{ tx.category.name }}</span>
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 whitespace-nowrap" style="border-left: 3px solid {{ tx.category.color }};">
+                                    {% if tx.category.icon %}<span>{{ tx.category.icon }}</span>{% endif %}<span class="truncate">{{ tx.category.name }}</span>
                                 </span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3.5 align-middle text-xs text-slate-500">
-                            <div class="flex items-center space-x-2 whitespace-nowrap">
+                        <td class="px-2.5 py-2.5 align-middle text-xs text-slate-500 max-w-[120px] truncate">
+                            <div class="flex items-center space-x-1.5 whitespace-nowrap">
                                 <div class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ tx.account.color }};"></div>
-                                <span>{{ tx.account.name }}</span>
+                                <span class="truncate">{{ tx.account.name }}</span>
                             </div>
                         </td>
-                        <td class="px-4 py-3.5 align-middle text-xs">
+                        <td class="px-2.5 py-2.5 align-middle text-xs max-w-[100px] truncate">
                             <div class="flex flex-wrap gap-1">
                                 {% for tag in tx.tags.all %}
-                                    <span class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border text-slate-800 shadow-sm" style="background-color: {{ tag.color }}20; border-color: {{ tag.color }}50;">
-                                        <span class="w-1.5 h-1.5 rounded-full shadow-sm" style="background-color: {{ tag.color }}; border: 1px solid {{ tag.color }}80;"></span>
-                                        <span>{{ tag.name }}</span>
+                                    <span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold border text-slate-800 shadow-sm" style="background-color: {{ tag.color }}20; border-color: {{ tag.color }}50;">
+                                        <span class="w-1.5 h-1.5 rounded-full shadow-sm shrink-0" style="background-color: {{ tag.color }}; border: 1px solid {{ tag.color }}80;"></span>
+                                        <span class="truncate max-w-[60px]">{{ tag.name }}</span>
                                     </span>
                                 {% empty %}
                                     <span class="text-slate-400">-</span>
                                 {% endfor %}
                             </div>
                         </td>
-                        <td class="px-4 py-3.5 align-middle text-xs text-slate-500">{{ tx.date|date:"d/m/Y" }}</td>
-                        <td class="px-4 py-3.5 align-middle">
+                        <td class="px-2.5 py-2.5 align-middle text-xs text-slate-500 whitespace-nowrap">{{ tx.date|date:"d/m/Y" }}</td>
+                        <td class="px-2.5 py-2.5 align-middle whitespace-nowrap">
                             <span class="px-2 py-0.5 text-xs rounded-full font-medium {% if tx.status == 'concluída' %}bg-emerald-500/10 text-emerald-600 border border-emerald-500/20{% else %}bg-amber-500/10 text-amber-600 border border-amber-500/20{% endif %}">
                                 {{ tx.get_status_display }}
                             </span>
                         </td>
-                        <td class="px-4 py-3.5 align-middle text-right font-bold whitespace-nowrap {% if tx.category.type == 'receita' %}text-emerald-600{% elif tx.category.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
+                        <td class="px-2.5 py-2.5 align-middle text-right font-bold whitespace-nowrap {% if tx.category.type == 'receita' %}text-emerald-600{% elif tx.category.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
                             {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
                         </td>
-                        <td class="px-4 py-3.5 align-middle text-center">
+                        <td class="px-2.5 py-2.5 align-middle text-center whitespace-nowrap">
                             <div class="flex items-center justify-center space-x-1">
                                 {% if tx.related_bill_payment %}
-                                    <a href="{% url 'wallets_web:bill_detail' tx.related_bill_payment.id %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg transition" title="Ver detalhes da fatura">
-                                        🧾 Ver Fatura
+                                    <a href="{% url 'wallets_web:bill_detail' tx.related_bill_payment.id %}" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg transition" title="Ver detalhes da fatura">
+                                        🧾 Fatura
                                     </a>
                                 {% else %}
                                     {% if tx.status == 'pendente' %}
-                                        <button hx-get="{% url 'transactions_web:pay' tx.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-emerald-500 transition rounded-lg hover:bg-emerald-500/10" title="Efetivar">
+                                        <button hx-get="{% url 'transactions_web:pay' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-emerald-500 transition rounded-lg hover:bg-emerald-500/10" title="Efetivar">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         </button>
                                     {% endif %}
-                                    <button hx-get="{% url 'transactions_web:edit' tx.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-indigo-500 transition rounded-lg hover:bg-indigo-500/10" title="Editar">
+                                    <button hx-get="{% url 'transactions_web:edit' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-indigo-500 transition rounded-lg hover:bg-indigo-500/10" title="Editar">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                     </button>
-                                    <button hx-get="{% url 'transactions_web:confirm_delete' tx.id %}" hx-target="#modal-container" class="p-1.5 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10" title="Excluir">
+                                    <button hx-get="{% url 'transactions_web:confirm_delete' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10" title="Excluir">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                     </button>
                                 {% endif %}
@@ -109,5 +111,91 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- VISUALIZAÇÃO MOBILE: CARDS / FEED AGRUPADO POR DIA (block md:hidden) -->
+    <div class="block md:hidden space-y-4">
+        {% for day in tx_by_date %}
+            <div class="space-y-2">
+                <!-- Cabeçalho do Dia -->
+                <div class="flex items-center justify-between px-1 text-xs font-bold text-slate-700">
+                    <span class="capitalize">{{ day.date|date:"l, d" }}</span>
+                    <span class="text-[11px] font-semibold {% if day.balance < 0 %}text-rose-500{% else %}text-emerald-600{% endif %}">
+                        R$ {{ day.balance|floatformat:2 }}
+                    </span>
+                </div>
+
+                <!-- Lista de Lançamentos do Dia -->
+                <div class="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
+                    {% for tx in day.list %}
+                        <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 active:bg-slate-100 transition cursor-pointer"
+                             {% if tx.related_bill_payment %}
+                                 onclick="window.location.href='{% url 'wallets_web:bill_detail' tx.related_bill_payment.id %}'"
+                             {% else %}
+                                 hx-get="{% url 'transactions_web:edit' tx.id %}"
+                                 hx-target="#modal-container"
+                             {% endif %}
+                             id="mobile-tx-{{ tx.id }}">
+                            
+                            <!-- Ícone da Categoria / Fatura -->
+                            <div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm"
+                                 style="background-color: {% if tx.related_bill_payment %}#8B5CF620{% else %}{{ tx.category.color }}20{% endif %}; color: {% if tx.related_bill_payment %}#8B5CF6{% else %}{{ tx.category.color }}{% endif %};">
+                                {% if tx.related_bill_payment %}
+                                    <span>💳</span>
+                                {% elif tx.category.icon %}
+                                    <span>{{ tx.category.icon }}</span>
+                                {% else %}
+                                    <div class="w-3.5 h-3.5 rounded-full" style="background-color: {{ tx.category.color }};"></div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Centro: Título e Subtítulo -->
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-slate-900 truncate">
+                                    {% if tx.related_bill_payment %}
+                                        Pagamento Fatura - Cartão {{ tx.related_bill_payment.account.name }}
+                                    {% else %}
+                                        {{ tx.description }}
+                                    {% endif %}
+                                </p>
+                                <div class="flex items-center space-x-1.5 text-xs text-slate-500 mt-0.5 truncate">
+                                    <span>{% if tx.related_bill_payment %}Fatura{% else %}{{ tx.category.name }}{% endif %}</span>
+                                    <span class="flex items-center space-x-1">
+                                        <span class="w-1.5 h-1.5 rounded-full inline-block shrink-0" style="background-color: {{ tx.account.color }};"></span>
+                                        <span class="truncate max-w-[80px]">{{ tx.account.name }}</span>
+                                    </span>
+                                    {% if tx.tags.all %}
+                                        <span>•</span>
+                                        <span class="text-indigo-600 font-medium truncate max-w-[60px]">{{ tx.tags.all.0.name }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Direita: Valor e Indicador de Status -->
+                            <div class="text-right shrink-0">
+                                <p class="text-sm font-extrabold {% if tx.category.type == 'receita' %}text-emerald-600{% elif tx.category.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
+                                    {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
+                                </p>
+                                <div class="flex items-center justify-end mt-0.5">
+                                    {% if tx.status == 'concluída' %}
+                                        <span class="inline-flex items-center text-[10px] font-semibold text-emerald-600" title="Concluída">
+                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center text-[10px] font-semibold text-amber-500" title="Pendente">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% empty %}
+            <div class="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-sm">
+                Nenhuma transação encontrada para os filtros selecionados.
+            </div>
+        {% endfor %}
     </div>
 </div>

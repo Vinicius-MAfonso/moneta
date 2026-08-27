@@ -5,16 +5,17 @@
 {% block content %}
 <div class="space-y-8">
     
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- Top Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Visão Geral</h2>
-            <p class="text-slate-500 text-sm mt-1">Acompanhe seu fluxo de caixa e progresso financeiro</p>
+            <p class="text-slate-500 text-xs md:text-sm mt-0.5 md:mt-1">Acompanhe seu fluxo de caixa e progresso financeiro</p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5">
-            <form method="GET" action="{% url 'dashboard' %}" class="inline-block">
+        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <form method="GET" action="{% url 'dashboard' %}" class="inline-block flex-1 sm:flex-none">
                 <input type="hidden" name="month" value="{{ month_info.current_month_str }}">
-                <select name="account_id" onchange="this.form.submit()" class="bg-white border border-slate-200 rounded-2xl pl-3.5 pr-8 py-2 text-xs md:text-sm font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none">
+                <select name="account_id" onchange="this.form.submit()" class="w-full sm:w-auto bg-white border border-slate-200 rounded-2xl pl-3.5 pr-8 py-2 text-xs md:text-sm font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none">
                     <option value="" {% if not selected_account_id %}selected{% endif %}>Todas as Contas</option>
                     {% for acc in accounts %}
                         <option value="{{ acc.id }}" {% if selected_account_id == acc.id|stringformat:"s" %}selected{% endif %}>{{ acc.name }}</option>
@@ -22,104 +23,109 @@
                 </select>
             </form>
 
-            <div class="inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-2xl px-3 py-1.5 shadow-sm text-sm font-bold text-slate-800">
-                <a href="?month={{ month_info.prev_month }}{% if selected_account_id %}&account_id={{ selected_account_id }}{% endif %}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+            <div class="inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-2xl px-2.5 py-1.5 shadow-sm text-sm font-bold text-slate-800">
+                <a href="?month={{ month_info.prev_month }}{% if selected_account_id %}&amp;account_id={{ selected_account_id }}{% endif %}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
                     <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                 </a>
-                <span class="px-2 min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs md:text-sm">{{ month_info.month_label }}</span>
-                <a href="?month={{ month_info.next_month }}{% if selected_account_id %}&account_id={{ selected_account_id }}{% endif %}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                <span class="px-1.5 min-w-[90px] md:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs md:text-sm">{{ month_info.month_label }}</span>
+                <a href="?month={{ month_info.next_month }}{% if selected_account_id %}&amp;account_id={{ selected_account_id }}{% endif %}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
                     <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </a>
             </div>
 
-            <a href="{% url 'transactions_web:list' %}" class="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/25">
+            <a href="{% url 'transactions_web:list' %}" class="hidden sm:inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all shadow-lg shadow-indigo-600/25">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span>Nova Transação</span>
             </a>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    <!-- 4 KPI Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
         
-        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+        <!-- Saldo Atual -->
+        <div class="glass-panel p-3.5 md:p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 ">Saldo Atual</span>
-                <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 ">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                <span class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500">Saldo Atual</span>
+                <div class="p-1.5 md:p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                    <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                 </div>
             </div>
-            <p class="text-2xl md:text-3xl font-extrabold {% if total_balance > 0 %}text-emerald-600{% elif total_balance < 0 %}text-rose-600{% else %}text-slate-900{% endif %} mt-3">
+            <p class="text-base sm:text-xl lg:text-2xl font-extrabold {% if total_balance > 0 %}text-emerald-600{% elif total_balance < 0 %}text-rose-600{% else %}text-slate-900{% endif %} mt-2 md:mt-3 whitespace-nowrap overflow-hidden text-ellipsis">
                 R$ {{ total_balance|floatformat:2 }}
             </p>
-            <div class="mt-1 flex items-center space-x-1.5 text-xs font-medium">
+            <div class="mt-1 flex items-center space-x-1.5 text-[10px] md:text-xs font-medium truncate">
                 {% if total_expected_balance > 0 %}
-                    <span class="{% if total_expected_balance >= total_balance %}text-emerald-600{% else %}text-amber-500{% endif %}">
+                    <span class="{% if total_expected_balance >= total_balance %}text-emerald-600{% else %}text-amber-500{% endif %} truncate">
                         {% if total_expected_balance >= total_balance %}↑{% else %}↓{% endif %} Previsto: R$ {{ total_expected_balance|floatformat:2 }}
                     </span>
                 {% elif total_expected_balance < 0 %}
-                    <span class="text-rose-600 " title="Há despesas pendentes que reduzirão este saldo">
+                    <span class="text-rose-600 truncate" title="Há despesas pendentes que reduzirão este saldo">
                         ↓ Previsto: R$ {{ total_expected_balance|floatformat:2 }}
                     </span>
                 {% else %}
-                    <span class="text-slate-500 ">Previsto: R$ 0,00</span>
+                    <span class="text-slate-500 truncate">Previsto: R$ 0,00</span>
                 {% endif %}
             </div>
-            <div class="mt-2 flex items-center text-[11px] text-slate-500 ">
-                <span>{% if selected_account_id %}{{ selected_account.name }}{% else %}Todas as contas ativas{% endif %}</span>
+            <div class="mt-1.5 md:mt-2 flex items-center text-[10px] md:text-[11px] text-slate-500 truncate">
+                <span class="truncate">{% if selected_account_id %}{{ selected_account.name }}{% else %}Todas as contas{% endif %}</span>
             </div>
         </div>
 
-        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+        <!-- Receitas (Mês) -->
+        <div class="glass-panel p-3.5 md:p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 ">Receitas (Mês)</span>
-                <div class="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 ">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path></svg>
+                <span class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500">Receitas (Mês)</span>
+                <div class="p-1.5 md:p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+                    <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path></svg>
                 </div>
             </div>
-            <p class="text-2xl md:text-3xl font-extrabold text-emerald-600 mt-3">+ R$ {{ monthly_income|floatformat:2 }}</p>
-            <div class="mt-3 flex items-center text-xs text-slate-500 ">
+            <p class="text-base sm:text-xl lg:text-2xl font-extrabold text-emerald-600 mt-2 md:mt-3 whitespace-nowrap overflow-hidden text-ellipsis">+ R$ {{ monthly_income|floatformat:2 }}</p>
+            <div class="mt-2 md:mt-3 flex items-center text-[10px] md:text-xs text-slate-500 truncate">
                 <span>Confirmadas neste mês</span>
             </div>
         </div>
 
-        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+        <!-- Despesas (Mês) -->
+        <div class="glass-panel p-3.5 md:p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Despesas (Mês)</span>
-                <div class="p-2 rounded-xl bg-rose-500/10 text-rose-500">
-                    <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
+                <span class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500">Despesas (Mês)</span>
+                <div class="p-1.5 md:p-2 rounded-xl bg-rose-500/10 text-rose-500">
+                    <svg class="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 13l-5 5m0 0l-5-5m5 5V6"></path></svg>
                 </div>
             </div>
-            <p class="text-2xl md:text-3xl font-extrabold text-rose-600 mt-3">- R$ {{ monthly_expense|floatformat:2 }}</p>
+            <p class="text-base sm:text-xl lg:text-2xl font-extrabold text-rose-600 mt-2 md:mt-3 whitespace-nowrap overflow-hidden text-ellipsis">- R$ {{ monthly_expense|floatformat:2 }}</p>
             
-            <div class="mt-4 pt-3 border-t border-slate-200">
-                <div class="flex items-center justify-between text-[11px] mb-1.5 font-semibold">
+            <div class="mt-3 md:mt-4 pt-2 md:pt-3 border-t border-slate-200">
+                <div class="flex items-center justify-between text-[10px] md:text-[11px] mb-1 font-semibold">
                     <span class="text-slate-500">Gasto da Receita</span>
                     <span class="{% if economy_status == 'danger' %}text-rose-500{% elif economy_status == 'warning' %}text-amber-500{% else %}text-emerald-500{% endif %} font-bold">{{ economy_pct|floatformat:1 }}%</span>
                 </div>
                 <div class="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                     <div class="h-full rounded-full transition-all duration-500 {% if economy_status == 'danger' %}bg-rose-500{% elif economy_status == 'warning' %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ economy_pct_clamped|floatformat:0|default:'0' }}%;"></div>
                 </div>
-                <p class="mt-2 text-[10px] {% if economy_status == 'danger' %}text-rose-600 font-medium{% elif economy_status == 'warning' %}text-amber-600 font-medium{% else %}text-slate-500{% endif %} leading-tight">{{ economy_message }}</p>
             </div>
         </div>
 
-        <div class="glass-panel p-5 rounded-2xl relative overflow-hidden group">
+        <!-- Balanço (Mês) -->
+        <div class="glass-panel p-3.5 md:p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Balanço (Mês)</span>
-                <div class="p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
-                    <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 01-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                <span class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500">Balanço (Mês)</span>
+                <div class="p-1.5 md:p-2 rounded-xl bg-indigo-500/10 text-indigo-500">
+                    <svg class="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 01-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 </div>
             </div>
-            <p class="text-2xl md:text-3xl font-extrabold {% if monthly_net_balance < 0 %}text-rose-600{% else %}text-emerald-600{% endif %} mt-3">
+            <p class="text-base sm:text-xl lg:text-2xl font-extrabold {% if monthly_net_balance < 0 %}text-rose-600{% else %}text-emerald-600{% endif %} mt-2 md:mt-3 whitespace-nowrap overflow-hidden text-ellipsis">
                 R$ {{ monthly_net_balance|floatformat:2 }}
             </p>
-            <div class="mt-3 flex items-center text-xs text-slate-500">
+            <div class="mt-2 md:mt-3 flex items-center text-[10px] md:text-xs text-slate-500 truncate">
                 <span>Receitas vs Despesas</span>
             </div>
         </div>
 
     </div>
 
+    <!-- Categorias Grid: Despesas e Receitas -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="glass-panel p-6 rounded-2xl space-y-4">
             <div class="flex items-center justify-between">
@@ -134,7 +140,7 @@
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs font-semibold">
                             <span class="text-slate-700 flex items-center space-x-2">
-                                <span class="w-2 h-2 rounded-full" style="background-color: {{ item.color }};"></span>
+                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ item.color }};"></span>
                                 <span>{{ item.name }}</span>
                             </span>
                             <span class="text-slate-900 font-bold">R$ {{ item.total|floatformat:2 }} ({{ item.percentage }}%)</span>
@@ -162,7 +168,7 @@
                     <div class="space-y-1">
                         <div class="flex justify-between text-xs font-semibold">
                             <span class="text-slate-700 flex items-center space-x-2">
-                                <span class="w-2 h-2 rounded-full" style="background-color: {{ item.color }};"></span>
+                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ item.color }};"></span>
                                 <span>{{ item.name }}</span>
                             </span>
                             <span class="text-slate-900 font-bold">R$ {{ item.total|floatformat:2 }} ({{ item.percentage }}%)</span>
@@ -178,7 +184,8 @@
         </div>
     </div>
 
-    <div class="glass-panel p-6 rounded-2xl space-y-4">
+    <!-- Calendário Financeiro (Exclusivo Desktop) -->
+    <div class="hidden md:block glass-panel p-6 rounded-2xl space-y-4">
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-lg font-extrabold text-slate-900 tracking-tight">Calendário Financeiro</h3>
@@ -189,7 +196,7 @@
 
         <div class="overflow-x-auto -mx-1">
             <div class="min-w-[770px]">
-                <div class="grid grid-cols-7 border-b border-slate-200 text-center text-xs font-bold text-slate-500 py-2.5 bg-slate-100 ">
+                <div class="grid grid-cols-7 border-b border-slate-200 text-center text-xs font-bold text-slate-500 py-2.5 bg-slate-100">
                     <div>dom</div>
                     <div>seg</div>
                     <div>ter</div>
@@ -199,7 +206,7 @@
                     <div>sáb</div>
                 </div>
 
-                <div class="grid grid-cols-7 divide-x divide-y divide-slate-200 ">
+                <div class="grid grid-cols-7 divide-x divide-slate-200 border-b border-slate-200">
                 {% for item in calendar_grid %}
                     <div class="h-[90px] p-1.5 flex flex-col justify-between transition-colors {% if not item.is_current_month %}bg-slate-100/40 text-slate-400{% else %}hover:bg-slate-100/80 text-slate-900{% endif %} {% if item.is_today %}ring-2 ring-indigo-500 ring-inset rounded-sm{% endif %}">
                         <div class="text-right text-[11px] font-bold px-1">
@@ -224,17 +231,20 @@
                         {% endif %}
                     </div>
                 {% endfor %}
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Gráficos de Resumo e Contas -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
+        <!-- Resumo Financeiro -->
         <div class="lg:col-span-2 glass-panel p-6 rounded-2xl">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900 ">Resumo Financeiro</h3>
-                    <p class="text-xs text-slate-500 ">Comparativo entre Receitas e Despesas</p>
+                    <h3 class="text-lg font-bold text-slate-900">Resumo Financeiro</h3>
+                    <p class="text-xs text-slate-500">Comparativo entre Receitas e Despesas</p>
                 </div>
             </div>
             <div class="h-64">
@@ -242,30 +252,30 @@
             </div>
         </div>
 
+        <!-- Minhas Contas -->
         <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
             <div>
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-lg font-bold text-slate-900">Minhas Contas</h3>
-                    <a href="{% url 'wallets_web:list' %}" class="text-xs text-indigo-600 hover:underline font-medium">Ver todas &rarr;</a>
+                    <a href="{% url 'wallets_web:list' %}" class="text-xs text-indigo-600 hover:underline font-medium shrink-0 whitespace-nowrap">Ver todas &rarr;</a>
                 </div>
                 <div class="space-y-3">
                     {% for account in accounts %}
                         <div class="p-3 rounded-xl bg-slate-100/80 border border-slate-200">
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center space-x-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center space-x-2.5 min-w-0">
                                     {% if account.icon %}
-                                        <span class="text-xl">{{ account.icon }}</span>
+                                        <span class="text-lg shrink-0">{{ account.icon }}</span>
                                     {% else %}
-                                        <div class="w-3 h-3 rounded-full" style="background-color: {{ account.color }};"></div>
+                                        <div class="w-3 h-3 rounded-full shrink-0" style="background-color: {{ account.color }};"></div>
                                     {% endif %}
-                                    <div>
-                                        <p class="text-sm font-semibold text-slate-900">{{ account.name }}</p>
-                                        <p class="text-xs text-slate-500 capitalize">{{ account.get_type_display }}</p>
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-slate-900 truncate">{{ account.name }}</p>
+                                        <p class="text-[11px] text-slate-500 capitalize truncate">{{ account.get_type_display }}</p>
                                     </div>
                                 </div>
-                                <span class="text-sm font-bold text-slate-900">R$ {{ account.balance|floatformat:2 }}</span>
+                                <span class="text-sm font-bold text-slate-900 shrink-0 whitespace-nowrap">R$ {{ account.balance|floatformat:2 }}</span>
                             </div>
-
                         </div>
                     {% empty %}
                         <p class="text-xs text-slate-500 py-4 text-center">Nenhuma conta cadastrada.</p>
@@ -274,11 +284,12 @@
             </div>
         </div>
 
+        <!-- Balanço 6 Meses -->
         <div class="{% if top_budgets %}lg:col-span-2{% else %}lg:col-span-3{% endif %} glass-panel p-6 rounded-2xl">
             <div class="flex items-center justify-between mb-6">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900 ">Balanço (Receitas - Despesas) nos últimos 6 meses</h3>
-                    <p class="text-xs text-slate-500 ">Evolução do seu saldo líquido</p>
+                    <h3 class="text-lg font-bold text-slate-900">Balanço (Receitas - Despesas) nos últimos 6 meses</h3>
+                    <p class="text-xs text-slate-500">Evolução do seu saldo líquido</p>
                 </div>
             </div>
             <div class="h-64">
@@ -286,44 +297,47 @@
             </div>
         </div>
 
+        <!-- Orçamentos Ativos -->
         {% if top_budgets %}
             <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
                 <div>
                     <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold text-slate-900 ">Orçamentos Ativos</h3>
-                        <a href="{% url 'planning_web:list' %}" class="text-xs text-indigo-600 hover:underline font-medium">Ver todos &rarr;</a>
+                        <h3 class="text-lg font-bold text-slate-900">Orçamentos Ativos</h3>
+                        <a href="{% url 'planning_web:list' %}" class="text-xs text-indigo-600 hover:underline font-medium shrink-0 whitespace-nowrap">Ver todos &rarr;</a>
                     </div>
                     <div class="space-y-4">
                         {% for prog in top_budgets %}
                             <div class="space-y-1.5">
                                 <div class="flex justify-between items-center text-xs">
-                                    <span class="font-semibold text-slate-700 ">{{ prog.budget.category.name }}</span>
-                                    <span class="font-bold text-slate-900 ">{{ prog.percentage|floatformat:0 }}%</span>
+                                    <span class="font-semibold text-slate-700 truncate mr-2">{{ prog.budget.category.name }}</span>
+                                    <span class="font-bold text-slate-900 shrink-0">{{ prog.percentage|floatformat:0 }}%</span>
                                 </div>
                                 <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                                     <div class="h-full rounded-full transition-all duration-300 {% if prog.is_over_budget %}bg-rose-500{% elif prog.is_warning %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: min({{ prog.percentage|floatformat:0 }}%, 100%);"></div>
                                 </div>
-                                <p class="text-[10px] text-slate-500 text-right">Resta: R$ {{ prog.remaining|floatformat:2 }}</p>
+                                <p class="text-[10px] text-slate-500 text-right whitespace-nowrap">Resta: R$ {{ prog.remaining|floatformat:2 }}</p>
                             </div>
                         {% endfor %}
                     </div>
                 </div>
             </div>
-            {% endif %}
+        {% endif %}
     </div>
 
-    <div class="glass-panel p-6 rounded-2xl">
-        <div class="flex items-center justify-between mb-6">
+    <!-- Últimas Transações -->
+    <div class="glass-panel p-6 rounded-2xl space-y-4">
+        <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-lg font-bold text-slate-900 ">Últimas Transações</h3>
-                <p class="text-xs text-slate-500 ">Suas movimentações mais recentes</p>
+                <h3 class="text-base md:text-lg font-bold text-slate-900">Últimas Transações</h3>
+                <p class="text-xs text-slate-500">Suas movimentações mais recentes</p>
             </div>
             <a href="{% url 'transactions_web:list' %}" class="text-xs text-indigo-600 hover:underline font-medium">Ver histórico completo &rarr;</a>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-700 ">
-                <thead class="text-xs uppercase bg-slate-100 text-slate-600 border-b border-slate-200 ">
+        <!-- Desktop Table -->
+        <div class="hidden md:block overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-700">
+                <thead class="text-xs uppercase bg-slate-100 text-slate-600 border-b border-slate-200">
                     <tr>
                         <th class="px-4 py-3">Descrição</th>
                         <th class="px-4 py-3">Categoria</th>
@@ -333,31 +347,33 @@
                         <th class="px-4 py-3 text-right">Valor</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-200 ">
+                <tbody class="divide-y divide-slate-200">
                     {% for tx in recent_transactions %}
+                        {% with cat=tx.category acc=tx.account %}
                         <tr class="hover:bg-slate-50 transition">
-                            <td class="px-4 py-3.5 align-middle font-medium text-slate-900 ">{{ tx.description }}</td>
-                            <td class="px-4 py-3.5 align-middle text-xs text-slate-500 ">
-                                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 border border-slate-200 whitespace-nowrap" style="border-left: 3px solid {{ tx.category.color }};">
-                                    {% if tx.category.icon %}<span>{{ tx.category.icon }}</span>{% endif %}<span>{{ tx.category.name }}</span>
+                            <td class="px-4 py-3.5 align-middle font-medium text-slate-900">{{ tx.description }}</td>
+                            <td class="px-4 py-3.5 align-middle text-xs text-slate-500">
+                                <span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-100 border border-slate-200 whitespace-nowrap" style="border-left: 3px solid {{ cat.color }};">
+                                    {% if cat.icon %}<span>{{ cat.icon }}</span>{% endif %}<span>{{ cat.name }}</span>
                                 </span>
                             </td>
-                            <td class="px-4 py-3.5 align-middle text-xs text-slate-500 ">
+                            <td class="px-4 py-3.5 align-middle text-xs text-slate-500">
                                 <div class="flex items-center space-x-2 whitespace-nowrap">
-                                    <div class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ tx.account.color }};"></div>
-                                    <span>{{ tx.account.name }}</span>
+                                    <div class="w-2 h-2 rounded-full flex-shrink-0" style="background-color: {{ acc.color }};"></div>
+                                    <span>{{ acc.name }}</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-3.5 align-middle text-xs text-slate-500 ">{{ tx.date|date:"d/m/Y" }}</td>
+                            <td class="px-4 py-3.5 align-middle text-xs text-slate-500">{{ tx.date|date:"d/m/Y" }}</td>
                             <td class="px-4 py-3.5 align-middle">
                                 <span class="px-2 py-0.5 text-xs rounded-full font-medium {% if tx.status == 'concluída' %}bg-emerald-500/10 text-emerald-600 border border-emerald-500/20{% else %}bg-amber-500/10 text-amber-600 border border-amber-500/20{% endif %}">
                                     {{ tx.get_status_display }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3.5 align-middle text-right font-bold whitespace-nowrap {% if tx.category.type == 'receita' %}text-emerald-600{% elif tx.category.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
-                                {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
+                            <td class="px-4 py-3.5 align-middle text-right font-bold whitespace-nowrap {% if cat.type == 'receita' %}text-emerald-600{% elif cat.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
+                                {% if cat.type == 'receita' %}+{% elif cat.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
                             </td>
                         </tr>
+                        {% endwith %}
                     {% empty %}
                         <tr>
                             <td colspan="6" class="px-4 py-8 text-center text-slate-500">Nenhuma transação recente encontrada.</td>
@@ -366,10 +382,58 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Mobile List -->
+        <div class="block md:hidden divide-y divide-slate-100 -mx-2">
+            {% for tx in recent_transactions %}
+                {% with cat=tx.category acc=tx.account %}
+                <a href="{% url 'transactions_web:list' %}?search={{ tx.description|urlencode }}" class="p-3 flex items-center justify-between gap-3 hover:bg-slate-50 active:bg-slate-100 transition rounded-xl">
+                    <div class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-base shadow-sm"
+                         style="background-color: {{ cat.color }}20; color: {{ cat.color }};">
+                        {% if cat.icon %}
+                            <span>{{ cat.icon }}</span>
+                        {% else %}
+                            <div class="w-3 h-3 rounded-full" style="background-color: {{ cat.color }};"></div>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 truncate">{{ tx.description }}</p>
+                        <div class="flex items-center space-x-1.5 text-xs text-slate-500 mt-0.5 truncate">
+                            <span>{{ cat.name }}</span>
+                            <span>•</span>
+                            <span>{{ acc.name }}</span>
+                            <span>•</span>
+                            <span>{{ tx.date|date:"d/m" }}</span>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="text-sm font-extrabold {% if cat.type == 'receita' %}text-emerald-600{% elif cat.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
+                            {% if cat.type == 'receita' %}+{% elif cat.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
+                        </p>
+                        <div class="flex items-center justify-end mt-0.5">
+                            {% if tx.status == 'concluída' %}
+                                <span class="inline-flex items-center text-[10px] font-semibold text-emerald-600">
+                                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center text-[10px] font-semibold text-amber-500">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+                {% endwith %}
+            {% empty %}
+                <p class="p-4 text-center text-xs text-slate-500">Nenhuma transação recente encontrada.</p>
+            {% endfor %}
+        </div>
     </div>
 
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 {{ chart_labels|json_script:"chart-labels" }}
 {{ chart_incomes|json_script:"chart-incomes" }}
 {{ chart_expenses|json_script:"chart-expenses" }}

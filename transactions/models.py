@@ -3,10 +3,15 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
 from moneta.common import TransactionType
+
+HEX_COLOR_VALIDATOR = RegexValidator(
+    regex=r'^#[0-9A-Fa-f]{6}$',
+    message='Insira uma cor hexadecimal válida no formato #RRGGBB.'
+)
 
 
 class Category(models.Model):
@@ -17,7 +22,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100, verbose_name='nome')
     type = models.CharField(max_length=15, choices=TransactionType.choices, verbose_name='tipo')
     icon = models.CharField(max_length=100, blank=True, null=True, verbose_name='ícone')
-    color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
+    color = models.CharField(max_length=7, default='#000000', verbose_name='cor', validators=[HEX_COLOR_VALIDATOR])
     is_system = models.BooleanField(default=False, verbose_name='categoria do sistema')
     parent = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='subcategories', verbose_name='categoria pai')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
@@ -40,7 +45,7 @@ class Tag(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tags', verbose_name='usuário')
     name = models.CharField(max_length=100, verbose_name='nome')
-    color = models.CharField(max_length=7, default='#000000', verbose_name='cor')
+    color = models.CharField(max_length=7, default='#000000', verbose_name='cor', validators=[HEX_COLOR_VALIDATOR])
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criada em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
 
