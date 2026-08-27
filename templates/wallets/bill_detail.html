@@ -12,19 +12,19 @@
             </p>
         </div>
         <div class="flex items-center gap-3 w-full sm:w-auto">
-            <a href="{% url 'wallets_web:list' %}" class="flex-1 sm:flex-none inline-flex items-center justify-center space-x-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 transition shadow-sm">
-                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            <a href="{% url 'wallets_web:list' %}" class="flex-1 sm:flex-none inline-flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 transition shadow-sm">
+                <svg class="w-4 h-4 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
                 <span>Voltar</span>
             </a>
             {% if bill.status == 'paid' %}
                 <button type="button" 
                         hx-get="{% url 'wallets_web:confirm_reopen_bill' bill.pk %}" 
                         hx-target="#modal-container"
-                        class="flex-1 sm:flex-none px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-rose-600/30 transition text-center">
+                        class="flex-1 sm:flex-none px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-rose-600/30 transition text-center">
                     Reabrir Fatura
                 </button>
             {% elif bill.status != 'paid' and remaining_amount > 0 %}
-                <button type="button" @click="$dispatch('open-pay-modal')" class="flex-1 sm:flex-none px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-indigo-600/30 transition text-center">
+                <button type="button" @click="$dispatch('open-pay-modal')" class="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-600/30 transition text-center">
                     Pagar Fatura
                 </button>
             {% endif %}

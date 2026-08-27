@@ -8,11 +8,11 @@
             <p class="text-slate-500 text-sm mt-1">Monitore orçamentos por categoria e acompanhe suas metas financeiras</p>
         </div>
         <div class="grid grid-cols-2 gap-3 w-full sm:flex sm:w-auto">
-            <button hx-get="{% url 'planning_web:budget_create' %}" hx-target="#modal-container" class="inline-flex items-center justify-center space-x-2 px-3 sm:px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-medium text-xs sm:text-sm transition-all border border-slate-300 w-full sm:w-auto shadow-sm">
+            <button hx-get="{% url 'planning_web:budget_create' %}" hx-target="#modal-container" class="inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm transition-all border border-slate-300 w-full sm:w-auto shadow-sm">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span class="truncate">Novo Orçamento</span>
             </button>
-            <button hx-get="{% url 'planning_web:goal_create' %}" hx-target="#modal-container" class="inline-flex items-center justify-center space-x-2 px-3 sm:px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 w-full sm:w-auto">
+            <button hx-get="{% url 'planning_web:goal_create' %}" hx-target="#modal-container" class="inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 w-full sm:w-auto">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span class="truncate">Novo Objetivo</span>
             </button>
