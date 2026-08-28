@@ -128,18 +128,7 @@
                 <!-- Lista de Lançamentos do Dia -->
                 <div class="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 shadow-sm overflow-hidden">
                     {% for tx in day.list %}
-                        <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 active:bg-slate-100 transition cursor-pointer"
-                             {% if tx.related_bill_payment %}
-                                 onclick="window.location.href='{% url 'wallets_web:bill_detail' tx.related_bill_payment.id %}'"
-                             {% elif tx.status == 'pendente' %}
-                                 hx-get="{% url 'transactions_web:pay' tx.id %}"
-                                 hx-target="#modal-container"
-                             {% else %}
-                                 hx-get="{% url 'transactions_web:edit' tx.id %}"
-                                 hx-target="#modal-container"
-                             {% endif %}
-                             id="mobile-tx-{{ tx.id }}">
-                            
+                        <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition" id="mobile-tx-{{ tx.id }}">
                             <!-- Ícone da Categoria / Fatura -->
                             <div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm"
                                  style="background-color: {% if tx.related_bill_payment %}#8B5CF620{% else %}{{ tx.category.color }}20{% endif %}; color: {% if tx.related_bill_payment %}#8B5CF6{% else %}{{ tx.category.color }}{% endif %};">
@@ -174,22 +163,32 @@
                                 </div>
                             </div>
 
-                            <!-- Direita: Valor e Indicador de Status -->
-                            <div class="text-right shrink-0">
+                            <!-- Direita: Valor, Status e Ações -->
+                            <div class="flex flex-col items-end shrink-0 gap-1">
                                 <p class="text-sm font-extrabold {% if tx.category.type == 'receita' %}text-emerald-600{% elif tx.category.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
                                     {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
                                 </p>
-                                <div class="flex items-center justify-end mt-0.5">
-                                    {% if tx.status == 'concluída' %}
-                                        <span class="inline-flex items-center text-[10px] font-medium text-emerald-600 gap-1" title="Concluída">
-                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                                            <span>Concluída</span>
-                                        </span>
+                                <div class="flex items-center gap-1.5">
+                                    {% if tx.related_bill_payment %}
+                                        <a href="{% url 'wallets_web:bill_detail' tx.related_bill_payment.id %}" class="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-violet-600 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-lg transition" title="Ver detalhes da fatura">
+                                            🧾 Fatura
+                                        </a>
                                     {% else %}
-                                        <span class="inline-flex items-center text-[10px] font-semibold text-amber-500 gap-1" title="Pendente">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                            <span>Pendente</span>
-                                        </span>
+                                        {% if tx.status == 'pendente' %}
+                                            <button hx-get="{% url 'transactions_web:pay' tx.id %}" hx-target="#modal-container" class="p-1 text-amber-500 hover:text-emerald-600 bg-amber-50 hover:bg-emerald-50 rounded-lg transition" title="Efetivar" aria-label="Efetivar transação">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+                                            </button>
+                                        {% else %}
+                                            <span class="inline-flex items-center text-[10px] font-medium text-emerald-600 mr-0.5" title="Concluída">
+                                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                            </span>
+                                        {% endif %}
+                                        <button hx-get="{% url 'transactions_web:edit' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Editar" aria-label="Editar transação">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                        </button>
+                                        <button hx-get="{% url 'transactions_web:confirm_delete' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition" title="Excluir" aria-label="Excluir transação">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
                                     {% endif %}
                                 </div>
                             </div>
