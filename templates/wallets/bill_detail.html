@@ -21,10 +21,12 @@
                         hx-target="#modal-container"
                         class="h-10 flex-1 sm:flex-none inline-flex items-center justify-center px-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-rose-600/30 transition text-center whitespace-nowrap">
                     Reabrir Fatura
+                </button>
             {% elif bill.status != 'paid' and remaining_amount > 0 %}
                 <button type="button" @click="$dispatch('open-pay-modal')" class="h-10 flex-1 sm:flex-none inline-flex items-center justify-center px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-indigo-600/30 transition text-center whitespace-nowrap">
                     Pagar Fatura
                 </button>
+            {% endif %}
         </div>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

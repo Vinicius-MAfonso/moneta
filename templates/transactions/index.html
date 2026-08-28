@@ -11,17 +11,22 @@
             <p class="text-slate-500 text-xs md:text-sm mt-0.5 md:mt-1">Gerencie e filtre suas receitas, despesas e transferências</p>
         </div>
         <div class="flex items-center gap-2 w-full sm:w-auto">
-            <div class="h-10 flex items-center justify-between sm:justify-start w-full sm:w-auto bg-white border border-slate-200 rounded-xl px-2 shadow-sm text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap">
-                <a href="?{{ prev_month_url }}" aria-label="Mês anterior" class="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-indigo-600 rounded-lg hover:bg-slate-100 transition">
-                <span class="px-1.5 min-w-[85px] sm:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs sm:text-sm whitespace-nowrap select-none">{{ month_info.month_label }}</span>
-                <a href="?{{ next_month_url }}" aria-label="Próximo mês" class="h-7 w-7 flex items-center justify-center text-slate-500 hover:text-indigo-600 rounded-lg hover:bg-slate-100 transition">
+            <div class="h-10 flex items-center justify-between sm:justify-start w-full sm:w-auto bg-white border border-slate-200 rounded-xl px-2.5 shadow-sm text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap">
+                <a href="?{{ prev_month_url }}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                </a>
+                <span class="px-1.5 min-w-[90px] md:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs sm:text-sm whitespace-nowrap">{{ month_info.month_label }}</span>
+                <a href="?{{ next_month_url }}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
                     <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                 </a>
+            </div>
+
             <button hx-get="{% url 'transactions_web:create' %}" hx-target="#modal-container" class="h-10 hidden sm:inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 shrink-0 whitespace-nowrap">
                 <svg class="w-4 h-4 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span>Nova Transação</span>
             </button>
         </div>
+    </div>
 
     <div class="glass-panel p-3.5 md:p-4 rounded-2xl">
         <form id="filter-form" aria-label="Filtros de transações" hx-get="{% url 'transactions_web:list' %}" hx-target="#transaction-table-wrapper" hx-trigger="submit, change from:select, keyup delay:300ms from:input[name='search']" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5 md:gap-3">
