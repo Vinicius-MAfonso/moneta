@@ -497,8 +497,8 @@
         (function() {
             function updateModalScrollLock() {
                 const modalContainer = document.getElementById('modal-container');
-                const hasHtmxModal = modalContainer && modalContainer.children.length > 0;
-                const hasVisibleDialog = document.querySelector('.fixed[role="dialog"]:not([style*="display: none"])') !== null;
+                const hasHtmxModal = modalContainer && modalContainer.querySelector('.fixed:not([style*="display: none"]), [role="dialog"]:not([style*="display: none"])') !== null;
+                const hasVisibleDialog = document.querySelector('body > .fixed[role="dialog"]:not([style*="display: none"])') !== null;
                 const isLocked = hasHtmxModal || hasVisibleDialog;
 
                 if (isLocked) {
