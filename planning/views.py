@@ -24,9 +24,6 @@ from .services import (
 
 @login_required(login_url='users_web:login')
 def planning_list_view(request):
-    month_param = request.GET.get('month')
-    month_ctx = get_month_context(month_param)
-
     raw_goals = Goal.objects.filter(user=request.user)
 
     goals = []
@@ -37,12 +34,10 @@ def planning_list_view(request):
         goal.bounded_pct_str = str(round(goal.bounded_pct, 2))
         goals.append(goal)
 
-    budgets = get_budgets_with_progress(request.user, reference_date=month_ctx['start_date'])
+    budgets = Budget.objects.filter(user=request.user).select_related('category').order_by('-is_recurring', '-created_at')
 
     context = {
         'budgets': budgets,
-        'goals': goals,
-        'month_ctx': month_ctx,
     }
     return render(request, 'planning/index.html', context)
 

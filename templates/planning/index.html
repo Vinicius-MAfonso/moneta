@@ -7,26 +7,14 @@
             <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Planejamento & Metas</h2>
             <p class="text-slate-500 text-xs md:text-sm mt-0.5 md:mt-1">Monitore orçamentos por categoria e acompanhe suas metas financeiras</p>
         </div>
-        <div class="flex items-center gap-2 w-full sm:w-auto">
-            <div class="h-10 flex items-center justify-between sm:justify-start w-full sm:w-auto bg-white border border-slate-200 rounded-xl px-2.5 shadow-sm text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap">
-                <a href="?month={{ month_ctx.prev_month }}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
-                </a>
-                <span class="px-1.5 min-w-[90px] md:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs sm:text-sm whitespace-nowrap">{{ month_ctx.month_label }}</span>
-                <a href="?month={{ month_ctx.next_month }}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
-                </a>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
-                <button hx-get="{% url 'planning_web:budget_create' %}" hx-target="#modal-container" class="h-10 inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm transition-all border border-slate-300 w-full sm:w-auto shadow-sm whitespace-nowrap">
-                    <span class="truncate">Novo Orçamento</span>
-                </button>
-                <button hx-get="{% url 'planning_web:goal_create' %}" hx-target="#modal-container" aria-label="Novo Objetivo" class="h-10 inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 w-full sm:w-auto whitespace-nowrap">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    <span class="truncate">Novo Objetivo</span>
-                </button>
-            </div>
+        <div class="grid grid-cols-2 gap-3 w-full sm:flex sm:w-auto">
+            <button hx-get="{% url 'planning_web:budget_create' %}" hx-target="#modal-container" class="h-10 inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm transition-all border border-slate-300 w-full sm:w-auto shadow-sm whitespace-nowrap">
+                <span class="truncate">Novo Orçamento</span>
+            </button>
+            <button hx-get="{% url 'planning_web:goal_create' %}" hx-target="#modal-container" aria-label="Novo Objetivo" class="h-10 inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 w-full sm:w-auto whitespace-nowrap">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span class="truncate">Novo Objetivo</span>
+            </button>
         </div>
     </div>
 
@@ -79,9 +67,7 @@
     </div>
 
     <div class="space-y-4">
-        <div class="flex items-center justify-between">
-            <h3 class="text-lg font-bold text-slate-900">Orçamentos ({{ month_ctx.month_label }})</h3>
-        </div>
+        <h3 class="text-lg font-bold text-slate-900">Orçamentos Definidos</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for budget in budgets %}
                 <div class="glass-panel p-6 rounded-2xl space-y-3 border-l-4" style="border-left-color: {{ budget.category.color }};">
@@ -101,18 +87,9 @@
                             </button>
                         </div>
                     </div>
-                    <div class="space-y-1.5">
-                        <div class="flex justify-between items-baseline">
-                            <span class="text-2xl font-extrabold text-slate-900">R$ {{ budget.spent|floatformat:2 }}</span>
-                            <span class="text-xs font-bold text-slate-500">Teto: R$ {{ budget.amount|floatformat:2 }}</span>
-                        </div>
-                        <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden border border-slate-300">
-                            <div class="h-full rounded-full transition-all duration-300 {% if budget.bounded_pct >= 100 %}bg-rose-500{% elif budget.bounded_pct >= 80 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ budget.bounded_pct_str }}%;"></div>
-                        </div>
-                        <div class="flex justify-between text-[11px] font-semibold text-slate-500">
-                            <span>{{ budget.percentage }}% utilizado</span>
-                            <span>Restante: R$ {{ budget.remaining|floatformat:2 }}</span>
-                        </div>
+                    <div class="pt-1 flex items-baseline gap-1.5">
+                        <span class="text-2xl font-extrabold text-slate-900">R$ {{ budget.amount|floatformat:2 }}</span>
+                        <span class="text-xs font-medium text-slate-500">{% if budget.is_recurring %}/ mês{% else %}(período){% endif %}</span>
                     </div>
                 </div>
             {% empty %}
