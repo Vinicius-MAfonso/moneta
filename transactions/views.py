@@ -512,8 +512,14 @@ def transaction_delete_view(request, pk):
 
     if request.headers.get('HX-Request'):
         response = HttpResponse(status=204)
-        response['HX-Redirect'] = reverse('transactions_web:list')
+        response['HX-Trigger'] = json.dumps({
+            'reload-transactions': '',
+            'show-toast': {'message': 'Transação excluída com sucesso.', 'type': 'success'}
+        })
         return response
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
     return redirect('transactions_web:list')
 
 
