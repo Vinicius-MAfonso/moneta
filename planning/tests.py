@@ -72,23 +72,33 @@ class PlanningWebTestCase(TestCase):
             balance=Decimal('1000.00'), initial_balance=Decimal('1000.00')
         )
         
+        # Orçamento recorrente mensal
         budget = Budget.objects.create(
             user=self.user, category=self.category, amount=Decimal('500.00'),
-            start_date='2026-08-01', end_date='2026-08-31'
+            is_recurring=True, start_date='2026-08-01'
         )
         
+        # Gasto em Agosto
         Transaction.objects.create(
             user=self.user, account=account, category=self.category,
-            description='Mercado', amount=Decimal('400.00'), date='2026-08-10',
+            description='Mercado Agosto', amount=Decimal('400.00'), date='2026-08-10',
             status=Transaction.Statuses.COMPLETED
         )
 
-        progress = calculate_budget_progress(budget)
-        self.assertEqual(progress['spent'], Decimal('400.00'))
-        self.assertEqual(progress['percentage'], Decimal('80.00'))
-        self.assertEqual(progress['remaining'], Decimal('100.00'))
-        self.assertTrue(progress['is_warning'])
-        self.assertFalse(progress['is_over_budget'])
+        # Progresso em Agosto (80%)
+        progress_aug = calculate_budget_progress(budget, reference_date='2026-08-15')
+        self.assertEqual(progress_aug['spent'], Decimal('400.00'))
+        self.assertEqual(progress_aug['percentage'], Decimal('80.00'))
+        self.assertEqual(progress_aug['remaining'], Decimal('100.00'))
+        self.assertTrue(progress_aug['is_warning'])
+        self.assertFalse(progress_aug['is_over_budget'])
+
+        # Progresso em Setembro (reset automático para 0% porque não há gastos em Setembro ainda)
+        progress_sep = calculate_budget_progress(budget, reference_date='2026-09-01')
+        self.assertEqual(progress_sep['spent'], Decimal('0.00'))
+        self.assertEqual(progress_sep['percentage'], Decimal('0.00'))
+        self.assertEqual(progress_sep['remaining'], Decimal('500.00'))
+        self.assertFalse(progress_sep['is_warning'])
 
     def test_deposit_to_goal(self):
         from planning.services import deposit_to_goal
@@ -119,32 +129,33 @@ class PlanningWebTestCase(TestCase):
 
         from planning.services import get_active_budgets
         
+        # Orçamento mensal recorrente
         Budget.objects.create(
             user=self.user, category=self.category, amount=Decimal('500.00'),
-            start_date=date(2026, 8, 1), end_date=date(2026, 8, 31)
-        )
-        # Orçamento inativo (passado)
-        Budget.objects.create(
-            user=self.user, category=self.category, amount=Decimal('200.00'),
-            start_date=date(2026, 7, 1), end_date=date(2026, 7, 31)
+            is_recurring=True, start_date=date(2026, 8, 1)
         )
         
         active_budgets = get_active_budgets(self.user, reference_date=date(2026, 8, 15))
         self.assertEqual(len(active_budgets), 1)
         self.assertEqual(active_budgets[0]['budget'].amount, Decimal('500.00'))
 
+        # Em setembro, o orçamento recorrente continua ativo
+        active_budgets_sep = get_active_budgets(self.user, reference_date=date(2026, 9, 10))
+        self.assertEqual(len(active_budgets_sep), 1)
+
     def test_budget_overlapping_validation(self):
         from django.core.exceptions import ValidationError
         
+        # Orçamento recorrente
         Budget.objects.create(
             user=self.user, category=self.category, amount=Decimal('500.00'),
-            start_date='2026-09-01', end_date='2026-09-30'
+            is_recurring=True, start_date='2026-08-01'
         )
         
-        # Overlapping budget for same category and user should fail clean/save
+        # Criar outro orçamento recorrente para a mesma categoria deve falhar
         duplicate_budget = Budget(
             user=self.user, category=self.category, amount=Decimal('300.00'),
-            start_date='2026-09-15', end_date='2026-10-15'
+            is_recurring=True, start_date='2026-09-01'
         )
         with self.assertRaises(ValidationError):
             duplicate_budget.save()

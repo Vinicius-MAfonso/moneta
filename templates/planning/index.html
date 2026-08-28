@@ -2,19 +2,31 @@
 {% block title %}Planejamento - Moneta{% endblock %}
 {% block content %}
 <div class="space-y-8">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Planejamento & Metas</h2>
-            <p class="text-slate-500 text-sm mt-1">Monitore orçamentos por categoria e acompanhe suas metas financeiras</p>
+            <p class="text-slate-500 text-xs md:text-sm mt-0.5 md:mt-1">Monitore orçamentos por categoria e acompanhe suas metas financeiras</p>
         </div>
-        <div class="grid grid-cols-2 gap-3 w-full sm:flex sm:w-auto">
-            <button hx-get="{% url 'planning_web:budget_create' %}" hx-target="#modal-container" class="h-10 inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm transition-all border border-slate-300 w-full sm:w-auto shadow-sm whitespace-nowrap">
-                <span class="truncate">Novo Orçamento</span>
-            </button>
-            <button hx-get="{% url 'planning_web:goal_create' %}" hx-target="#modal-container" aria-label="Novo Objetivo" class="h-10 inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 w-full sm:w-auto whitespace-nowrap">
-                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                <span class="truncate">Novo Objetivo</span>
-            </button>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+            <div class="h-10 flex items-center justify-between sm:justify-start w-full sm:w-auto bg-white border border-slate-200 rounded-xl px-2.5 shadow-sm text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap">
+                <a href="?month={{ month_ctx.prev_month }}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                </a>
+                <span class="px-1.5 min-w-[90px] md:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs sm:text-sm whitespace-nowrap">{{ month_ctx.month_label }}</span>
+                <a href="?month={{ month_ctx.next_month }}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                </a>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto">
+                <button hx-get="{% url 'planning_web:budget_create' %}" hx-target="#modal-container" class="h-10 inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm transition-all border border-slate-300 w-full sm:w-auto shadow-sm whitespace-nowrap">
+                    <span class="truncate">Novo Orçamento</span>
+                </button>
+                <button hx-get="{% url 'planning_web:goal_create' %}" hx-target="#modal-container" aria-label="Novo Objetivo" class="h-10 inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 w-full sm:w-auto whitespace-nowrap">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <span class="truncate">Novo Objetivo</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -67,7 +79,9 @@
     </div>
 
     <div class="space-y-4">
-        <h3 class="text-lg font-bold text-slate-900">Orçamentos Definidos</h3>
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-slate-900">Orçamentos ({{ month_ctx.month_label }})</h3>
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for budget in budgets %}
                 <div class="glass-panel p-6 rounded-2xl space-y-3 border-l-4" style="border-left-color: {{ budget.category.color }};">
@@ -77,8 +91,12 @@
                             <span>{{ budget.category.name }}</span>
                         </span>
                         <div class="flex items-center space-x-2">
-                            <span class="text-xs text-slate-500">{{ budget.start_date|date:"d/m" }} - {{ budget.end_date|date:"d/m" }}</span>
-                            <button hx-get="{% url 'planning_web:budget_confirm_delete' budget.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 p-1 rounded hover:bg-rose-500/10 transition">
+                            {% if budget.is_recurring %}
+                                <span class="text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-md">Mensal</span>
+                            {% else %}
+                                <span class="text-xs text-slate-500">{{ budget.start_date|date:"d/m" }} - {{ budget.end_date|date:"d/m" }}</span>
+                            {% endif %}
+                            <button hx-get="{% url 'planning_web:budget_confirm_delete' budget.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 p-1 rounded hover:bg-rose-500/10 transition" title="Excluir orçamento" aria-label="Excluir orçamento">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>
                         </div>

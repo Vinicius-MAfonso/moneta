@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from moneta.common import TransactionType
+from moneta.common import TransactionType, get_month_context
 from transactions.models import Category
 from wallets.models import Account
 
@@ -24,6 +24,9 @@ from .services import (
 
 @login_required(login_url='users_web:login')
 def planning_list_view(request):
+    month_param = request.GET.get('month')
+    month_ctx = get_month_context(month_param)
+
     raw_goals = Goal.objects.filter(user=request.user)
 
     goals = []
@@ -34,11 +37,12 @@ def planning_list_view(request):
         goal.bounded_pct_str = str(round(goal.bounded_pct, 2))
         goals.append(goal)
 
-    budgets = get_budgets_with_progress(request.user)
+    budgets = get_budgets_with_progress(request.user, reference_date=month_ctx['start_date'])
 
     context = {
         'budgets': budgets,
         'goals': goals,
+        'month_ctx': month_ctx,
     }
     return render(request, 'planning/index.html', context)
 
@@ -51,13 +55,16 @@ def budget_create_view(request):
         try:
             category_id = request.POST.get('category')
             amount = Decimal(request.POST.get('amount') or '0')
-            start_date = request.POST.get('start_date')
+            is_recurring_raw = request.POST.get('is_recurring')
+            is_recurring = is_recurring_raw in ['true', 'on', '1', True] or is_recurring_raw is None
+            start_date = request.POST.get('start_date') or None
             end_date = request.POST.get('end_date') or None
 
             create_budget(
                 user=request.user,
                 category_id=category_id,
                 amount=amount,
+                is_recurring=is_recurring,
                 start_date=start_date,
                 end_date=end_date,
             )

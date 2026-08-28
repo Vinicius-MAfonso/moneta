@@ -1,21 +1,24 @@
+from django.db import models
 from django.utils import timezone
 
 from planning.models import Budget
-from planning.services import calculate_budget_progress
+from planning.services import calculate_budget_progress, get_month_range
 from users.services import send_push_notification
 
 
 def notify_budget_warnings():
     today = timezone.now().date()
-    
+    month_start, month_end = get_month_range(today)
+
     active_budgets = Budget.objects.filter(
-        start_date__lte=today,
-        end_date__gte=today,
-        is_warning_notified=False
+        models.Q(is_warning_notified=False) & (
+            models.Q(is_recurring=True, start_date__lte=month_end) |
+            models.Q(is_recurring=False, start_date__lte=today, end_date__gte=today)
+        )
     ).select_related('user', 'category')
-    
+
     for budget in active_budgets:
-        progress = calculate_budget_progress(budget)
+        progress = calculate_budget_progress(budget, reference_date=today)
         
         if progress['is_warning']:
             user = budget.user

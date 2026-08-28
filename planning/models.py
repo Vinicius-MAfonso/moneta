@@ -6,13 +6,17 @@ from django.core.validators import MinValueValidator
 from django.db import models
 
 
+from django.utils import timezone
+
+
 class Budget(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='budgets', verbose_name='usuário')
     category = models.ForeignKey('transactions.Category', on_delete=models.CASCADE, related_name='budgets', verbose_name='categoria')
     amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
-    start_date = models.DateField(verbose_name='data de início')
-    end_date = models.DateField(verbose_name='data de término')
+    is_recurring = models.BooleanField(default=True, verbose_name='recorrente mensal')
+    start_date = models.DateField(default=timezone.now, verbose_name='data de início')
+    end_date = models.DateField(null=True, blank=True, verbose_name='data de término')
     is_warning_notified = models.BooleanField(default=False, verbose_name='notificado aviso')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizado em')
@@ -23,36 +27,46 @@ class Budget(models.Model):
         ordering = ['-start_date']
         constraints = [
             models.CheckConstraint(
-                condition=models.Q(end_date__gte=models.F('start_date')),
+                condition=models.Q(end_date__isnull=True) | models.Q(end_date__gte=models.F('start_date')),
                 name='budget_end_date_after_start_date',
-            ),
-            models.UniqueConstraint(
-                fields=['user', 'category', 'start_date', 'end_date'],
-                name='unique_budget_period_per_user_category',
             ),
         ]
 
     def clean(self):
         super().clean()
-        if self.start_date and self.end_date and self.start_date > self.end_date:
-            raise ValidationError('A data de término deve ser posterior ou igual à data de início.')
+        if not self.is_recurring:
+            if not self.end_date:
+                raise ValidationError({'end_date': 'A data de término é obrigatória para orçamentos pontuais.'})
+            if self.start_date and self.end_date and self.start_date > self.end_date:
+                raise ValidationError({'end_date': 'A data de término deve ser posterior ou igual à data de início.'})
 
-        if self.user_id and self.category_id and self.start_date and self.end_date:
-            overlapping = Budget.objects.filter(
-                user=self.user,
-                category=self.category,
-                start_date__lte=self.end_date,
-                end_date__gte=self.start_date,
-            ).exclude(pk=self.pk)
-            if overlapping.exists():
-                raise ValidationError('Já existe um orçamento cadastrado para esta categoria no período informado.')
+        if self.user_id and self.category_id:
+            if self.is_recurring:
+                existing_rec = Budget.objects.filter(
+                    user=self.user,
+                    category=self.category,
+                    is_recurring=True,
+                ).exclude(pk=self.pk)
+                if existing_rec.exists():
+                    raise ValidationError('Já existe um orçamento mensal recorrente para esta categoria.')
+            elif self.start_date and self.end_date:
+                overlapping = Budget.objects.filter(
+                    user=self.user,
+                    category=self.category,
+                    is_recurring=False,
+                    start_date__lte=self.end_date,
+                    end_date__gte=self.start_date,
+                ).exclude(pk=self.pk)
+                if overlapping.exists():
+                    raise ValidationError('Já existe um orçamento cadastrado para esta categoria no período informado.')
 
     def save(self, *args, **kwargs):
         self.full_clean()
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.category.name} - {self.amount} ({self.start_date} to {self.end_date})"
+        period = "Mensal" if self.is_recurring else f"{self.start_date} to {self.end_date}"
+        return f"{self.category.name} - R$ {self.amount} ({period})"
 
 
 class Goal(models.Model):
