@@ -10,7 +10,7 @@ class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 b
 x-cloak>
 
     <div @click.away="close()"
-         class="bg-white/90 backdrop-blur-md border border-white/40 shadow-2xl rounded-3xl w-full max-w-lg overflow-hidden flex flex-col relative overscroll-contain"
+         class="bg-white border border-slate-200 shadow-2xl rounded-2xl w-full max-w-lg overflow-hidden flex flex-col relative overscroll-contain"
          x-transition:enter="transition ease-out duration-300 transform"
          x-transition:enter-start="opacity-0 scale-95 translate-y-8"
          x-transition:enter-end="opacity-100 scale-100 translate-y-0"
@@ -18,7 +18,7 @@ x-cloak>
          x-transition:leave-start="opacity-100 scale-100 translate-y-0"
          x-transition:leave-end="opacity-0 scale-95 translate-y-8">
         
-        <button @click="close()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition bg-slate-100/50 hover:bg-slate-200 rounded-full p-2 z-10">
+        <button @click="close()" aria-label="Fechar tutorial" class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition z-10">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
 
