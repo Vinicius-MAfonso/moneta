@@ -35,8 +35,7 @@
     {% tailwind_css %}
 
     <script defer src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
-    <script defer src="{% static 'js/components.js' %}?v=1.8"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="{% static 'js/components.js' %}?v=2.3"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/mask@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" integrity="sha384-Rpe/8orFUm5Q1GplYBHxbuA8Az8O8C5sAoOsdbRWkqPjKFaxPgGZipj4zeHL7lxX" crossorigin="anonymous"></script>
     <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
@@ -398,25 +397,9 @@
         </div>
     </div>
 
-    <div x-data="toastContainer()" 
-                class="fixed top-6 right-4 md:top-8 md:right-8 z-[100] flex flex-col gap-3 w-[320px] pointer-events-none px-4 md:px-0">
-        
-        {% if messages %}
-            <script>
-                document.addEventListener('DOMContentLoaded', () => {
-                    const dispatchToasts = () => {
-                        {% for msg in messages %}
-                            window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: '{{ msg.message|escapejs }}', type: '{{ msg.tags }}' } }));
-                        {% endfor %}
-                    };
-                    if (window.Alpine) {
-                        queueMicrotask(dispatchToasts);
-                    } else {
-                        document.addEventListener('alpine:initialized', dispatchToasts, { once: true });
-                    }
-                });
-            </script>
-        {% endif %}
+    {% if messages %}
+         @show-toast.window="addToast($event.detail?.message || $event.detail, $event.detail?.type || 'success')"
+         class="fixed top-6 right-4 md:top-8 md:right-8 z-[100] flex flex-col gap-3 w-[320px] pointer-events-none px-4 md:px-0">
 
         <template x-for="toast in toasts" :key="toast.id">
             <div x-show="toast.show"
@@ -434,19 +417,9 @@
                     'bg-sky-50/90 text-sky-800 border border-sky-200/50': toast.type === 'info'
                 }">
                 
-                <div class="shrink-0 mt-0.5">
-                    <template x-if="toast.type === 'success'">
-                        <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                    </template>
-                    <template x-if="toast.type === 'error' || toast.type === 'danger'">
-                        <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </template>
-                    <template x-if="toast.type === 'warning'">
-                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                    </template>
-                    <template x-if="toast.type === 'info'">
-                        <svg class="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </template>
+                    <svg x-show="toast.type === 'error' || toast.type === 'danger'" class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    <svg x-show="toast.type === 'warning'" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <svg x-show="toast.type === 'info'" class="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 
                 <div class="flex-1 text-[13px] font-medium leading-tight">
@@ -463,36 +436,6 @@
     <div id="modal-container"></div>
 
     <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('toastContainer', () => ({
-                toasts: [],
-                addToast(message, type = 'success') {
-                    const id = Date.now();
-                    const validTypes = ['success', 'error', 'danger', 'warning', 'info'];
-                    const safeType = validTypes.includes(type) ? type : 'info';
-                    
-                    const toast = { id, message, type: safeType, show: false };
-                    this.toasts.push(toast);
-                    
-                    setTimeout(() => {
-                        const t = this.toasts.find(t => t.id === id);
-                        if (t) t.show = true;
-                    }, 50);
-
-                    setTimeout(() => this.removeToast(id), 5000);
-                },
-                removeToast(id) {
-                    const toast = this.toasts.find(t => t.id === id);
-                    if (toast) {
-                        toast.show = false;
-                        setTimeout(() => {
-                            this.toasts = this.toasts.filter(t => t.id !== id);
-                        }, 300);
-                    }
-                }
-            }));
-        });
-
         // Modal Background Scroll Lock Manager
         (function() {
             function updateModalScrollLock() {
@@ -503,10 +446,6 @@
 
                 if (isLocked) {
                     document.body.classList.add('modal-open');
-                    const mainEl = document.querySelector('main');
-                    if (mainEl) mainEl.classList.add('modal-open');
-                } else {
-                    document.body.classList.remove('modal-open');
                     const mainEl = document.querySelector('main');
                     if (mainEl) mainEl.classList.remove('modal-open');
                 }

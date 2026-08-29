@@ -142,8 +142,7 @@ def transaction_create_view(request):
                     error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
                     if request.headers.get('HX-Request'):
                         import json
-                        response = HttpResponse(status=204)
-                        response['HX-Trigger'] = json.dumps({
+                        response = HttpResponse(status=422)
                             'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                         })
                         return response
@@ -163,9 +162,8 @@ def transaction_create_view(request):
                 error_msg = format_form_errors(form)
                 if request.headers.get('HX-Request'):
                     import json
-                    response = HttpResponse(status=204)
+                    response = HttpResponse(status=422)
                     response['HX-Trigger'] = json.dumps({
-                        'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
                     return response
                 messages.error(request, f"Erro na transferência: {error_msg}")
@@ -189,16 +187,13 @@ def transaction_create_view(request):
                     recurring_end_date=cd['recurring_end_date'],
                     installments=cd.get('installments') or 1
                 )
-            except ValueError as e:
-                error_msg = str(e)
+            except (ValueError, ValidationError) as e:
+                error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
                 if request.headers.get('HX-Request'):
                     import json
-                    response = HttpResponse(status=204)
-                    response['HX-Trigger'] = json.dumps({
                         'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
                     return response
-                messages.error(request, f"Erro ao criar transação: {error_msg}")
                 return redirect('transactions_web:list')
             if request.headers.get('HX-Request'):
                 import json
@@ -214,13 +209,12 @@ def transaction_create_view(request):
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 import json
-                response = HttpResponse(status=204)
+                response = HttpResponse(status=422)
                 response['HX-Trigger'] = json.dumps({
                     'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                 })
                 return response
             messages.error(request, f"Erro ao criar transação: {error_msg}")
-            return redirect('transactions_web:list')
 
     from .services import get_user_description_habits
     description_habits = get_user_description_habits(request.user)
@@ -296,14 +290,13 @@ def transaction_update_view(request, pk):
                     error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
                     if request.headers.get('HX-Request'):
                         import json
-                        response = HttpResponse(status=204)
+                        response = HttpResponse(status=422)
                         response['HX-Trigger'] = json.dumps({
                             'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                         })
                         return response
                     messages.error(request, f"{error_msg}")
                     return redirect('transactions_web:list')
-
                 if request.headers.get('HX-Request'):
                     import json
                     response = HttpResponse(status=204)
@@ -318,7 +311,7 @@ def transaction_update_view(request, pk):
                 error_msg = format_form_errors(form)
                 if request.headers.get('HX-Request'):
                     import json
-                    response = HttpResponse(status=204)
+                    response = HttpResponse(status=422)
                     response['HX-Trigger'] = json.dumps({
                         'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
@@ -326,7 +319,6 @@ def transaction_update_view(request, pk):
                 messages.error(request, f"{error_msg}")
                 return redirect('transactions_web:list')
 
-        import re
         raw_desc = transfer.out_transaction.description or ''
         clean_desc = re.sub(r'^Transferência (p/|de) [^:]+:\s*', '', raw_desc).strip()
 
@@ -378,7 +370,7 @@ def transaction_update_view(request, pk):
                 error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
                 if request.headers.get('HX-Request'):
                     import json
-                    response = HttpResponse(status=204)
+                    response = HttpResponse(status=422)
                     response['HX-Trigger'] = json.dumps({
                         'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
@@ -387,7 +379,6 @@ def transaction_update_view(request, pk):
                 return redirect('transactions_web:list')
 
             if request.headers.get('HX-Request'):
-                import json
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({
                     'reload-transactions': '',
@@ -400,7 +391,7 @@ def transaction_update_view(request, pk):
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 import json
-                response = HttpResponse(status=204)
+                response = HttpResponse(status=422)
                 response['HX-Trigger'] = json.dumps({
                     'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                 })
@@ -410,7 +401,6 @@ def transaction_update_view(request, pk):
 
     initial_tx_data = {
         'txType': transaction.category.type,
-        'selectedAccountType': transaction.account.type,
         'originalAccountId': str(transaction.account.id),
         'selectedAccountId': str(transaction.account.id),
         'originalAmount': float(transaction.amount),
