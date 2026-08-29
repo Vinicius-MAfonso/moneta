@@ -235,5 +235,33 @@ document.addEventListener('alpine:init', () => {
             }, 300);
         }
     }));
+
+    Alpine.data('toastContainer', () => ({
+        toasts: [],
+        addToast(message, type = 'success') {
+            if (!message) return;
+            const id = Date.now() + Math.random().toString(36).slice(2, 9);
+            const toast = {
+                id,
+                message,
+                type,
+                show: true
+            };
+            this.toasts.push(toast);
+
+            setTimeout(() => {
+                this.removeToast(id);
+            }, 4000);
+        },
+        removeToast(id) {
+            const toast = this.toasts.find(t => t.id === id);
+            if (toast) {
+                toast.show = false;
+                setTimeout(() => {
+                    this.toasts = this.toasts.filter(t => t.id !== id);
+                }, 300);
+            }
+        }
+    }));
 });
 

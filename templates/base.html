@@ -398,6 +398,23 @@
     </div>
 
     {% if messages %}
+        <script>
+            (function() {
+                const dispatchToasts = () => {
+                    {% for msg in messages %}
+                        window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: '{{ msg.message|escapejs }}', type: '{{ msg.tags }}' } }));
+                    {% endfor %}
+                };
+                if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    setTimeout(dispatchToasts, 100);
+                } else {
+                    document.addEventListener('DOMContentLoaded', () => setTimeout(dispatchToasts, 100));
+                }
+            })();
+        </script>
+    {% endif %}
+
+    <div x-data="toastContainer()" 
          @show-toast.window="addToast($event.detail?.message || $event.detail, $event.detail?.type || 'success')"
          class="fixed top-6 right-4 md:top-8 md:right-8 z-[100] flex flex-col gap-3 w-[320px] pointer-events-none px-4 md:px-0">
 
@@ -417,6 +434,8 @@
                     'bg-sky-50/90 text-sky-800 border border-sky-200/50': toast.type === 'info'
                 }">
                 
+                <div class="shrink-0 mt-0.5">
+                    <svg x-show="toast.type === 'success'" class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
                     <svg x-show="toast.type === 'error' || toast.type === 'danger'" class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
                     <svg x-show="toast.type === 'warning'" class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                     <svg x-show="toast.type === 'info'" class="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>

@@ -141,15 +141,14 @@ def transaction_create_view(request):
                 except ValidationError as e:
                     error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
                     if request.headers.get('HX-Request'):
-                        import json
-                        response = HttpResponse(status=422)
+                        response = HttpResponse(status=204)
+                        response['HX-Trigger'] = json.dumps({
                             'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                         })
                         return response
                     messages.error(request, f"Erro na transferência: {error_msg}")
                     return redirect('transactions_web:list')
                 if request.headers.get('HX-Request'):
-                    import json
                     response = HttpResponse(status=204)
                     response['HX-Trigger'] = json.dumps({
                         'reload-transactions': '',
@@ -161,9 +160,9 @@ def transaction_create_view(request):
             else:
                 error_msg = format_form_errors(form)
                 if request.headers.get('HX-Request'):
-                    import json
-                    response = HttpResponse(status=422)
+                    response = HttpResponse(status=204)
                     response['HX-Trigger'] = json.dumps({
+                        'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
                     return response
                 messages.error(request, f"Erro na transferência: {error_msg}")
@@ -190,13 +189,14 @@ def transaction_create_view(request):
             except (ValueError, ValidationError) as e:
                 error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
                 if request.headers.get('HX-Request'):
-                    import json
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({
                         'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
                     return response
+                messages.error(request, f"Erro ao criar transação: {error_msg}")
                 return redirect('transactions_web:list')
             if request.headers.get('HX-Request'):
-                import json
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({
                     'reload-transactions': '',
@@ -208,8 +208,7 @@ def transaction_create_view(request):
         else:
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
-                import json
-                response = HttpResponse(status=422)
+                response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({
                     'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                 })
@@ -289,8 +288,7 @@ def transaction_update_view(request, pk):
                 except ValidationError as e:
                     error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
                     if request.headers.get('HX-Request'):
-                        import json
-                        response = HttpResponse(status=422)
+                        response = HttpResponse(status=204)
                         response['HX-Trigger'] = json.dumps({
                             'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                         })
@@ -298,7 +296,6 @@ def transaction_update_view(request, pk):
                     messages.error(request, f"{error_msg}")
                     return redirect('transactions_web:list')
                 if request.headers.get('HX-Request'):
-                    import json
                     response = HttpResponse(status=204)
                     response['HX-Trigger'] = json.dumps({
                         'reload-transactions': '',
@@ -310,8 +307,7 @@ def transaction_update_view(request, pk):
             else:
                 error_msg = format_form_errors(form)
                 if request.headers.get('HX-Request'):
-                    import json
-                    response = HttpResponse(status=422)
+                    response = HttpResponse(status=204)
                     response['HX-Trigger'] = json.dumps({
                         'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
@@ -369,8 +365,7 @@ def transaction_update_view(request, pk):
             except ValidationError as e:
                 error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
                 if request.headers.get('HX-Request'):
-                    import json
-                    response = HttpResponse(status=422)
+                    response = HttpResponse(status=204)
                     response['HX-Trigger'] = json.dumps({
                         'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                     })
@@ -390,8 +385,7 @@ def transaction_update_view(request, pk):
         else:
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
-                import json
-                response = HttpResponse(status=422)
+                response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({
                     'show-toast': {'message': f'{error_msg}', 'type': 'error'}
                 })
