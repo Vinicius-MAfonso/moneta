@@ -17,9 +17,20 @@ class PlanningWebTestCase(TestCase):
         self.category, _ = Category.objects.get_or_create(user=self.user, name='Alimentação', defaults={'type': TransactionType.EXPENSE})
 
     def test_planning_list_view(self):
+        Goal.objects.create(
+            user=self.user,
+            name='Reserva de Emergência',
+            target_amount=Decimal('10000.00'),
+            current_amount=Decimal('2500.00'),
+            start_date='2026-08-01',
+            end_date='2026-12-31'
+        )
         res = self.client.get('/planning/')
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, 'Planejamento')
+        self.assertContains(res, 'Reserva de Emergência')
+        self.assertEqual(len(res.context['goals']), 1)
+        self.assertEqual(res.context['goals'][0].percentage, 25.0)
 
     def test_budget_web_crud(self):
         payload = {

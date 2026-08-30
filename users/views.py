@@ -201,6 +201,10 @@ def import_review_view(request):
     suggestions_count = sum(1 for t in transactions if t.get('suggested_category_id'))
     duplicates_count = sum(1 for t in transactions if t.get('is_duplicate'))
 
+    from transactions.services import get_user_description_habits
+    description_habits = get_user_description_habits(request.user)
+    description_habits_json = json.dumps(description_habits)
+
     context = {
         'transactions': transactions,
         'accounts': accounts,
@@ -208,6 +212,7 @@ def import_review_view(request):
         'total_count': len(transactions),
         'suggestions_count': suggestions_count,
         'duplicates_count': duplicates_count,
+        'description_habits_json': description_habits_json,
     }
     return render(request, 'users/import_review.html', context)
 

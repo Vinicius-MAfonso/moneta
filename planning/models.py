@@ -1,11 +1,10 @@
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
-
-
 from django.utils import timezone
 
 
@@ -13,7 +12,7 @@ class Budget(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='budgets', verbose_name='usuário')
     category = models.ForeignKey('transactions.Category', on_delete=models.CASCADE, related_name='budgets', verbose_name='categoria')
-    amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
+    amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name='valor')
     is_recurring = models.BooleanField(default=True, verbose_name='recorrente mensal')
     start_date = models.DateField(default=timezone.now, verbose_name='data de início')
     end_date = models.DateField(null=True, blank=True, verbose_name='data de término')
@@ -82,8 +81,8 @@ class Goal(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='goals', verbose_name='usuário')
     account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='goals', verbose_name='conta', null=True, blank=True)
     name = models.CharField(max_length=100, verbose_name='nome')
-    target_amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor alvo')
-    current_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0, validators=[MinValueValidator(0)], verbose_name='valor atual')
+    target_amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name='valor alvo')
+    current_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))], verbose_name='valor atual')
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(verbose_name='data de término')
     is_near_target_notified = models.BooleanField(default=False, verbose_name='notificado quase atingindo')

@@ -74,7 +74,7 @@ class Transaction(models.Model):
     tags = models.ManyToManyField('Tag', blank=True, related_name='transactions', verbose_name='tags')
     
     description = models.CharField(max_length=255, verbose_name='descrição')
-    amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
+    amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name='valor')
     date = models.DateField(verbose_name='data')
     status = models.CharField(max_length=10, choices=Statuses.choices, default='pendente', verbose_name='status')
     installment_number = models.PositiveIntegerField(blank=True, null=True, verbose_name='número da parcela')
@@ -178,7 +178,7 @@ class RecurringTransaction(models.Model):
     account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='recurring_transactions', verbose_name='conta')
     target_account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, blank=True, null=True, related_name='recurring_transfers_in', verbose_name='conta de destino')
     description = models.CharField(max_length=255, verbose_name='descrição')
-    amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(0.01)], verbose_name='valor')
+    amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name='valor')
     frequency = models.CharField(max_length=10, choices=Frequencies.choices, verbose_name='frequência')
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(blank=True, null=True, verbose_name='data de término')

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django import forms
 
 from .models import Account
@@ -5,7 +7,7 @@ from .models import Account
 
 class AccountForm(forms.ModelForm):
     balance = forms.DecimalField(max_digits=20, decimal_places=2, localize=True, required=False)
-    limit = forms.DecimalField(max_digits=20, decimal_places=2, min_value=0, required=False, localize=True)
+    limit = forms.DecimalField(max_digits=20, decimal_places=2, min_value=Decimal('0.00'), required=False, localize=True)
     closing_day = forms.IntegerField(min_value=1, max_value=31, required=False)
     due_day = forms.IntegerField(min_value=1, max_value=31, required=False)
 

@@ -38,6 +38,7 @@ def planning_list_view(request):
 
     context = {
         'budgets': budgets,
+        'goals': goals,
     }
     return render(request, 'planning/index.html', context)
 

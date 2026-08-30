@@ -260,6 +260,8 @@ class ImportStatementTestCase(TestCase):
         res_review = self.client.get(reverse('users_web:import_review'))
         self.assertEqual(res_review.status_code, 200)
         self.assertContains(res_review, 'Aluguel Apartamento')
+        self.assertIn('description_habits_json', res_review.context)
+        self.assertIsInstance(res_review.context['description_habits_json'], str)
 
         # 3. Salvar importação POST
         session = self.client.session

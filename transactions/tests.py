@@ -55,6 +55,21 @@ class TransactionsWebTestCase(TestCase):
         self.assertEqual(res.status_code, 302)
         self.assertFalse(Transaction.objects.filter(id=tx.id).exists())
 
+    def test_transaction_one_cent_validation(self):
+        payload = {
+            'account': str(self.account1.id),
+            'category': str(self.category.id),
+            'description': 'Bala 1 Centavo',
+            'amount': '0.01',
+            'date': '2026-08-07',
+            'status': 'concluída'
+        }
+        res = self.client.post('/transactions/create/', data=payload)
+        self.assertEqual(res.status_code, 302)
+
+        tx = Transaction.objects.get(description='Bala 1 Centavo')
+        self.assertEqual(tx.amount, Decimal('0.01'))
+
     def test_transaction_create_recurring(self):
         payload = {
             'account': str(self.account1.id),
