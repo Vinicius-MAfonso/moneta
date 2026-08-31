@@ -39,11 +39,19 @@ def process_recurring_transactions(user, target_end_date=None):
         rec_end = rec.end_date if rec.end_date else target_end_date
         effective_limit = min(target_end_date, rec_end)
 
+        existing_dates = set(
+            Transaction.objects.filter(
+                recurring=rec,
+                date__gte=rec.start_date,
+                date__lte=effective_limit,
+            ).values_list('date', flat=True)
+        )
+
+        new_regular_txs = []
         loop_guard = 0
         while current_date <= effective_limit and loop_guard < 500:
             loop_guard += 1
-            exists = Transaction.objects.filter(recurring=rec, date=current_date).exists()
-            if not exists and current_date not in ignored_dates_set:
+            if current_date not in existing_dates and current_date not in ignored_dates_set:
                 status = Transaction.Statuses.COMPLETED if current_date <= today else Transaction.Statuses.PENDING
 
                 if rec.category.type == TransactionType.TRANSFER and rec.target_account:
@@ -77,16 +85,18 @@ def process_recurring_transactions(user, target_end_date=None):
                     if rec.account.type == Account.Types.CREDIT_CARD:
                         bill = get_or_create_bill_for_transaction(rec.account, current_date)
 
-                    Transaction.objects.create(
-                        user=user,
-                        account=rec.account,
-                        category=rec.category,
-                        description=f"{rec.description} (Recorrente)",
-                        amount=rec.amount,
-                        date=current_date,
-                        status=status,
-                        recurring=rec,
-                        bill=bill,
+                    new_regular_txs.append(
+                        Transaction(
+                            user=user,
+                            account=rec.account,
+                            category=rec.category,
+                            description=f"{rec.description} (Recorrente)",
+                            amount=rec.amount,
+                            date=current_date,
+                            status=status,
+                            recurring=rec,
+                            bill=bill,
+                        )
                     )
 
             if rec.frequency == RecurringTransaction.Frequencies.DAILY:
@@ -99,6 +109,11 @@ def process_recurring_transactions(user, target_end_date=None):
                 current_date = add_years(current_date, 1)
             else:
                 break
+
+        if new_regular_txs:
+            Transaction.objects.bulk_create(new_regular_txs, ignore_conflicts=True)
+            from wallets.services import recalculate_account_balance
+            recalculate_account_balance(rec.account)
 
 
 def create_transfer(user, out_account_id, in_account_id, description, amount, tx_date, status, tag_ids=None, is_recurring=False, frequency='monthly', recurring_end_date=None):
@@ -423,7 +438,7 @@ def get_user_description_habits(user, limit=50):
     from transactions.models import Transaction
 
     recent_txs = (
-        Transaction.objects.filter(user=user)
+        Transaction.objects.filter(user=user, account__active=True)
         .exclude(category__type=TransactionType.TRANSFER)
         .select_related('category', 'account')
         .prefetch_related('tags')
@@ -436,7 +451,6 @@ def get_user_description_habits(user, limit=50):
         if not raw_desc:
             continue
 
-        # Limpa sufixos de parcelas como (1/3), (2/12) e (Recorrente)
         desc = re.sub(r'\s*\(\d+/\d+\)', '', raw_desc)
         desc = re.sub(r'\s*\(Recorrente\)', '', desc, flags=re.IGNORECASE)
         desc = desc.strip()

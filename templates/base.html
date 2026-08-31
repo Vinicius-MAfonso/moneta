@@ -139,8 +139,10 @@
 
                 <div
                     x-data="{ txOpen: {% if request.resolver_match.app_name == 'transactions_web' %}true{% else %}false{% endif %}, clicked: false }">
+                    <button @click="txOpen = !txOpen; clicked = true"
                         class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.app_name == 'transactions_web' %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/20{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                         <div class="flex items-center space-x-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z">
                                 </path>
@@ -156,6 +158,7 @@
                     <div x-show="txOpen" x-collapse {% if request.resolver_match.app_name != 'transactions_web' %}x-cloak{% endif %} class="mt-1 pl-8 space-y-1">
                         <a href="{% url 'transactions_web:list' %}"
                             :class="clicked ? 'animate-stagger-1' : ''"
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'transactions_web' %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                             Todas as Transações
                         </a>
                         <a href="{% url 'transactions_web:category_list' %}"
@@ -171,8 +174,10 @@
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
                                 </path>
                             </svg>
+                            <span>Contas & Cartões</span>
                         </div>
                         <svg :class="wOpen ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200"
                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,9 +193,11 @@
                         </a>
                         <a href="{% url 'wallets_web:credit_card_dashboard' %}"
                             :class="clicked ? 'animate-stagger-2' : ''"
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'credit_card_dashboard' %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                             Painel de Cartões
                         </a>
                     </div>
+                </div>
 
                 <a href="{% url 'planning_web:list' %}"
                     class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.app_name == 'planning_web' %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
@@ -203,6 +210,7 @@
                 </a>
 
                 <a href="{% url 'reports' %}"
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.url_name == 'reports' %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">

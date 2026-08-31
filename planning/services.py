@@ -75,6 +75,102 @@ def calculate_budget_progress(budget, reference_date=None, start_date=None, end_
     }
 
 
+def calculate_budgets_progress_bulk(budgets, reference_date=None):
+    """
+    Calculates progress for a list of budgets in a single database query.
+    """
+    if not budgets:
+        return []
+
+    if not reference_date:
+        reference_date = timezone.now().date()
+    elif isinstance(reference_date, str):
+        if len(reference_date) == 7:
+            p = reference_date.split('-')
+            reference_date = date(int(p[0]), int(p[1]), 1)
+        else:
+            p = reference_date.split('-')
+            reference_date = date(int(p[0]), int(p[1]), int(p[2]))
+
+    month_start, month_end = get_month_range(reference_date)
+    user = budgets[0].user if budgets else None
+    if not user:
+        return []
+
+    category_ids = {b.category_id for b in budgets}
+    start_dates = []
+    end_dates = []
+    budget_periods = {}
+
+    for b in budgets:
+        if b.is_recurring:
+            p_start, p_end = month_start, month_end
+        else:
+            p_start, p_end = b.start_date, b.end_date
+        budget_periods[b.id] = (p_start, p_end)
+        if p_start:
+            start_dates.append(p_start)
+        if p_end:
+            end_dates.append(p_end)
+
+    min_start = min(start_dates) if start_dates else None
+    max_end = max(end_dates) if end_dates else None
+
+    tx_filters = {
+        'user': user,
+        'status': Transaction.Statuses.COMPLETED,
+        'category__type': TransactionType.EXPENSE,
+    }
+    if min_start:
+        tx_filters['date__gte'] = min_start
+    if max_end:
+        tx_filters['date__lte'] = max_end
+
+    raw_txs = list(
+        Transaction.objects.filter(**tx_filters)
+        .filter(
+            models.Q(category_id__in=category_ids) |
+            models.Q(category__parent_id__in=category_ids)
+        )
+        .values('category_id', 'category__parent_id', 'date', 'amount')
+    )
+
+    progress_list = []
+    for b in budgets:
+        p_start, p_end = budget_periods[b.id]
+        cat_id = b.category_id
+
+        spent = Decimal('0.00')
+        for tx in raw_txs:
+            if tx['category_id'] == cat_id or tx['category__parent_id'] == cat_id:
+                tx_date = tx['date']
+                if (p_start is None or tx_date >= p_start) and (p_end is None or tx_date <= p_end):
+                    spent += tx['amount']
+
+        if b.amount > 0:
+            percentage = (spent / b.amount) * Decimal('100.00')
+        else:
+            percentage = Decimal('100.00') if spent > 0 else Decimal('0.00')
+
+        bounded_pct = min(percentage, Decimal('100.00'))
+
+        progress_list.append({
+            'budget': b,
+            'spent': spent,
+            'remaining': max(Decimal('0.00'), b.amount - spent),
+            'percentage': round(percentage, 1),
+            'real_percentage': percentage,
+            'bounded_pct': bounded_pct,
+            'bounded_pct_str': str(round(bounded_pct, 2)),
+            'is_over_budget': spent >= b.amount,
+            'is_warning': (spent / b.amount) >= Decimal('0.8') if b.amount > 0 else False,
+            'period_start': p_start,
+            'period_end': p_end,
+        })
+
+    return progress_list
+
+
 def get_active_budgets(user, reference_date=None):
     if not reference_date:
         reference_date = timezone.now().date()
@@ -88,17 +184,16 @@ def get_active_budgets(user, reference_date=None):
 
     month_start, month_end = get_month_range(reference_date)
 
-    budgets = Budget.objects.filter(
-        models.Q(user=user) & (
-            models.Q(is_recurring=True, start_date__lte=month_end) |
-            models.Q(is_recurring=False, start_date__lte=month_end, end_date__gte=month_start)
-        )
-    ).select_related('category')
+    budgets = list(
+        Budget.objects.filter(
+            models.Q(user=user) & (
+                models.Q(is_recurring=True, start_date__lte=month_end) |
+                models.Q(is_recurring=False, start_date__lte=month_end, end_date__gte=month_start)
+            )
+        ).select_related('category')
+    )
 
-    progress_list = []
-    for b in budgets:
-        progress_list.append(calculate_budget_progress(b, reference_date=reference_date))
-
+    progress_list = calculate_budgets_progress_bulk(budgets, reference_date=reference_date)
     progress_list.sort(key=lambda x: x['real_percentage'], reverse=True)
     return progress_list
 
@@ -107,11 +202,17 @@ def get_budgets_with_progress(user, reference_date=None):
     if not reference_date:
         reference_date = timezone.now().date()
 
-    budgets = Budget.objects.filter(user=user).select_related('category').order_by('-is_recurring', '-created_at')
+    budgets = list(
+        Budget.objects.filter(user=user)
+        .select_related('category')
+        .order_by('-is_recurring', '-created_at')
+    )
+
+    progress_list = calculate_budgets_progress_bulk(budgets, reference_date=reference_date)
 
     result = []
-    for b in budgets:
-        prog = calculate_budget_progress(b, reference_date=reference_date)
+    for prog in progress_list:
+        b = prog['budget']
         b.spent = prog['spent']
         b.remaining = prog['remaining']
         b.real_percentage = prog['real_percentage']

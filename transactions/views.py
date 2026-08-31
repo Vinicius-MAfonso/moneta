@@ -451,45 +451,48 @@ def transaction_confirm_delete_view(request, pk):
 
 @login_required(login_url='users_web:login')
 def transaction_delete_view(request, pk):
-    tx = get_object_or_404(Transaction, pk=pk, user=request.user)
+    from django.db import transaction as db_transaction
 
-    if tx.bill and tx.bill.status == 'paid':
-        if request.headers.get('HX-Request'):
-            response = HttpResponse(status=204)
-            response['HX-Trigger'] = json.dumps({
-                'show-toast': {'message': 'Transações de faturas já pagas não podem ser excluídas.', 'type': 'error'}
-            })
-            return response
-        messages.error(request, "Transações de faturas já pagas não podem ser excluídas.")
-        return redirect('transactions_web:list')
+    with db_transaction.atomic():
+        tx = get_object_or_404(Transaction.objects.select_for_update(), pk=pk, user=request.user)
 
-    delete_mode = request.POST.get('delete_mode', 'single')
+        if tx.bill and tx.bill.status == 'paid':
+            if request.headers.get('HX-Request'):
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({
+                    'show-toast': {'message': 'Transações de faturas já pagas não podem ser excluídas.', 'type': 'error'}
+                })
+                return response
+            messages.error(request, "Transações de faturas já pagas não podem ser excluídas.")
+            return redirect('transactions_web:list')
 
-    tx_to_delete_extra = None
-    if hasattr(tx, 'transfer_out'):
-        tx_to_delete_extra = tx.transfer_out.in_transaction
-    elif hasattr(tx, 'transfer_in'):
-        tx_to_delete_extra = tx.transfer_in.out_transaction
+        delete_mode = request.POST.get('delete_mode', 'single')
 
-    if tx.recurring:
-        import datetime
-        if delete_mode == 'future':
-            Transaction.objects.filter(recurring=tx.recurring, date__gte=tx.date).delete()
-            tx.recurring.end_date = tx.date - datetime.timedelta(days=1)
-            tx.recurring.save(update_fields=['end_date'])
-        elif delete_mode == 'all':
-            Transaction.objects.filter(recurring=tx.recurring).delete()
-            tx.recurring.active = False
-            tx.recurring.save(update_fields=['active'])
+        tx_to_delete_extra = None
+        if hasattr(tx, 'transfer_out'):
+            tx_to_delete_extra = tx.transfer_out.in_transaction
+        elif hasattr(tx, 'transfer_in'):
+            tx_to_delete_extra = tx.transfer_in.out_transaction
+
+        if tx.recurring:
+            import datetime
+            if delete_mode == 'future':
+                Transaction.objects.filter(recurring=tx.recurring, date__gte=tx.date).delete()
+                tx.recurring.end_date = tx.date - datetime.timedelta(days=1)
+                tx.recurring.save(update_fields=['end_date'])
+            elif delete_mode == 'all':
+                Transaction.objects.filter(recurring=tx.recurring).delete()
+                tx.recurring.active = False
+                tx.recurring.save(update_fields=['active'])
+            else:
+                tx.recurring.ignore_date(tx.date)
+                tx.delete()
+                if tx_to_delete_extra:
+                    tx_to_delete_extra.delete()
         else:
-            tx.recurring.ignore_date(tx.date)
             tx.delete()
             if tx_to_delete_extra:
                 tx_to_delete_extra.delete()
-    else:
-        tx.delete()
-        if tx_to_delete_extra:
-            tx_to_delete_extra.delete()
 
     messages.success(request, "Transação excluída com sucesso.")
 

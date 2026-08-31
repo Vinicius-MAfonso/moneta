@@ -55,8 +55,12 @@ def recalculate_account_balance(account):
         )
         transfers_in_query = transfers_in_query.exclude(future_transfer_in_exclusion)
 
-    incomes = txs_query.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    expenses = txs_query.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+    tx_agg = txs_query.aggregate(
+        incomes=models.Sum('amount', filter=models.Q(category__type=TransactionType.INCOME)),
+        expenses=models.Sum('amount', filter=models.Q(category__type=TransactionType.EXPENSE)),
+    )
+    incomes = tx_agg['incomes'] or Decimal('0.00')
+    expenses = tx_agg['expenses'] or Decimal('0.00')
 
     transfers_out = transfers_out_query.aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
     transfers_in = transfers_in_query.aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
@@ -223,8 +227,12 @@ def calculate_balances_for_dates(user, dates, account_id=None):
         date__lt=min_date
     ).exclude(category__type=TransactionType.TRANSFER)
 
-    prior_incomes = prior_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    prior_expenses = prior_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+    prior_agg = prior_txs.aggregate(
+        incomes=models.Sum('amount', filter=models.Q(category__type=TransactionType.INCOME)),
+        expenses=models.Sum('amount', filter=models.Q(category__type=TransactionType.EXPENSE)),
+    )
+    prior_incomes = prior_agg['incomes'] or Decimal('0.00')
+    prior_expenses = prior_agg['expenses'] or Decimal('0.00')
 
     prior_tf_out = Transfer.objects.filter(
         out_transaction__account__in=accounts,
@@ -244,19 +252,17 @@ def calculate_balances_for_dates(user, dates, account_id=None):
         date__lte=max_date
     ).exclude(category__type=TransactionType.TRANSFER)
 
-    range_incomes_by_date = dict(
-        range_txs.filter(category__type=TransactionType.INCOME)
-        .values('date')
+    raw_range_txs = (
+        range_txs.values('date', 'category__type')
         .annotate(total=models.Sum('amount'))
-        .values_list('date', 'total')
     )
-
-    range_expenses_by_date = dict(
-        range_txs.filter(category__type=TransactionType.EXPENSE)
-        .values('date')
-        .annotate(total=models.Sum('amount'))
-        .values_list('date', 'total')
-    )
+    range_incomes_by_date = {}
+    range_expenses_by_date = {}
+    for row in raw_range_txs:
+        if row['category__type'] == TransactionType.INCOME:
+            range_incomes_by_date[row['date']] = row['total']
+        elif row['category__type'] == TransactionType.EXPENSE:
+            range_expenses_by_date[row['date']] = row['total']
 
     range_tf_out_by_date = dict(
         Transfer.objects.filter(
