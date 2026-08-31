@@ -1,6 +1,7 @@
 import csv
 import io
 import json
+import logging
 import re
 import unicodedata
 import uuid
@@ -15,11 +16,19 @@ from pywebpush import WebPushException, webpush
 from transactions.models import Category, Transaction
 from transactions.services import get_user_description_habits
 
+logger = logging.getLogger(__name__)
+
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+
 
 def _decode_file(uploaded_file):
     """
     Decodes the uploaded file trying utf-8-sig (BOM), utf-8, latin-1, and cp1252.
+    Enforces maximum file size limit.
     """
+    if hasattr(uploaded_file, 'size') and uploaded_file.size > MAX_UPLOAD_SIZE:
+        raise ValueError("O arquivo excede o limite máximo permitido de 5MB.")
+
     if hasattr(uploaded_file, 'read'):
         content = uploaded_file.read()
         if hasattr(uploaded_file, 'seek'):
@@ -28,6 +37,9 @@ def _decode_file(uploaded_file):
         content = uploaded_file
     else:
         return str(uploaded_file)
+
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise ValueError("O arquivo excede o limite máximo permitido de 5MB.")
 
     for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
         try:
@@ -400,14 +412,25 @@ def process_import_transactions(user, account, transactions_data, request_post):
     transactions_to_create = []
 
     with db_transaction.atomic():
+        # Pre-fetch all referenced categories in a single bulk query to eliminate N+1 queries
+        category_ids = {
+            request_post.get(f"category_{tx['id']}")
+            for tx in transactions_data
+            if request_post.get(f"category_{tx['id']}") and request_post.get(f"category_{tx['id']}") != 'ignore'
+        }
+        categories_by_id = {
+            str(c.id): c
+            for c in Category.objects.filter(id__in=category_ids, user=user)
+        }
+
         for tx in transactions_data:
             cat_id = request_post.get(f"category_{tx['id']}")
             if cat_id and cat_id != 'ignore':
-                category = Category.objects.filter(id=cat_id, user=user).first()
+                category = categories_by_id.get(str(cat_id))
                 if not category:
                     raise ValueError(f"Categoria selecionada inválida para a transação '{tx['payee']}'.")
 
-                raw_amount = Decimal(str(abs(float(tx['amount'])))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                raw_amount = Decimal(str(tx['amount'])).copy_abs().quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 custom_description = request_post.get(f"description_{tx['id']}", tx['payee']).strip() or tx['payee']
 
                 transactions_to_create.append(
@@ -465,4 +488,4 @@ def send_push_notification(user, title, body, url='/dashboard/'):
         except WebPushException as ex:
             if ex.response is not None and ex.response.status_code in [404, 410]:
                 sub.delete()
-            print("Web Push Error:", repr(ex))
+            logger.warning("Falha ao entregar notificação push para subscription ID %s: %s", getattr(sub, 'pk', None), ex)

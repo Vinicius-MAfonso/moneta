@@ -8,7 +8,6 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.csrf import csrf_exempt
 
 from transactions.models import Category
 from wallets.models import Account
@@ -110,7 +109,6 @@ def settings_view(request):
     return render(request, 'users/settings.html', context)
 
 
-@csrf_exempt
 @login_required(login_url='users_web:login')
 def import_file_view(request):
     upload_file = request.FILES.get('file') or request.FILES.get('ofx_file')
@@ -152,7 +150,6 @@ def import_file_view(request):
 import_ofx_view = import_file_view
 
 
-@csrf_exempt
 @login_required(login_url='users_web:login')
 def import_review_view(request):
     transactions = request.session.get('import_transactions') or request.session.get('ofx_transactions', [])
@@ -203,7 +200,6 @@ def import_review_view(request):
 
     from transactions.services import get_user_description_habits
     description_habits = get_user_description_habits(request.user)
-    description_habits_json = json.dumps(description_habits)
 
     context = {
         'transactions': transactions,
@@ -212,12 +208,11 @@ def import_review_view(request):
         'total_count': len(transactions),
         'suggestions_count': suggestions_count,
         'duplicates_count': duplicates_count,
-        'description_habits_json': description_habits_json,
+        'description_habits': description_habits,
     }
     return render(request, 'users/import_review.html', context)
 
 
-@csrf_exempt
 @login_required
 def save_push_subscription(request):
     if request.method == 'POST':
@@ -231,18 +226,14 @@ def save_push_subscription(request):
             if not endpoint or not p256dh or not auth:
                 return JsonResponse({'status': 'error', 'message': 'Invalid subscription payload'}, status=400)
 
-            subscription, created = PushSubscription.objects.get_or_create(
+            PushSubscription.objects.update_or_create(
                 user=request.user,
                 endpoint=endpoint,
                 defaults={
                     'p256dh': p256dh,
-                    'auth': auth
+                    'auth': auth,
                 }
             )
-            if not created:
-                subscription.p256dh = p256dh
-                subscription.auth = auth
-                subscription.save()
 
             return JsonResponse({'status': 'success', 'message': 'Subscription saved'})
         except Exception:

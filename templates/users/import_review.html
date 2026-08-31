@@ -321,15 +321,13 @@
         </div>
     </form>
 </div>
-{{ description_habits_json|json_script:"description-habits-data" }}
-
+{{ description_habits|json_script:"description-habits-data" }}
 <script>
-const rawHabits = JSON.parse(document.getElementById('description-habits-data')?.textContent || '{}');
+const globalDescriptionHabits = JSON.parse(document.getElementById('description-habits-data')?.textContent || '{}');
 
-function importRowItem(initial) {
     return {
+        description: initial.payee || '',
         selectedCategory: initial.isDuplicate ? 'ignore' : (initial.categoryId || ''),
-        isDuplicate: initial.isDuplicate,
         txType: initial.type,
         initialCategoryId: initial.categoryId || '',
         showSuggestions: false,

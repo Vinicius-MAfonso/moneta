@@ -141,6 +141,30 @@ class PushSubscriptionTestCase(TestCase):
         self.assertEqual(data['status'], 'error')
         self.assertEqual(data['message'], 'Falha ao processar assinatura push.')
 
+    def test_save_push_subscription_update_existing(self):
+        PushSubscription.objects.create(
+            user=self.user,
+            endpoint='https://push.example.com/endpoint',
+            p256dh='old_p256dh',
+            auth='old_auth'
+        )
+        payload = {
+            'endpoint': 'https://push.example.com/endpoint',
+            'keys': {
+                'p256dh': 'new_p256dh',
+                'auth': 'new_auth'
+            }
+        }
+        res = self.client.post(
+            reverse('users_web:save_push_subscription'),
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        sub = PushSubscription.objects.get(user=self.user, endpoint='https://push.example.com/endpoint')
+        self.assertEqual(sub.p256dh, 'new_p256dh')
+        self.assertEqual(sub.auth, 'new_auth')
+
 
 class ImportStatementTestCase(TestCase):
     def setUp(self):
@@ -260,8 +284,8 @@ class ImportStatementTestCase(TestCase):
         res_review = self.client.get(reverse('users_web:import_review'))
         self.assertEqual(res_review.status_code, 200)
         self.assertContains(res_review, 'Aluguel Apartamento')
-        self.assertIn('description_habits_json', res_review.context)
-        self.assertIsInstance(res_review.context['description_habits_json'], str)
+        self.assertIn('description_habits', res_review.context)
+        self.assertIsInstance(res_review.context['description_habits'], dict)
 
         # 3. Save import POST
         session = self.client.session
@@ -280,4 +304,13 @@ class ImportStatementTestCase(TestCase):
         self.account.refresh_from_db()
         # Initial balance 1000 - 1200 expense = -200
         self.assertEqual(self.account.balance, -200.00)
+
+    def test_import_oversized_file_rejected(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        huge_content = b"Data,Descricao,Valor\n" + (b"01/01/2026,Item,-10.00\n" * 250000)
+        upload_file = SimpleUploadedFile("huge.csv", huge_content, content_type="text/csv")
+        res = self.client.post(reverse('users_web:import_file'), {'file': upload_file}, follow=True)
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'excede o limite')
 
