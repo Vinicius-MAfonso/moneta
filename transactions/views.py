@@ -71,20 +71,18 @@ def transaction_list_view(request):
 
     from collections import defaultdict
 
-    from wallets.services import calculate_balance_at_date
-    
+    from wallets.services import calculate_balances_for_dates
     tx_dict = defaultdict(list)
     for tx in transactions:
         tx_dict[tx.date].append(tx)
         
-    tx_by_date = []
+    date_balances = calculate_balances_for_dates(request.user, list(tx_dict.keys()), account_id)
     for date, tx_list in tx_dict.items():
         tx_by_date.append({
             'date': date,
             'list': tx_list,
-            'balance': calculate_balance_at_date(request.user, date, account_id)
+            'balance': date_balances.get(date, Decimal('0.00'))
         })
-
     query_params_prev = request.GET.copy()
     query_params_prev['month'] = month_ctx['prev_month']
     query_params_next = request.GET.copy()

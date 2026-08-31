@@ -310,8 +310,7 @@ def dashboard_view(request):
         'chart_expenses': [float(v) for v in chart_expenses],
         'chart_balances': [float(v) for v in chart_balances],
     }
-    return render(request, 'dashboard.html', context)
-
+    return render(request, 'moneta/dashboard.html', context)
 
 @login_required(login_url='users_web:login')
 def reports_view(request):

@@ -138,11 +138,9 @@
                 </a>
 
                 <div
-                    x-data="{ txOpen: {% if 'transactions' in request.path or 'categories' in request.path %}true{% else %}false{% endif %}, clicked: false }">
-                    <button @click="txOpen = !txOpen; clicked = true"
-                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'transactions' in request.path or 'categories' in request.path %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/20{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
+                    x-data="{ txOpen: {% if request.resolver_match.app_name == 'transactions_web' %}true{% else %}false{% endif %}, clicked: false }">
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.app_name == 'transactions_web' %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/20{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                         <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z">
                                 </path>
@@ -155,31 +153,26 @@
                             </path>
                         </svg>
                     </button>
-                    <div x-show="txOpen" x-collapse {% if 'transactions' not in request.path and 'categories' not in request.path %}x-cloak{% endif %} class="mt-1 pl-8 space-y-1">
+                    <div x-show="txOpen" x-collapse {% if request.resolver_match.app_name != 'transactions_web' %}x-cloak{% endif %} class="mt-1 pl-8 space-y-1">
                         <a href="{% url 'transactions_web:list' %}"
                             :class="clicked ? 'animate-stagger-1' : ''"
-                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'list' and 'transactions' in request.path and 'categories' not in request.path %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                             Todas as Transações
                         </a>
                         <a href="{% url 'transactions_web:category_list' %}"
-                            :class="clicked ? 'animate-stagger-2' : ''"
-                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if 'categories' in request.path %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'category_list' %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                             Categorias & Tags
                         </a>
                     </div>
                 </div>
-
                 <div
-                    x-data="{ wOpen: {% if 'wallets' in request.path %}true{% else %}false{% endif %}, clicked: false }">
+                    x-data="{ wOpen: {% if request.resolver_match.app_name == 'wallets_web' %}true{% else %}false{% endif %}, clicked: false }">
                     <button @click="wOpen = !wOpen; clicked = true"
-                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'wallets' in request.path %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/20{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.app_name == 'wallets_web' %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/20{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
                                 </path>
                             </svg>
-                            <span>Contas & Cartões</span>
                         </div>
                         <svg :class="wOpen ? 'rotate-180' : ''" class="w-4 h-4 transition-transform duration-200"
                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,22 +180,20 @@
                             </path>
                         </svg>
                     </button>
-                    <div x-show="wOpen" x-collapse {% if 'wallets' not in request.path %}x-cloak{% endif %} class="mt-1 pl-8 space-y-1">
+                    <div x-show="wOpen" x-collapse {% if request.resolver_match.app_name != 'wallets_web' %}x-cloak{% endif %} class="mt-1 pl-8 space-y-1">
                         <a href="{% url 'wallets_web:list' %}"
                             :class="clicked ? 'animate-stagger-1' : ''"
-                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'list' and 'wallets' in request.path %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
+                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'list' and request.resolver_match.app_name == 'wallets_web' %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                             Visão Geral
                         </a>
                         <a href="{% url 'wallets_web:credit_card_dashboard' %}"
                             :class="clicked ? 'animate-stagger-2' : ''"
-                            class="block px-3 py-2 rounded-lg text-xs font-medium transition-all {% if request.resolver_match.url_name == 'credit_card_dashboard' %}text-indigo-600 bg-indigo-500/10 font-bold{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                             Painel de Cartões
                         </a>
                     </div>
-                </div>
 
                 <a href="{% url 'planning_web:list' %}"
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if 'planning' in request.path %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
+                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.app_name == 'planning_web' %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
@@ -212,7 +203,6 @@
                 </a>
 
                 <a href="{% url 'reports' %}"
-                    class="flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium text-sm transition-all duration-150 {% if request.resolver_match.url_name == 'reports' %}bg-indigo-600/10 text-indigo-600 border border-indigo-500/30{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-200/60{% endif %}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
@@ -265,7 +255,7 @@
             <span class="text-[10px] mt-0.5">Início</span>
         </a>
 
-        <a href="{% url 'transactions_web:list' %}" class="flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 {% if 'transactions' in request.path and 'categories' not in request.path %}text-indigo-600 font-bold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+        <a href="{% url 'transactions_web:list' %}" class="flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 {% if request.resolver_match.app_name == 'transactions_web' and request.resolver_match.url_name != 'category_list' %}text-indigo-600 font-bold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
             </svg>
@@ -276,10 +266,9 @@
         <button hx-get="{% url 'transactions_web:create' %}" hx-target="#modal-container" aria-label="Nova Transação" class="-mt-5 w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 hover:scale-105 active:scale-95 transition-all">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
-            </svg>
         </button>
 
-        <a href="{% url 'planning_web:list' %}" class="flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 {% if 'planning' in request.path %}text-indigo-600 font-bold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
+        <a href="{% url 'planning_web:list' %}" class="flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all duration-150 {% if request.resolver_match.app_name == 'planning_web' %}text-indigo-600 font-bold{% else %}text-slate-500 hover:text-slate-900{% endif %}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
             </svg>
@@ -291,7 +280,6 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
             </svg>
             <span class="text-[10px] mt-0.5">Mais</span>
-        </button>
     </nav>
 
     <!-- Mobile Bottom Sheet: Mais Opções -->

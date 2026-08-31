@@ -1,7 +1,7 @@
-{% extends "users/auth_base.html" %} 
-{% block title %}Entrar - Moneta{% endblock %} 
-{% block subtitle %}Acesse sua conta para gerenciar suas finanças{% endblock %} 
-{% block content %} 
+{% extends "users/auth_base.html" %}
+{% block title %}Entrar - Moneta{% endblock %}
+{% block subtitle %}Acesse sua conta para gerenciar suas finanças{% endblock %}
+{% block content %}
 <div class="bg-white border border-slate-200 p-8 rounded-3xl shadow-2xl space-y-6">
     <form method="POST" action="{% url 'users_web:login' %}{% if request.GET.next %}?next={{ request.GET.next|urlencode }}{% endif %}" class="space-y-4">
         {% csrf_token %}

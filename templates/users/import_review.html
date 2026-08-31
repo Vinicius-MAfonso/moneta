@@ -1,9 +1,6 @@
-{% extends "base.html" %} 
-{% block title %}Revisar Importação de Extrato - Moneta{% endblock %} 
-{% block content %} 
-<div class="space-y-6 max-w-6xl mx-auto" x-data="importReviewData()">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+{% extends "base.html" %}
+{% block title %}Revisar Importação de Extrato - Moneta{% endblock %}
+{% block content %}
             <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Revisar Importação</h2>
             <p class="text-slate-500 text-sm mt-1">Revise os lançamentos do extrato, edite as descrições com auto-sugestão e selecione a conta de destino.</p>
         </div>
@@ -320,15 +317,13 @@
             </button>
         </div>
     </form>
-</div>
+{{ description_habits_json|json_script:"description-habits-data" }}
 
 <script>
-const globalDescriptionHabits = {{ description_habits_json|safe|default:'{}' }};
+const rawHabits = JSON.parse(document.getElementById('description-habits-data')?.textContent || '{}');
 
 function importRowItem(initial) {
     return {
-        id: initial.id,
-        description: initial.payee,
         selectedCategory: initial.isDuplicate ? 'ignore' : (initial.categoryId || ''),
         isDuplicate: initial.isDuplicate,
         txType: initial.type,
