@@ -2,6 +2,10 @@
 {% block title %}Criar Conta - Moneta{% endblock %}
 {% block subtitle %}Comece a controlar suas finanças hoje mesmo{% endblock %}
 {% block content %}
+<div class="bg-white border border-slate-200 p-8 rounded-3xl shadow-2xl space-y-6">
+    <form method="POST" action="{% url 'users_web:register' %}" class="space-y-4">
+        {% csrf_token %}
+        <div class="grid grid-cols-2 gap-3">
             <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Nome</label>
                 <input type="text" name="first_name" required placeholder="Seu nome" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition">

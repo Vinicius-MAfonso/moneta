@@ -55,6 +55,7 @@
                         <div class="flex justify-between text-sm">
                             <span class="text-slate-500">Fatura Atual</span>
                             <span class="font-bold text-rose-600">R$ {{ account.abs_balance|floatformat:2 }}</span>
+                        </div>
                         
                         <div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden">
                             {% widthratio account.balance account.credit_card_details.limit|default:1 100 as limit_pct %}
