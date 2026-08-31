@@ -1,13 +1,16 @@
 import json
+import logging
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 
-from moneta.common import TransactionType, get_month_context
+from moneta.common import TransactionType
 from transactions.models import Category
 from wallets.models import Account
 
@@ -21,10 +24,20 @@ from .services import (
     get_budgets_with_progress,
 )
 
+logger = logging.getLogger(__name__)
+
+
+def _format_error_message(e):
+    if hasattr(e, 'message_dict'):
+        return "; ".join([f"{k}: {', '.join(v)}" for k, v in e.message_dict.items()])
+    if hasattr(e, 'messages'):
+        return "; ".join(e.messages)
+    return str(e)
+
 
 @login_required(login_url='users_web:login')
 def planning_list_view(request):
-    raw_goals = Goal.objects.filter(user=request.user)
+    raw_goals = Goal.objects.filter(user=request.user).select_related('account')
 
     goals = []
     for goal in raw_goals:
@@ -34,7 +47,7 @@ def planning_list_view(request):
         goal.bounded_pct_str = str(round(goal.bounded_pct, 2))
         goals.append(goal)
 
-    budgets = Budget.objects.filter(user=request.user).select_related('category').order_by('-is_recurring', '-created_at')
+    budgets = get_budgets_with_progress(request.user)
 
     context = {
         'budgets': budgets,
@@ -70,12 +83,21 @@ def budget_create_view(request):
                 response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
-        except Exception as e:
+        except (ValidationError, ValueError) as e:
+            msg = _format_error_message(e)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{e!s}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': msg, 'type': 'error'}})
                 return response
-            messages.error(request, f"{e!s}")
+            messages.error(request, msg)
+            return redirect('planning_web:list')
+        except Exception as e:
+            logger.exception(f"Erro inesperado ao criar orçamento: {e}")
+            if request.headers.get('HX-Request'):
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': "Erro inesperado ao criar orçamento.", 'type': 'error'}})
+                return response
+            messages.error(request, "Erro inesperado ao criar orçamento.")
             return redirect('planning_web:list')
 
     return render(request, 'planning/partials/budget_form.html', {'categories': categories})
@@ -93,16 +115,16 @@ def budget_confirm_delete_view(request, pk):
 
 
 @login_required(login_url='users_web:login')
+@require_http_methods(["POST", "DELETE"])
 def budget_delete_view(request, pk):
     budget = get_object_or_404(Budget, pk=pk, user=request.user)
-    if request.method in ['POST', 'DELETE']:
-        delete_budget(budget)
-        messages.success(request, "Orçamento excluído com sucesso!")
-        if request.headers.get('HX-Request'):
-            response = HttpResponse(status=204)
-            response['HX-Redirect'] = reverse('planning_web:list')
-            return response
-        return redirect('planning_web:list')
+    delete_budget(budget)
+    messages.success(request, "Orçamento excluído com sucesso!")
+    if request.headers.get('HX-Request'):
+        response = HttpResponse(status=204)
+        response['HX-Redirect'] = reverse('planning_web:list')
+        return response
+    return redirect('planning_web:list')
 
 
 @login_required(login_url='users_web:login')
@@ -115,7 +137,7 @@ def goal_create_view(request):
             start_date = request.POST.get('start_date')
             end_date = request.POST.get('end_date') or None
             account_id = request.POST.get('account')
-            account = Account.objects.get(id=account_id, user=request.user) if account_id else None
+            account = Account.objects.filter(id=account_id, user=request.user).first() if account_id else None
 
             create_goal(
                 user=request.user,
@@ -132,12 +154,21 @@ def goal_create_view(request):
                 response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
-        except Exception as e:
+        except (ValidationError, ValueError) as e:
+            msg = _format_error_message(e)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{e!s}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': msg, 'type': 'error'}})
                 return response
-            messages.error(request, f"{e!s}")
+            messages.error(request, msg)
+            return redirect('planning_web:list')
+        except Exception as e:
+            logger.exception(f"Erro inesperado ao criar objetivo: {e}")
+            if request.headers.get('HX-Request'):
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': "Erro inesperado ao criar objetivo.", 'type': 'error'}})
+                return response
+            messages.error(request, "Erro inesperado ao criar objetivo.")
             return redirect('planning_web:list')
 
     accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
@@ -150,20 +181,31 @@ def goal_deposit_view(request, pk):
     if request.method == 'POST':
         try:
             amount = Decimal(request.POST.get('amount') or '0')
-            if amount > 0:
-                deposit_to_goal(goal, amount)
+            if amount <= 0:
+                raise ValueError("O valor do depósito deve ser maior que zero.")
+
+            deposit_to_goal(goal, amount)
             if request.headers.get('HX-Request'):
-                messages.success(request, "Depósito realizado!")
+                messages.success(request, "Depósito realizado com sucesso!")
                 response = HttpResponse(status=204)
                 response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
-        except Exception as e:
+        except (ValidationError, ValueError) as e:
+            msg = _format_error_message(e)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{e!s}', 'type': 'error'}})
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': msg, 'type': 'error'}})
                 return response
-            messages.error(request, f"{e!s}")
+            messages.error(request, msg)
+            return redirect('planning_web:list')
+        except Exception as e:
+            logger.exception(f"Erro inesperado ao depositar no objetivo: {e}")
+            if request.headers.get('HX-Request'):
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': "Erro inesperado ao realizar depósito.", 'type': 'error'}})
+                return response
+            messages.error(request, "Erro inesperado ao realizar depósito.")
             return redirect('planning_web:list')
 
     return render(request, 'planning/partials/goal_deposit_form.html', {'goal': goal})
@@ -181,14 +223,15 @@ def goal_confirm_delete_view(request, pk):
 
 
 @login_required(login_url='users_web:login')
+@require_http_methods(["POST", "DELETE"])
 def goal_delete_view(request, pk):
     goal = get_object_or_404(Goal, pk=pk, user=request.user)
-    if request.method in ['POST', 'DELETE']:
-        delete_goal(goal)
-        messages.success(request, "Objetivo excluído com sucesso!")
-        if request.headers.get('HX-Request'):
-            response = HttpResponse(status=204)
-            response['HX-Redirect'] = reverse('planning_web:list')
-            return response
-        return redirect('planning_web:list')
+    delete_goal(goal)
+    messages.success(request, "Objetivo excluído com sucesso!")
+    if request.headers.get('HX-Request'):
+        response = HttpResponse(status=204)
+        response['HX-Redirect'] = reverse('planning_web:list')
+        return response
+    return redirect('planning_web:list')
+
 

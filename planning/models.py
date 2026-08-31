@@ -24,10 +24,19 @@ class Budget(models.Model):
         verbose_name = 'orçamento'
         verbose_name_plural = 'orçamentos'
         ordering = ['-start_date']
+        indexes = [
+            models.Index(fields=['user', 'is_recurring', 'start_date'], name='budget_user_rec_date_idx'),
+            models.Index(fields=['is_warning_notified', 'is_recurring'], name='budget_warn_notif_idx'),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(end_date__isnull=True) | models.Q(end_date__gte=models.F('start_date')),
                 name='budget_end_date_after_start_date',
+            ),
+            models.UniqueConstraint(
+                fields=['user', 'category'],
+                condition=models.Q(is_recurring=True),
+                name='unique_recurring_budget_per_user_cat',
             ),
         ]
 
@@ -70,16 +79,16 @@ class Budget(models.Model):
 
 class Goal(models.Model):
     """
-    Objetivos Financeiros ("Caixinhas").
+    Financial Goals / Envelopes.
     
-    Nota de Arquitetura:
-    O campo `current_amount` funciona como um envelope virtual.
-    Quando associado a uma conta (`Account`), o valor de `current_amount`
-    bloqueia o saldo disponível da conta (calculado via `Account.free_balance`).
+    Architecture Note:
+    The `current_amount` field functions as a virtual envelope.
+    When linked to a bank account (`Account`), the value of `current_amount`
+    locks the account's available funds (calculated via `Account.free_balance`).
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='goals', verbose_name='usuário')
-    account = models.ForeignKey('wallets.Account', on_delete=models.CASCADE, related_name='goals', verbose_name='conta', null=True, blank=True)
+    account = models.ForeignKey('wallets.Account', on_delete=models.SET_NULL, related_name='goals', verbose_name='conta', null=True, blank=True)
     name = models.CharField(max_length=100, verbose_name='nome')
     target_amount = models.DecimalField(max_digits=20, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))], verbose_name='valor alvo')
     current_amount = models.DecimalField(max_digits=20, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))], verbose_name='valor atual')
@@ -93,6 +102,11 @@ class Goal(models.Model):
         verbose_name = 'objetivo'
         verbose_name_plural = 'objetivos'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at'], name='goal_user_created_idx'),
+            models.Index(fields=['account'], name='goal_account_idx'),
+            models.Index(fields=['is_near_target_notified'], name='goal_near_target_idx'),
+        ]
         constraints = [
             models.CheckConstraint(
                 condition=models.Q(end_date__gte=models.F('start_date')),

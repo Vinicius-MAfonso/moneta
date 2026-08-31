@@ -429,8 +429,8 @@ def update_transaction(transaction, validated_data):
 
 def get_user_description_habits(user, limit=50):
     """
-    Retorna um dicionário com os hábitos de transação do usuário por descrição limpa.
-    Ex: {'iFood': {'type': 'despesa', 'category_id': '...', 'account_id': '...', 'tag_ids': [...]}}
+    Returns a dictionary of user transaction habits indexed by cleaned description.
+    E.g.: {'iFood': {'type': 'expense', 'category_id': '...', 'account_id': '...', 'tag_ids': [...]}}
     """
     import re
 
@@ -457,7 +457,7 @@ def get_user_description_habits(user, limit=50):
         if not desc:
             continue
 
-        # Ignora reajustes automáticos de saldo
+        # Ignore automatic balance adjustments
         if desc.lower().startswith('reajuste de saldo'):
             continue
 

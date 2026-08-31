@@ -43,7 +43,7 @@
     <!-- 4 KPI Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
         
-        <!-- Saldo Atual -->
+        <!-- Current Balance -->
         <div class="glass-panel p-3.5 md:p-5 rounded-2xl flex flex-col justify-between">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500">Saldo Atual</span>
@@ -72,7 +72,7 @@
             </div>
         </div>
 
-        <!-- Receitas (Mês) -->
+        <!-- Income (Month) -->
         <div class="glass-panel p-3.5 md:p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500">Receitas (Mês)</span>
@@ -86,7 +86,7 @@
             </div>
         </div>
 
-        <!-- Despesas (Mês) -->
+        <!-- Expense (Month) -->
         <div class="glass-panel p-3.5 md:p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500">Despesas (Mês)</span>
@@ -107,7 +107,7 @@
             </div>
         </div>
 
-        <!-- Balanço (Mês) -->
+        <!-- Net Balance (Month) -->
         <div class="glass-panel p-3.5 md:p-5 rounded-2xl relative overflow-hidden group">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] md:text-xs font-semibold uppercase tracking-wider text-slate-500">Balanço (Mês)</span>
@@ -125,7 +125,7 @@
 
     </div>
 
-    <!-- Categorias Grid: Despesas e Receitas -->
+    <!-- Category Grid: Expenses and Incomes -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="glass-panel p-6 rounded-2xl space-y-4">
             <div class="flex items-center justify-between gap-2">
@@ -184,7 +184,7 @@
         </div>
     </div>
 
-    <!-- Calendário Financeiro (Exclusivo Desktop) -->
+    <!-- Financial Calendar (Desktop Only) -->
     <div class="hidden md:block glass-panel p-6 rounded-2xl space-y-4">
         <div class="flex items-center justify-between">
             <div>
@@ -236,10 +236,10 @@
         </div>
     </div>
 
-    <!-- Gráficos de Resumo e Contas -->
+    <!-- Summary Charts and Accounts -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- Resumo Financeiro -->
+        <!-- Financial Summary -->
         <div class="lg:col-span-2 glass-panel p-6 rounded-2xl">
             <div class="flex items-center justify-between mb-6">
                 <div>
@@ -252,7 +252,7 @@
             </div>
         </div>
 
-        <!-- Minhas Contas -->
+        <!-- My Accounts -->
         <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
             <div>
                 <div class="flex items-center justify-between mb-4">
@@ -284,7 +284,7 @@
             </div>
         </div>
 
-        <!-- Balanço 6 Meses -->
+        <!-- 6-Month Balance -->
         <div class="{% if top_budgets %}lg:col-span-2{% else %}lg:col-span-3{% endif %} glass-panel p-6 rounded-2xl">
             <div class="flex items-center justify-between mb-6">
                 <div>
@@ -297,7 +297,7 @@
             </div>
         </div>
 
-        <!-- Orçamentos Ativos -->
+        <!-- Active Budgets -->
         {% if top_budgets %}
             <div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
                 <div>
@@ -324,7 +324,7 @@
         {% endif %}
     </div>
 
-    <!-- Últimas Transações -->
+    <!-- Recent Transactions -->
     <div class="glass-panel p-6 rounded-2xl space-y-4">
         <div class="flex items-center justify-between">
             <div>

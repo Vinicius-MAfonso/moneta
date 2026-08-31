@@ -202,13 +202,12 @@ class TransactionServicesTestCase(TestCase):
         self.assertEqual(txs.count(), 3)
         self.assertEqual(txs[0].amount, Decimal('33.33'))
         self.assertEqual(txs[1].amount, Decimal('33.33'))
-        self.assertEqual(txs[2].amount, Decimal('33.34')) # Sobra do dízima foi pra última!
+        self.assertEqual(txs[2].amount, Decimal('33.34'))  # Remainder of division goes to the last installment!
         
-        # O cartão deve ter atrelado à fatura
+        # Credit card transaction should be linked to the bill
         self.assertIsNotNone(txs[0].bill)
         
-        # A primeira conta vence esse mês e já está pendente ou concluída?
-        # A lógica coloca a primeira como enviada no status e as seguintes como PENDING.
+        # First installment inherits submitted status; subsequent installments are PENDING
         self.assertEqual(txs[0].status, Transaction.Statuses.COMPLETED)
         self.assertEqual(txs[1].status, Transaction.Statuses.PENDING)
         self.assertEqual(txs[2].status, Transaction.Statuses.PENDING)
@@ -230,7 +229,7 @@ class TransactionServicesTestCase(TestCase):
         )
         tx = Transaction.objects.get(description='Compra')
         
-        # Simular pagamento da fatura
+        # Simulate bill payment
         bill = tx.bill
         bill.status = CreditCardBill.Statuses.PAID
         bill.save()
@@ -264,7 +263,7 @@ class TransactionServicesTestCase(TestCase):
         self.account1.refresh_from_db()
         self.assertEqual(self.account1.balance, Decimal('-50.00'))
         
-        # Mudar para account2
+        # Change to account2
         update_transaction(tx, {
             'account': self.account2.id,
             'category': self.cat_expense.id,
@@ -295,19 +294,19 @@ class TransactionServicesTestCase(TestCase):
         )
         rec.ignore_date(date(2026, 9, 1))
         
-        # Rodar primeira vez
+        # First run
         process_recurring_transactions(self.user, target_end_date=date(2026, 10, 31))
         
         txs = Transaction.objects.filter(recurring=rec).order_by('date')
-        # Deveria criar: 8/1, (9/1 é ignored), 10/1 -> total 2 transações
+        # Should create: 8/1, (9/1 is ignored), 10/1 -> total 2 transactions
         self.assertEqual(txs.count(), 2)
         self.assertEqual(txs[0].date, date(2026, 8, 1))
         self.assertEqual(txs[1].date, date(2026, 10, 1))
         
-        # Rodar segunda vez (motor é idempotente)
+        # Second run (engine is idempotent)
         process_recurring_transactions(self.user, target_end_date=date(2026, 10, 31))
         
-        # A quantidade deve permanecer 2
+        # Count must remain 2
         txs = Transaction.objects.filter(recurring=rec).order_by('date')
         self.assertEqual(txs.count(), 2)
 
@@ -364,7 +363,7 @@ class TransactionServicesTestCase(TestCase):
         txs = Transaction.objects.filter(recurring=rec).order_by('date')
         self.assertEqual(txs.count(), 3)
         
-        # Vamos destransformar a transação de Setembro
+        # Unmark September transaction as recurring
         tx_sept = txs.get(date=date(2026, 9, 1))
         
         update_transaction(tx_sept, {
@@ -387,7 +386,7 @@ class TransactionServicesTestCase(TestCase):
         self.assertFalse(rec.active)
         self.assertEqual(rec.end_date, date(2026, 9, 1))
         
-        # A de Outubro (futura) deve ter sido deletada, a de Agosto (passada) deve continuar existindo atrelada à série
+        # October (future) occurrence should be deleted; August (past) occurrence should remain linked to series
         self.assertTrue(Transaction.objects.filter(date=date(2026, 8, 1), recurring=rec).exists())
         self.assertFalse(Transaction.objects.filter(date=date(2026, 10, 1), recurring=rec).exists())
 

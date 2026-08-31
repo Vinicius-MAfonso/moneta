@@ -2,12 +2,14 @@ import calendar
 from datetime import date
 from decimal import Decimal
 
-from django.db import models
+from django.core.exceptions import ValidationError
+from django.db import models, transaction as db_transaction
 from django.utils import timezone
 
 from moneta.common import TransactionType
 from planning.models import Budget, Goal
-from transactions.models import Transaction
+from transactions.models import Category, Transaction
+from wallets.models import Account
 
 
 def get_month_range(ref_date=None):
@@ -227,15 +229,19 @@ def get_budgets_with_progress(user, reference_date=None):
 
 
 def create_budget(user, category_id, amount, is_recurring=True, start_date=None, end_date=None):
+    category = Category.objects.filter(id=category_id, user=user).first()
+    if not category:
+        raise ValidationError("Categoria inválida ou não encontrada.")
+
     if start_date is None:
         start_date = timezone.now().date()
 
     if not is_recurring and not end_date:
-        raise ValueError("A data de término é obrigatória para orçamentos pontuais.")
+        raise ValidationError("A data de término é obrigatória para orçamentos pontuais.")
 
     return Budget.objects.create(
         user=user,
-        category_id=category_id,
+        category=category,
         amount=amount,
         is_recurring=is_recurring,
         start_date=start_date,
@@ -249,8 +255,11 @@ def delete_budget(budget):
 
 def create_goal(user, name, target_amount, current_amount, start_date, end_date=None, account=None):
     if not end_date:
-        raise ValueError("A data de término é obrigatória.")
+        raise ValidationError("A data de término é obrigatória.")
         
+    if account and account.user_id != user.id:
+        raise ValidationError("Conta inválida para este usuário.")
+
     return Goal.objects.create(
         user=user,
         account=account,
@@ -268,16 +277,20 @@ def delete_goal(goal):
 
 def deposit_to_goal(goal, amount):
     """
-    Deposit the given amount to the specified goal.
+    Deposit the given amount to the specified goal using row-level locking and atomic transaction.
     """
     if amount <= 0:
-        return False
-        
-    if goal.account and amount > goal.account.free_balance:
-        bal_str = f"{goal.account.free_balance:.2f}".replace('.', ',')
-        raise ValueError(f"Saldo livre insuficiente na conta '{goal.account.name}'. Saldo disponível: R$ {bal_str}.")
-        
-    goal.__class__.objects.filter(pk=goal.pk).update(
-        current_amount=models.F('current_amount') + amount
-    )
+        raise ValueError("O valor do depósito deve ser maior que zero.")
+
+    with db_transaction.atomic():
+        locked_goal = Goal.objects.select_for_update().get(pk=goal.pk)
+        if locked_goal.account_id:
+            account = Account.objects.select_for_update().get(pk=locked_goal.account_id)
+            if amount > account.free_balance:
+                bal_str = f"{account.free_balance:.2f}".replace('.', ',')
+                raise ValueError(f"Saldo livre insuficiente na conta '{account.name}'. Saldo disponível: R$ {bal_str}.")
+
+        Goal.objects.filter(pk=locked_goal.pk).update(
+            current_amount=models.F('current_amount') + amount
+        )
     return True

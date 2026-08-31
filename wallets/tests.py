@@ -150,7 +150,7 @@ class WalletsServicesTestCase(TestCase):
         from wallets.models import CreditCardBill
         from wallets.services import get_or_create_bill_for_transaction
         
-        # Cria a primeira fatura e a fecha
+        # Create first bill and close it
         bill1 = get_or_create_bill_for_transaction(self.cc_account, datetime.date(2026, 8, 5))
         self.assertEqual(bill1.status, CreditCardBill.Statuses.OPEN)
         self.assertEqual(bill1.due_date, datetime.date(2026, 8, 20))
@@ -158,10 +158,10 @@ class WalletsServicesTestCase(TestCase):
         bill1.status = CreditCardBill.Statuses.PAID
         bill1.save()
         
-        # Tenta lançar despesa retroativa no mesmo período
+        # Try to create retroactive expense in the same period
         bill2 = get_or_create_bill_for_transaction(self.cc_account, datetime.date(2026, 8, 5))
         
-        # O sistema deve pular a fatura PAID e criar/retornar a próxima OPEN (vencimento em setembro)
+        # System should skip PAID bill and create/return next OPEN bill (due in September)
         self.assertEqual(bill2.status, CreditCardBill.Statuses.OPEN)
         self.assertEqual(bill2.due_date, datetime.date(2026, 9, 20))
         self.assertNotEqual(bill1.id, bill2.id)
@@ -189,32 +189,32 @@ class WalletsServicesTestCase(TestCase):
         tx.bill = bill
         tx.save()
         
-        # Pagar a fatura
+        # Pay the bill
         bill = pay_credit_card_bill(bill, self.checking_account.id)
         self.assertEqual(bill.status, CreditCardBill.Statuses.PAID)
         self.assertFalse(hasattr(tx, 'transfer_in'))
         
-        # Pagar faturas cria uma transação de transferência atrelada aos payment_txs
-        # A própria pay_credit_card_bill vincula o in_tx na fatura.
+        # Paying bills creates a transfer transaction linked to payment_txs
+        # pay_credit_card_bill itself links in_tx to the bill.
         payment_txs = bill.transactions.filter(transfer_in__isnull=False)
         self.assertEqual(payment_txs.count(), 1)
         
-        # Recalcular saldos simulando fluxo real
+        # Recalculate balances simulating real workflow
         from wallets.services import recalculate_account_balance
         recalculate_account_balance(self.checking_account)
-        self.assertEqual(self.checking_account.balance, Decimal('500.00')) # 1000 - 500
+        self.assertEqual(self.checking_account.balance, Decimal('500.00'))  # 1000 - 500
         
-        # Chamar estorno
+        # Reopen / reverse bill payment
         reopen_credit_card_bill(bill)
         
         bill.refresh_from_db()
         self.assertIn(bill.status, [CreditCardBill.Statuses.OPEN, CreditCardBill.Statuses.CLOSED])
         
-        # A transferência de pagamento foi deletada?
+        # Was the payment transfer deleted?
         payment_txs_after = bill.transactions.filter(transfer_in__isnull=False)
         self.assertEqual(payment_txs_after.count(), 0)
         
-        # A conta corrente recuperou o dinheiro?
+        # Did checking account recover the balance?
         recalculate_account_balance(self.checking_account)
         self.assertEqual(self.checking_account.balance, Decimal('1000.00'))
 
@@ -234,7 +234,7 @@ class WalletsServicesTestCase(TestCase):
         self.checking_account.refresh_from_db()
         self.assertEqual(self.checking_account.balance, Decimal('1200.00'))
         
-        # Checar se a transação compensatória foi criada
+        # Check if compensatory adjustment transaction was created
         sys_tx = Transaction.objects.filter(account=self.checking_account, category__is_system=True).first()
         self.assertIsNotNone(sys_tx)
         self.assertEqual(sys_tx.amount, Decimal('200.00'))
@@ -403,9 +403,9 @@ class WalletsServicesTestCase(TestCase):
         timeline = get_credit_card_timeline(self.user, start_date, months=12)
         self.assertEqual(len(timeline), 12)
 
-        self.assertEqual(timeline[0]['total'], Decimal('150.00'))  # Ago/2026
-        self.assertEqual(timeline[1]['total'], Decimal('150.00'))  # Set/2026
-        self.assertEqual(timeline[2]['total'], Decimal('150.00'))  # Out/2026
+        self.assertEqual(timeline[0]['total'], Decimal('150.00'))  # Aug/2026
+        self.assertEqual(timeline[1]['total'], Decimal('150.00'))  # Sep/2026
+        self.assertEqual(timeline[2]['total'], Decimal('150.00'))  # Oct/2026
 
         for m in timeline[3:]:
             self.assertEqual(m['total'], Decimal('50.00'))

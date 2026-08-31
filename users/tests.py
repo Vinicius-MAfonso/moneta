@@ -203,7 +203,7 @@ class ImportStatementTestCase(TestCase):
         from transactions.models import Transaction
         from users.services import enrich_transactions_with_suggestions_and_duplicates
 
-        # Cria transação prévia para gerar histórico de hábito
+        # Create prior transaction to populate habit history
         Transaction.objects.create(
             user=self.user,
             account=self.account,
@@ -235,11 +235,11 @@ class ImportStatementTestCase(TestCase):
 
         enriched = enrich_transactions_with_suggestions_and_duplicates(self.user, test_items)
 
-        # tx-1 é duplicata (mesmo valor e mesma data de transação existente) e tem sugestão
+        # tx-1 is a duplicate (same amount and date as existing transaction) and gets a suggestion
         self.assertTrue(enriched[0]['is_duplicate'])
         self.assertEqual(enriched[0]['suggested_category_id'], str(self.category_food.id))
 
-        # tx-2 é novo (não duplicata) mas recebe sugestão inteligente por similaridade de nome
+        # tx-2 is new (not duplicate) but receives smart suggestion via name similarity
         self.assertFalse(enriched[1]['is_duplicate'])
         self.assertEqual(enriched[1]['suggested_category_id'], str(self.category_food.id))
 
@@ -251,19 +251,19 @@ class ImportStatementTestCase(TestCase):
         csv_content = b"Data,Descricao,Valor\n05/08/2026,Aluguel Apartamento,-1200.00\n"
         upload_file = SimpleUploadedFile("extrato.csv", csv_content, content_type="text/csv")
 
-        # 1. Upload do arquivo
+        # 1. File upload
         res = self.client.post(reverse('users_web:import_file'), {'file': upload_file})
         self.assertEqual(res.status_code, 302)
         self.assertEqual(res.url, reverse('users_web:import_review'))
 
-        # 2. Tela de revisão GET
+        # 2. Review screen GET
         res_review = self.client.get(reverse('users_web:import_review'))
         self.assertEqual(res_review.status_code, 200)
         self.assertContains(res_review, 'Aluguel Apartamento')
         self.assertIn('description_habits_json', res_review.context)
         self.assertIsInstance(res_review.context['description_habits_json'], str)
 
-        # 3. Salvar importação POST
+        # 3. Save import POST
         session = self.client.session
         tx_id = session['import_transactions'][0]['id']
 
@@ -275,9 +275,9 @@ class ImportStatementTestCase(TestCase):
         res_save = self.client.post(reverse('users_web:import_review'), post_data)
         self.assertEqual(res_save.status_code, 302)
 
-        # Verifica se a transação foi salva no banco
+        # Verify transaction was saved to the database
         self.assertTrue(Transaction.objects.filter(user=self.user, description='Aluguel Mensal').exists())
         self.account.refresh_from_db()
-        # Saldo inicial 1000 - 1200 despesa = -200
+        # Initial balance 1000 - 1200 expense = -200
         self.assertEqual(self.account.balance, -200.00)
 

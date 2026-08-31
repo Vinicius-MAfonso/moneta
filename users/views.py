@@ -124,7 +124,7 @@ def import_file_view(request):
             elif filename.endswith(('.csv', '.txt')):
                 transactions = parse_csv_file(upload_file)
             else:
-                # Tenta OFX primeiro, se falhar tenta CSV
+                # Try OFX first; fallback to CSV if it fails
                 try:
                     transactions = parse_ofx_file(upload_file)
                 except Exception:
@@ -135,7 +135,7 @@ def import_file_view(request):
                 return redirect('users_web:settings')
 
             request.session['import_transactions'] = transactions
-            request.session['ofx_transactions'] = transactions  # retrocompatibilidade
+            request.session['ofx_transactions'] = transactions  # Backward compatibility
             messages.info(request, f'Foram lidas {len(transactions)} transações do extrato. Revise os lançamentos abaixo.')
             return redirect('users_web:import_review')
 
@@ -148,7 +148,7 @@ def import_file_view(request):
     return redirect('users_web:settings')
 
 
-# Alias para retrocompatibilidade
+# Alias for backward compatibility
 import_ofx_view = import_file_view
 
 
@@ -186,10 +186,10 @@ def import_review_view(request):
 
     from users.services import enrich_transactions_with_suggestions_and_duplicates
     transactions = enrich_transactions_with_suggestions_and_duplicates(request.user, transactions)
-    # Atualiza sessão com os enriquecimentos
+    # Update session with enriched transactions
     request.session['import_transactions'] = transactions
 
-    # Suporta Contas Correntes e Outras contas (Poupança/Investimentos)
+    # Support Checking and Other accounts (Savings/Investments)
     accounts = Account.objects.filter(
         user=request.user,
         type__in=[Account.Types.CHECKING, Account.Types.OTHER],
