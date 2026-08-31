@@ -130,8 +130,11 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
     )
     from wallets.models import Account
 
-    out_account = get_object_or_404(Account, id=out_account_id, user=user)
-    in_account = get_object_or_404(Account, id=in_account_id, user=user)
+    actual_out_id = out_account_id.id if hasattr(out_account_id, 'id') else out_account_id
+    actual_in_id = in_account_id.id if hasattr(in_account_id, 'id') else in_account_id
+
+    out_account = get_object_or_404(Account, id=actual_out_id, user=user)
+    in_account = get_object_or_404(Account, id=actual_in_id, user=user)
 
     category, _ = Category.objects.get_or_create(
         user=user,
@@ -201,11 +204,18 @@ def update_transfer(transfer, validated_data):
     import re
     from django.core.exceptions import ValidationError
     from django.db import transaction as db_transaction
+    from django.shortcuts import get_object_or_404
     from wallets.models import Account
     from wallets.services import recalculate_account_balance
 
-    out_account = Account.objects.get(id=validated_data['out_account'])
-    in_account = Account.objects.get(id=validated_data['in_account'])
+    user = transfer.user
+    out_account_raw = validated_data['out_account']
+    in_account_raw = validated_data['in_account']
+    out_account_id = out_account_raw.id if hasattr(out_account_raw, 'id') else out_account_raw
+    in_account_id = in_account_raw.id if hasattr(in_account_raw, 'id') else in_account_raw
+
+    out_account = get_object_or_404(Account, id=out_account_id, user=user)
+    in_account = get_object_or_404(Account, id=in_account_id, user=user)
     if out_account.id == in_account.id:
         raise ValidationError("A conta de origem e a conta de destino não podem ser a mesma.")
 
@@ -234,7 +244,8 @@ def update_transfer(transfer, validated_data):
         in_tx.save()
 
         if 'tags' in validated_data and validated_data['tags'] is not None:
-            tag_ids = [t.id for t in validated_data['tags']]
+            tag_objs = validated_data['tags']
+            tag_ids = [t.id if hasattr(t, 'id') else t for t in tag_objs]
             out_tx.tags.set(tag_ids)
             in_tx.tags.set(tag_ids)
 
@@ -250,6 +261,7 @@ def update_transfer(transfer, validated_data):
 def create_regular_transaction(user, account_id, category_id, description, amount, tx_date, status, tag_ids=None, is_recurring=False, frequency='monthly', recurring_end_date=None, installments=1):
     from decimal import Decimal
     
+    from django.db import models
     from django.db import transaction as db_transaction
     from django.shortcuts import get_object_or_404
     from django_q.tasks import async_task
@@ -258,11 +270,16 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
     from wallets.models import Account
     from wallets.services import get_or_create_bill_for_transaction
 
-    account = get_object_or_404(Account, id=account_id, user=user)
-    category = get_object_or_404(Category, id=category_id, user=user)
+    actual_account_id = account_id.id if hasattr(account_id, 'id') else account_id
+    actual_category_id = category_id.id if hasattr(category_id, 'id') else category_id
+
+    account = get_object_or_404(Account, id=actual_account_id, user=user)
+    category = get_object_or_404(Category, models.Q(user=user) | models.Q(is_system=True), id=actual_category_id)
     
     if account.type != Account.Types.CREDIT_CARD:
         installments = 1
+
+    clean_tag_ids = [t.id if hasattr(t, 'id') else t for t in tag_ids] if tag_ids else []
 
     with db_transaction.atomic():
         if installments > 1:
@@ -273,6 +290,8 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
             if remaining_amount < Decimal('0.01'):
                 raise ValueError("O valor restante da última parcela seria inválido.")
             
+            tx_instances = []
+            today = timezone.now().date()
             for i in range(1, installments + 1):
                 current_amount = base_amount if i < installments else remaining_amount
                 current_date = add_months(tx_date, i - 1)
@@ -281,20 +300,30 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
                 if account.type == Account.Types.CREDIT_CARD:
                     bill = get_or_create_bill_for_transaction(account, current_date)
                     
-                tx = Transaction.objects.create(
-                    user=user,
-                    account=account,
-                    category=category,
-                    description=f"{description} ({i}/{installments})",
-                    amount=current_amount,
-                    date=current_date,
-                    status=status if i == 1 and current_date <= timezone.now().date() else Transaction.Statuses.PENDING,
-                    bill=bill,
-                    installment_number=i,
-                    total_installments=installments
+                tx_instances.append(
+                    Transaction(
+                        user=user,
+                        account=account,
+                        category=category,
+                        description=f"{description} ({i}/{installments})",
+                        amount=current_amount,
+                        date=current_date,
+                        status=status if i == 1 and current_date <= today else Transaction.Statuses.PENDING,
+                        bill=bill,
+                        installment_number=i,
+                        total_installments=installments,
+                    )
                 )
-                if tag_ids:
-                    tx.tags.set(tag_ids)
+
+            created_txs = Transaction.objects.bulk_create(tx_instances)
+            if clean_tag_ids and created_txs:
+                TagThrough = Transaction.tags.through
+                through_records = [
+                    TagThrough(transaction_id=tx.id, tag_id=t_id)
+                    for tx in created_txs
+                    for t_id in clean_tag_ids
+                ]
+                TagThrough.objects.bulk_create(through_records, ignore_conflicts=True)
         else:
             recurring_obj = None
             if is_recurring:
@@ -325,8 +354,8 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
                 recurring=recurring_obj,
                 bill=bill,
             )
-            if tag_ids:
-                tx.tags.set(tag_ids)
+            if clean_tag_ids:
+                tx.tags.set(clean_tag_ids)
 
             if is_recurring:
                 db_transaction.on_commit(
@@ -336,9 +365,14 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
         from wallets.services import recalculate_account_balance
         recalculate_account_balance(account)
 
+
 def update_transaction(transaction, validated_data):
     from django.core.exceptions import ValidationError
+    from django.db import models
+    from django.db import transaction as db_transaction
+    from django.shortcuts import get_object_or_404
 
+    from transactions.models import Category
     from wallets.models import Account
     from wallets.services import (
         get_or_create_bill_for_transaction,
@@ -348,83 +382,168 @@ def update_transaction(transaction, validated_data):
     if transaction.bill and transaction.bill.status == 'paid':
         raise ValidationError("Transações de faturas já pagas não podem ser alteradas.")
 
+    user = transaction.user
+    raw_account = validated_data['account']
+    raw_category = validated_data['category']
+    new_account_id = raw_account.id if hasattr(raw_account, 'id') else raw_account
+    new_category_id = raw_category.id if hasattr(raw_category, 'id') else raw_category
+
+    new_account = get_object_or_404(Account, id=new_account_id, user=user)
+    new_category = get_object_or_404(Category, models.Q(user=user) | models.Q(is_system=True), id=new_category_id)
+
     old_account_id = transaction.account_id
     old_date = transaction.date
 
-    transaction.account_id = validated_data['account']
-    transaction.category_id = validated_data['category']
-    transaction.description = validated_data['description']
-    transaction.amount = validated_data['amount']
-    transaction.date = validated_data['date']
-    transaction.status = validated_data['status']
-    
-    new_account = Account.objects.get(id=transaction.account_id)
-    if new_account.type == Account.Types.CREDIT_CARD:
-        new_bill = get_or_create_bill_for_transaction(new_account, transaction.date)
-        transaction.bill = new_bill
-    else:
-        transaction.bill = None
-
-    is_recurring = validated_data.get('is_recurring', False)
-    frequency = validated_data.get('frequency', 'monthly')
-    recurring_end_date = validated_data.get('recurring_end_date')
-
-    was_recurring = transaction.recurring is not None
-    trigger_async_process = False
-
-    if was_recurring and not is_recurring:
-        from transactions.models import Transaction
-        old_recurring = transaction.recurring
-        Transaction.objects.filter(recurring=old_recurring, date__gt=transaction.date).delete()
-        old_recurring.active = False
-        old_recurring.end_date = transaction.date
-        old_recurring.save(update_fields=['active', 'end_date'])
+    with db_transaction.atomic():
+        transaction.account = new_account
+        transaction.category = new_category
+        transaction.description = validated_data['description']
+        transaction.amount = validated_data['amount']
+        transaction.date = validated_data['date']
+        transaction.status = validated_data['status']
         
-        transaction.recurring = None
-        
-    elif was_recurring and is_recurring:
-        if old_date != transaction.date:
-            transaction.recurring.ignore_date(old_date)
+        if new_account.type == Account.Types.CREDIT_CARD:
+            new_bill = get_or_create_bill_for_transaction(new_account, transaction.date)
+            transaction.bill = new_bill
+        else:
+            transaction.bill = None
+
+        is_recurring = validated_data.get('is_recurring', False)
+        frequency = validated_data.get('frequency', 'monthly')
+        recurring_end_date = validated_data.get('recurring_end_date')
+
+        was_recurring = transaction.recurring is not None
+        trigger_async_process = False
+
+        if was_recurring and not is_recurring:
+            from transactions.models import Transaction
+            old_recurring = transaction.recurring
+            Transaction.objects.filter(recurring=old_recurring, date__gt=transaction.date).delete()
+            old_recurring.active = False
+            old_recurring.end_date = transaction.date
+            old_recurring.save(update_fields=['active', 'end_date'])
+            
+            transaction.recurring = None
+            
+        elif was_recurring and is_recurring:
+            if old_date != transaction.date:
+                transaction.recurring.ignore_date(old_date)
+                trigger_async_process = True
+            
+        elif not was_recurring and is_recurring:
+            from transactions.models import RecurringTransaction
+            
+            new_recurring = RecurringTransaction.objects.create(
+                user=transaction.user,
+                account=new_account,
+                category=new_category,
+                description=transaction.description,
+                amount=transaction.amount,
+                frequency=frequency,
+                start_date=transaction.date,
+                end_date=recurring_end_date,
+                active=True
+            )
+            transaction.recurring = new_recurring
             trigger_async_process = True
-        
-    elif not was_recurring and is_recurring:
-        from django_q.tasks import async_task
 
-        from transactions.models import Category, RecurringTransaction
-        
-        category = Category.objects.get(id=transaction.category_id)
-        
-        new_recurring = RecurringTransaction.objects.create(
-            user=transaction.user,
-            account=new_account,
-            category=category,
-            description=transaction.description,
-            amount=transaction.amount,
-            frequency=frequency,
-            start_date=transaction.date,
-            end_date=recurring_end_date,
-            active=True
-        )
-        transaction.recurring = new_recurring
-        trigger_async_process = True
+        transaction.save()
 
-    transaction.save()
+        if 'tags' in validated_data and validated_data['tags'] is not None:
+            tag_objs = validated_data['tags']
+            tag_ids = [t.id if hasattr(t, 'id') else t for t in tag_objs]
+            transaction.tags.set(tag_ids)
 
-    transaction.tags.set(validated_data['tags'])
+        if trigger_async_process:
+            from django_q.tasks import async_task
+            db_transaction.on_commit(
+                lambda u=transaction.user: async_task('transactions.services.process_recurring_transactions', u)
+            )
 
-    if trigger_async_process:
-        from django.db import transaction as db_transaction
-        from django_q.tasks import async_task
-        db_transaction.on_commit(
-            lambda u=transaction.user: async_task('transactions.services.process_recurring_transactions', u)
-        )
-
-    recalculate_account_balance(transaction.account)
-    if old_account_id != transaction.account_id:
-        old_account = Account.objects.get(id=old_account_id)
-        recalculate_account_balance(old_account)
+        recalculate_account_balance(transaction.account)
+        if old_account_id != transaction.account_id:
+            old_account = Account.objects.get(id=old_account_id, user=user)
+            recalculate_account_balance(old_account)
 
     return transaction
+
+
+def delete_transaction(user, transaction_id, delete_mode='single'):
+    from datetime import timedelta
+    from django.core.exceptions import ValidationError
+    from django.db import transaction as db_transaction
+    from django.shortcuts import get_object_or_404
+    from transactions.models import Transaction
+    from wallets.services import recalculate_account_balance
+
+    with db_transaction.atomic():
+        tx = get_object_or_404(Transaction.objects.select_for_update(), pk=transaction_id, user=user)
+
+        if tx.bill and tx.bill.status == 'paid':
+            raise ValidationError("Transações de faturas já pagas não podem ser excluídas.")
+
+        tx_to_delete_extra = None
+        if hasattr(tx, 'transfer_out'):
+            tx_to_delete_extra = tx.transfer_out.in_transaction
+        elif hasattr(tx, 'transfer_in'):
+            tx_to_delete_extra = tx.transfer_in.out_transaction
+
+        accounts_to_recalc = {tx.account}
+        if tx_to_delete_extra:
+            accounts_to_recalc.add(tx_to_delete_extra.account)
+
+        if tx.recurring:
+            if delete_mode == 'future':
+                Transaction.objects.filter(recurring=tx.recurring, date__gte=tx.date).delete()
+                tx.recurring.end_date = tx.date - timedelta(days=1)
+                tx.recurring.save(update_fields=['end_date'])
+            elif delete_mode == 'all':
+                Transaction.objects.filter(recurring=tx.recurring).delete()
+                tx.recurring.active = False
+                tx.recurring.save(update_fields=['active'])
+            else:
+                tx.recurring.ignore_date(tx.date)
+                tx.delete()
+                if tx_to_delete_extra:
+                    tx_to_delete_extra.delete()
+        else:
+            tx.delete()
+            if tx_to_delete_extra:
+                tx_to_delete_extra.delete()
+
+        for acc in accounts_to_recalc:
+            recalculate_account_balance(acc)
+
+
+def delete_category(user, category_id, action='delete', fallback_category_id=None):
+    from django.core.exceptions import ValidationError
+    from django.db import models
+    from django.db import transaction as db_transaction
+    from django.shortcuts import get_object_or_404
+    from transactions.models import Category
+
+    with db_transaction.atomic():
+        cat = get_object_or_404(Category, pk=category_id, user=user)
+
+        if cat.transactions.exists():
+            if cat.transactions.filter(bill__status='paid').exists():
+                raise ValidationError("Não é possível excluir esta categoria pois ela possui transações vinculadas a faturas pagas.")
+
+            if action == 'move':
+                if not fallback_category_id:
+                    raise ValidationError("Selecione uma categoria de destino válida.")
+                fallback_category = get_object_or_404(Category, models.Q(user=user) | models.Q(is_system=True), id=fallback_category_id)
+                if fallback_category.id == cat.id:
+                    raise ValidationError("A categoria de destino deve ser diferente da categoria atual.")
+                cat.transactions.all().update(category=fallback_category)
+            elif action == 'delete_all':
+                tx_list = list(cat.transactions.all().values_list('id', flat=True))
+                for tx_id in tx_list:
+                    delete_transaction(user=user, transaction_id=tx_id, delete_mode='single')
+            else:
+                raise ValidationError("Ação de exclusão inválida.")
+
+        cat.delete()
 
 
 def get_user_description_habits(user, limit=50):
@@ -478,5 +597,6 @@ def get_user_description_habits(user, limit=50):
             break
 
     return habits
+
 
 

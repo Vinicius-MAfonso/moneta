@@ -70,27 +70,50 @@
         <h3 class="text-lg font-bold text-slate-900">Orçamentos Definidos</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {% for budget in budgets %}
-                <div class="glass-panel p-6 rounded-2xl space-y-3 border-l-4" style="border-left-color: {{ budget.category.color }};">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-2">
-                            <span class="w-2.5 h-2.5 rounded-full" style="background-color: {{ budget.category.color }};"></span>
-                            <span>{{ budget.category.name }}</span>
-                        </span>
-                        <div class="flex items-center space-x-2">
-                            {% if budget.is_recurring %}
-                                <span class="text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-md">Mensal</span>
-                            {% else %}
-                                <span class="text-xs text-slate-500">{{ budget.start_date|date:"d/m" }} - {{ budget.end_date|date:"d/m" }}</span>
-                            {% endif %}
-                            <button hx-get="{% url 'planning_web:budget_confirm_delete' budget.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 p-1 rounded hover:bg-rose-500/10 transition" title="Excluir orçamento" aria-label="Excluir orçamento">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            </button>
+                <div class="glass-panel p-6 rounded-2xl space-y-4 flex flex-col justify-between border-l-4" style="border-left-color: {{ budget.category.color }};">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-2">
+                                <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ budget.category.color }};"></span>
+                                <span class="truncate">{{ budget.category.name }}</span>
+                            </span>
+                            <div class="flex items-center space-x-2">
+                                {% if budget.is_recurring %}
+                                    <span class="text-[11px] font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded-md">Mensal</span>
+                                {% else %}
+                                    <span class="text-xs text-slate-500">{{ budget.start_date|date:"d/m" }} - {{ budget.end_date|date:"d/m" }}</span>
+                                {% endif %}
+                                <button hx-get="{% url 'planning_web:budget_confirm_delete' budget.id %}" hx-target="#modal-container" class="text-slate-400 hover:text-rose-500 p-1 rounded hover:bg-rose-500/10 transition" title="Excluir orçamento" aria-label="Excluir orçamento">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs font-semibold mb-1.5">
+                                <span class="text-slate-500">Gasto ({{ budget.percentage }}%)</span>
+                                <span class="font-bold {% if budget.is_over_budget %}text-rose-600{% elif budget.is_warning %}text-amber-600{% else %}text-slate-900{% endif %}">
+                                    R$ {{ budget.spent|floatformat:2 }} / R$ {{ budget.amount|floatformat:2 }}
+                                </span>
+                            </div>
+                            <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden border border-slate-300">
+                                <div class="h-full rounded-full transition-all duration-300 {% if budget.is_over_budget %}bg-rose-500{% elif budget.is_warning %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ budget.bounded_pct_str }}%;"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="pt-1 flex items-baseline justify-between gap-1.5">
-                        <div class="flex items-baseline gap-1.5">
-                            <span class="text-2xl font-extrabold text-slate-900">R$ {{ budget.amount|floatformat:2 }}</span>
-                            <div class="h-full rounded-full transition-all duration-300 {% if budget.is_over_budget %}bg-rose-500{% elif budget.is_warning %}bg-amber-500{% else %}bg-emerald-500{% endif %}" style="width: {{ budget.bounded_pct_str }}%;"></div>
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                        {% if budget.is_over_budget %}
+                            <span class="text-rose-600 font-semibold flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                Excedido em R$ {{ budget.overspent|floatformat:2 }}
+                            </span>
+                        {% else %}
+                            <span class="text-slate-500">Disponível: <strong class="text-slate-700">R$ {{ budget.remaining|floatformat:2 }}</strong></span>
+                        {% endif %}
+                        <span class="text-[11px] text-slate-400">Teto R$ {{ budget.amount|floatformat:2 }}</span>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-span-full glass-panel p-8 text-center rounded-2xl">
                     <p class="text-slate-500 text-sm">Nenhum orçamento cadastrado.</p>
                 </div>
             {% endfor %}

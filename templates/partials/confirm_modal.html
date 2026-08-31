@@ -25,6 +25,7 @@
                 <div class="space-y-1">
                     <h3 id="confirm-modal-title" class="text-lg font-bold text-slate-900">{{ title|default:"Confirmar Exclusão" }}</h3>
                     <p class="text-xs text-slate-500 leading-relaxed">{{ message }}</p>
+                </div>
             </div>
             <button type="button" @click="open = false; setTimeout(() => $el.closest('.fixed').remove(), 200)" aria-label="Fechar modal" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition shrink-0 ml-2">
                 <svg class="w-5 h-5" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>

@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
@@ -7,28 +9,32 @@ from users.services import send_push_notification
 
 User = get_user_model()
 
+
 def process_all_recurring_transactions():
-    users = User.objects.all()
-    for user in users:
+    for user in User.objects.all().iterator(chunk_size=100):
         process_recurring_transactions(user)
 
 
 def notify_due_transactions():
     today = timezone.now().date()
     
-    due_transactions = Transaction.objects.filter(
-        date=today,
-        status=Transaction.Statuses.PENDING
-    ).select_related('user', 'category')
+    due_transactions = (
+        Transaction.objects.filter(
+            date=today,
+            status=Transaction.Statuses.PENDING
+        )
+        .select_related('user', 'category')
+        .prefetch_related('user__push_subscriptions')
+    )
     
-    user_transactions = {}
+    user_map = {}
+    user_transactions = defaultdict(list)
     for tx in due_transactions:
-        if tx.user_id not in user_transactions:
-            user_transactions[tx.user_id] = []
+        user_map[tx.user_id] = tx.user
         user_transactions[tx.user_id].append(tx)
         
     for user_id, txs in user_transactions.items():
-        user = User.objects.get(id=user_id)
+        user = user_map[user_id]
         subscriptions = user.push_subscriptions.all()
         
         if not subscriptions.exists():
@@ -44,3 +50,4 @@ def notify_due_transactions():
             body = f"Você tem {count} transações pendentes para hoje. Acesse o Moneta para conferir."
             
         send_push_notification(user, title, body, url='/dashboard/')
+

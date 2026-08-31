@@ -160,6 +160,7 @@ def calculate_budgets_progress_bulk(budgets, reference_date=None):
             'budget': b,
             'spent': spent,
             'remaining': max(Decimal('0.00'), b.amount - spent),
+            'overspent': max(Decimal('0.00'), spent - b.amount),
             'percentage': round(percentage, 1),
             'real_percentage': percentage,
             'bounded_pct': bounded_pct,
@@ -186,18 +187,15 @@ def get_active_budgets(user, reference_date=None):
 
     month_start, month_end = get_month_range(reference_date)
 
-    budgets = list(
-        Budget.objects.filter(
-            models.Q(user=user) & (
-                models.Q(is_recurring=True, start_date__lte=month_end) |
-                models.Q(is_recurring=False, start_date__lte=month_end, end_date__gte=month_start)
-            )
-        ).select_related('category')
-    )
+    budgets = Budget.objects.filter(
+        user=user,
+        category__type=TransactionType.EXPENSE,
+    ).filter(
+        models.Q(is_recurring=True) |
+        (models.Q(is_recurring=False) & models.Q(start_date__lte=month_end) & models.Q(end_date__gte=month_start))
+    ).select_related('category')
 
-    progress_list = calculate_budgets_progress_bulk(budgets, reference_date=reference_date)
-    progress_list.sort(key=lambda x: x['real_percentage'], reverse=True)
-    return progress_list
+    return calculate_budgets_progress_bulk(budgets, reference_date=reference_date)
 
 
 def get_budgets_with_progress(user, reference_date=None):
@@ -217,6 +215,7 @@ def get_budgets_with_progress(user, reference_date=None):
         b = prog['budget']
         b.spent = prog['spent']
         b.remaining = prog['remaining']
+        b.overspent = prog['overspent']
         b.real_percentage = prog['real_percentage']
         b.percentage = prog['percentage']
         b.bounded_pct = prog['bounded_pct']
@@ -226,7 +225,6 @@ def get_budgets_with_progress(user, reference_date=None):
         result.append(b)
 
     return result
-
 
 def create_budget(user, category_id, amount, is_recurring=True, start_date=None, end_date=None):
     category = Category.objects.filter(id=category_id, user=user).first()

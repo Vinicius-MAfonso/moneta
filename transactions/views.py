@@ -3,17 +3,26 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.core.exceptions import ValidationError
+from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from moneta.common import TransactionType, format_form_errors, get_month_context
 from wallets.models import Account
 
 from .models import Category, Tag, Transaction
-from .services import create_regular_transaction, create_transfer
+from .services import (
+    create_regular_transaction,
+    create_transfer,
+    delete_category,
+    delete_transaction,
+    update_transaction,
+    update_transfer,
+)
 
 
 @login_required(login_url='users_web:login')
@@ -22,8 +31,6 @@ def transaction_list_view(request):
 
     month_param = request.GET.get('month')
     month_ctx = get_month_context(month_param)
-
-
 
     tx_type = request.GET.get('type')
     account_id = request.GET.get('account_id')
@@ -42,7 +49,6 @@ def transaction_list_view(request):
     if status:
         qs = qs.filter(status=status)
     if search:
-        from django.db.models import Q
         qs = qs.filter(
             Q(description__icontains=search) |
             Q(tags__name__icontains=search) |
@@ -65,8 +71,12 @@ def transaction_list_view(request):
         'account', 'category', 'bill', 'transfer_out__in_transaction__bill'
     ).prefetch_related('tags', 'transfer_in').order_by('-date', '-created_at')
 
-    month_income = transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
-    month_expense = transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Coalesce(Sum('amount'), Decimal('0.00')))['total']
+    totals = qs.aggregate(
+        income=Coalesce(Sum('amount', filter=Q(category__type=TransactionType.INCOME)), Decimal('0.00')),
+        expense=Coalesce(Sum('amount', filter=Q(category__type=TransactionType.EXPENSE)), Decimal('0.00')),
+    )
+    month_income = totals['income']
+    month_expense = totals['expense']
     month_net_balance = month_income - month_expense
 
     from collections import defaultdict
@@ -122,17 +132,16 @@ def transaction_create_view(request):
             form = TransferForm(request.POST, user=request.user)
             if form.is_valid():
                 cd = form.cleaned_data
-                from django.core.exceptions import ValidationError
                 try:
                     create_transfer(
                         user=request.user,
-                        out_account_id=cd['out_account'],
-                        in_account_id=cd['in_account'],
+                        out_account_id=cd['out_account'].id if hasattr(cd['out_account'], 'id') else cd['out_account'],
+                        in_account_id=cd['in_account'].id if hasattr(cd['in_account'], 'id') else cd['in_account'],
                         description=cd['description'],
                         amount=cd['amount'],
                         tx_date=cd['date'],
                         status=cd.get('status', 'concluída'),
-                        tag_ids=[t.id for t in cd['tags']],
+                        tag_ids=[t.id for t in cd['tags']] if cd.get('tags') else None,
                         is_recurring=cd['is_recurring'],
                         frequency=cd['frequency'],
                         recurring_end_date=cd['recurring_end_date']
@@ -173,13 +182,13 @@ def transaction_create_view(request):
             try:
                 create_regular_transaction(
                     user=request.user,
-                    account_id=cd['account'],
-                    category_id=cd['category'],
+                    account_id=cd['account'].id if hasattr(cd['account'], 'id') else cd['account'],
+                    category_id=cd['category'].id if hasattr(cd['category'], 'id') else cd['category'],
                     description=cd['description'],
                     amount=cd['amount'],
                     tx_date=cd['date'],
                     status=cd['status'],
-                    tag_ids=[t.id for t in cd['tags']],
+                    tag_ids=[t.id for t in cd['tags']] if cd.get('tags') else None,
                     is_recurring=cd['is_recurring'],
                     frequency=cd['frequency'],
                     recurring_end_date=cd['recurring_end_date'],
@@ -450,49 +459,21 @@ def transaction_confirm_delete_view(request, pk):
 
 
 @login_required(login_url='users_web:login')
+@require_POST
 def transaction_delete_view(request, pk):
-    from django.db import transaction as db_transaction
-
-    with db_transaction.atomic():
-        tx = get_object_or_404(Transaction.objects.select_for_update(), pk=pk, user=request.user)
-
-        if tx.bill and tx.bill.status == 'paid':
-            if request.headers.get('HX-Request'):
-                response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({
-                    'show-toast': {'message': 'Transações de faturas já pagas não podem ser excluídas.', 'type': 'error'}
-                })
-                return response
-            messages.error(request, "Transações de faturas já pagas não podem ser excluídas.")
-            return redirect('transactions_web:list')
-
-        delete_mode = request.POST.get('delete_mode', 'single')
-
-        tx_to_delete_extra = None
-        if hasattr(tx, 'transfer_out'):
-            tx_to_delete_extra = tx.transfer_out.in_transaction
-        elif hasattr(tx, 'transfer_in'):
-            tx_to_delete_extra = tx.transfer_in.out_transaction
-
-        if tx.recurring:
-            import datetime
-            if delete_mode == 'future':
-                Transaction.objects.filter(recurring=tx.recurring, date__gte=tx.date).delete()
-                tx.recurring.end_date = tx.date - datetime.timedelta(days=1)
-                tx.recurring.save(update_fields=['end_date'])
-            elif delete_mode == 'all':
-                Transaction.objects.filter(recurring=tx.recurring).delete()
-                tx.recurring.active = False
-                tx.recurring.save(update_fields=['active'])
-            else:
-                tx.recurring.ignore_date(tx.date)
-                tx.delete()
-                if tx_to_delete_extra:
-                    tx_to_delete_extra.delete()
-        else:
-            tx.delete()
-            if tx_to_delete_extra:
-                tx_to_delete_extra.delete()
+    delete_mode = request.POST.get('delete_mode', 'single')
+    try:
+        delete_transaction(user=request.user, transaction_id=pk, delete_mode=delete_mode)
+    except ValidationError as e:
+        error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
+        if request.headers.get('HX-Request'):
+            response = HttpResponse(status=204)
+            response['HX-Trigger'] = json.dumps({
+                'show-toast': {'message': error_msg, 'type': 'error'}
+            })
+            return response
+        messages.error(request, error_msg)
+        return redirect('transactions_web:list')
 
     messages.success(request, "Transação excluída com sucesso.")
 
@@ -523,11 +504,9 @@ def category_list_view(request):
 
 @login_required(login_url='users_web:login')
 def category_create_view(request):
-    from django.contrib import messages
-
     from .forms import CategoryForm
     if request.method == 'POST':
-        form = CategoryForm(request.POST)
+        form = CategoryForm(request.POST, user=request.user)
         if form.is_valid():
             cat = form.save(commit=False)
             cat.user = request.user
@@ -542,7 +521,6 @@ def category_create_view(request):
         else:
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
-                import json
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{error_msg}', 'type': 'error'}})
                 return response
@@ -574,54 +552,46 @@ def category_confirm_delete_view(request, pk):
 
 
 @login_required(login_url='users_web:login')
+@require_POST
 def category_delete_view(request, pk):
-    from django.contrib import messages
-    cat = get_object_or_404(Category, pk=pk, user=request.user)
+    delete_action = request.POST.get('delete_action', 'delete')
+    fallback_category_id = request.POST.get('fallback_category_id')
 
-    if cat.transactions.exists():
-        delete_action = request.POST.get('delete_action')
-        if delete_action == 'move':
-            fallback_category_id = request.POST.get('fallback_category_id')
-            if not fallback_category_id:
-                messages.error(request, "Selecione uma categoria de destino válida.")
-                return redirect('transactions_web:category_list')
-            
-            fallback_category = get_object_or_404(Category, id=fallback_category_id, user=request.user)
-            cat.transactions.all().update(category=fallback_category)
-        elif delete_action == 'delete_all':
-            cat.transactions.all().delete()
-        else:
-            messages.error(request, "Ação de exclusão inválida.")
-            return redirect('transactions_web:category_list')
-
-    if request.method == 'POST' or request.headers.get('HX-Request'):
-        cat_name = cat.name
-        cat.delete()
-        messages.success(request, f"Categoria '{cat_name}' excluída com sucesso.")
+    try:
+        delete_category(
+            user=request.user,
+            category_id=pk,
+            action=delete_action,
+            fallback_category_id=fallback_category_id
+        )
+    except ValidationError as e:
+        error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
         if request.headers.get('HX-Request'):
-            from django.http import HttpResponse
-            from django.urls import reverse
             response = HttpResponse(status=204)
-            response['HX-Redirect'] = reverse('transactions_web:category_list')
+            response['HX-Trigger'] = json.dumps({'show-toast': {'message': error_msg, 'type': 'error'}})
             return response
+        messages.error(request, error_msg)
+        return redirect('transactions_web:category_list')
+
+    messages.success(request, "Categoria excluída com sucesso.")
+    if request.headers.get('HX-Request'):
+        response = HttpResponse(status=204)
+        response['HX-Redirect'] = reverse('transactions_web:category_list')
+        return response
     return redirect('transactions_web:category_list')
 
 
 @login_required(login_url='users_web:login')
 def tag_create_view(request):
-    from django.contrib import messages
-
     from .forms import TagForm
     if request.method == 'POST':
-        form = TagForm(request.POST)
+        form = TagForm(request.POST, user=request.user)
         if form.is_valid():
             tag = form.save(commit=False)
             tag.user = request.user
             tag.save()
             if request.headers.get('HX-Request'):
                 messages.success(request, "Tag criada com sucesso!")
-                from django.http import HttpResponse
-                from django.urls import reverse
                 response = HttpResponse(status=204)
                 response['HX-Redirect'] = reverse('transactions_web:category_list')
                 return response
@@ -630,7 +600,6 @@ def tag_create_view(request):
         else:
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
-                import json
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{error_msg}', 'type': 'error'}})
                 return response
@@ -652,52 +621,67 @@ def tag_confirm_delete_view(request, pk):
 
 
 @login_required(login_url='users_web:login')
+@require_POST
 def tag_delete_view(request, pk):
     tag = get_object_or_404(Tag, pk=pk, user=request.user)
-    if request.method == 'POST' or request.headers.get('HX-Request'):
-        tag_name = tag.name
-        tag.delete()
-        from django.contrib import messages
-        messages.success(request, f"Tag '{tag_name}' excluída com sucesso.")
-        if request.headers.get('HX-Request'):
-            from django.http import HttpResponse
-            from django.urls import reverse
-            response = HttpResponse(status=204)
-            response['HX-Redirect'] = reverse('transactions_web:category_list')
-            return response
+    tag_name = tag.name
+    tag.delete()
+    messages.success(request, f"Tag '{tag_name}' excluída com sucesso.")
+    if request.headers.get('HX-Request'):
+        response = HttpResponse(status=204)
+        response['HX-Redirect'] = reverse('transactions_web:category_list')
+        return response
     return redirect('transactions_web:category_list')
-
 
 
 @login_required(login_url='users_web:login')
 def transfer_create_view(request):
-    from transactions.services import create_transfer
-    accounts = Account.objects.filter(user=request.user)
+    from .forms import TransferForm
+    accounts = Account.objects.filter(user=request.user, active=True)
 
     if request.method == 'POST':
-        out_account_id = request.POST.get('out_account')
-        in_account_id = request.POST.get('in_account')
-        description = request.POST.get('description', 'Transferência entre contas')
-        amount = Decimal(request.POST.get('amount', '0'))
-        date = request.POST.get('date')
-        status = Transaction.Statuses.COMPLETED
-
-        from django.core.exceptions import ValidationError
-        try:
-            create_transfer(
-                user=request.user,
-                out_account_id=out_account_id,
-                in_account_id=in_account_id,
-                description=description,
-                amount=amount,
-                tx_date=date,
-                status=status
-            )
-        except ValidationError as e:
-            messages.error(request, e.messages[0] if hasattr(e, 'messages') else str(e))
+        form = TransferForm(request.POST, user=request.user)
+        if form.is_valid():
+            cd = form.cleaned_data
+            try:
+                create_transfer(
+                    user=request.user,
+                    out_account_id=cd['out_account'].id if hasattr(cd['out_account'], 'id') else cd['out_account'],
+                    in_account_id=cd['in_account'].id if hasattr(cd['in_account'], 'id') else cd['in_account'],
+                    description=cd['description'],
+                    amount=cd['amount'],
+                    tx_date=cd['date'],
+                    status=cd.get('status', Transaction.Statuses.COMPLETED),
+                    tag_ids=[t.id for t in cd.get('tags', [])] if cd.get('tags') else None,
+                    is_recurring=cd.get('is_recurring', False),
+                    frequency=cd.get('frequency', 'monthly'),
+                    recurring_end_date=cd.get('recurring_end_date')
+                )
+                if request.headers.get('HX-Request'):
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({
+                        'reload-transactions': '',
+                        'show-toast': {'message': 'Transferência criada com sucesso!', 'type': 'success'}
+                    })
+                    return response
+                messages.success(request, "Transferência criada com sucesso!")
+                return redirect('transactions_web:list')
+            except ValidationError as e:
+                error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
+                if request.headers.get('HX-Request'):
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({'show-toast': {'message': error_msg, 'type': 'error'}})
+                    return response
+                messages.error(request, f"Erro na transferência: {error_msg}")
+                return redirect('transactions_web:list')
+        else:
+            error_msg = format_form_errors(form)
+            if request.headers.get('HX-Request'):
+                response = HttpResponse(status=204)
+                response['HX-Trigger'] = json.dumps({'show-toast': {'message': error_msg, 'type': 'error'}})
+                return response
+            messages.error(request, f"Erro na transferência: {error_msg}")
             return redirect('transactions_web:list')
-
-        return redirect('transactions_web:list')
 
     return render(request, 'transactions/partials/transfer_form.html', {'accounts': accounts})
 
@@ -708,7 +692,6 @@ def transaction_pay_view(request, pk):
     
     if tx.status == Transaction.Statuses.COMPLETED:
         if request.headers.get('HX-Request'):
-            import json
             response = HttpResponse(status=204)
             response['HX-Trigger'] = json.dumps({
                 'show-toast': {'message': 'Esta transação já está efetivada.', 'type': 'error'}
@@ -720,16 +703,14 @@ def transaction_pay_view(request, pk):
     accounts = list(Account.objects.filter(user=request.user, active=True))
 
     if request.method == 'POST':
-        amount_str = request.POST.get('amount')
-        date_str = request.POST.get('date')
+        amount_str = request.POST.get('amount', '')
+        date_str = request.POST.get('date', '')
         account_id = request.POST.get('account')
 
         try:
             import datetime
             amount = Decimal(amount_str.replace(',', '.'))
             date_obj = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
-            
-            from transactions.services import update_transaction
             
             validated_data = {
                 'account': account_id,
@@ -747,7 +728,6 @@ def transaction_pay_view(request, pk):
             update_transaction(tx, validated_data)
             
             if request.headers.get('HX-Request'):
-                import json
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({
                     'reload-transactions': '',
@@ -757,13 +737,12 @@ def transaction_pay_view(request, pk):
             messages.success(request, "Transação efetivada com sucesso!")
             return redirect('transactions_web:list')
             
-        except Exception as e:
-            error_msg = str(e)
+        except (ValueError, ValidationError) as e:
+            error_msg = e.messages[0] if hasattr(e, 'messages') else str(e)
             if request.headers.get('HX-Request'):
-                import json
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({
-                    'show-toast': {'message': f'{error_msg}', 'type': 'error'}
+                    'show-toast': {'message': error_msg, 'type': 'error'}
                 })
                 return response
             messages.error(request, f"Erro ao efetivar: {error_msg}")
@@ -774,3 +753,4 @@ def transaction_pay_view(request, pk):
         'accounts': accounts,
     }
     return render(request, 'transactions/partials/pay_modal.html', context)
+

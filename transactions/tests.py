@@ -433,6 +433,109 @@ class TransactionServicesTestCase(TestCase):
         self.assertContains(res, 'Uber Viagem')
         self.assertContains(res, 'Preenchimento automático')
 
+    def test_delete_endpoints_require_post(self):
+        self.client.force_login(self.user)
+        tx = Transaction.objects.create(
+            user=self.user,
+            account=self.account1,
+            category=self.cat_expense,
+            description='Test Delete Verb',
+            amount=Decimal('10.00'),
+            date=date(2026, 8, 1),
+            status=Transaction.Statuses.COMPLETED,
+        )
+        # GET request to delete endpoint must be rejected with 405 Method Not Allowed
+        res = self.client.get(f'/transactions/{tx.id}/delete/')
+        self.assertEqual(res.status_code, 405)
+        self.assertTrue(Transaction.objects.filter(id=tx.id).exists())
 
+        # POST request should succeed
+        res = self.client.post(f'/transactions/{tx.id}/delete/')
+        self.assertEqual(res.status_code, 302)
+        self.assertFalse(Transaction.objects.filter(id=tx.id).exists())
 
+    def test_system_category_support_in_transaction(self):
+        self.client.force_login(self.user)
+        system_cat = Category.objects.create(
+            user=None,
+            name='Salário Sistema',
+            type=TransactionType.INCOME,
+            is_system=True,
+        )
+        payload = {
+            'account': str(self.account1.id),
+            'category': str(system_cat.id),
+            'description': 'Salário Mensal',
+            'amount': '5000.00',
+            'date': '2026-08-05',
+            'status': 'concluída',
+        }
+        res = self.client.post('/transactions/create/', data=payload)
+        self.assertEqual(res.status_code, 302)
+        tx = Transaction.objects.get(description='Salário Mensal')
+        self.assertEqual(tx.category, system_cat)
+
+    def test_category_and_tag_duplicate_form_validation(self):
+        from transactions.forms import CategoryForm, TagForm
+
+        Tag.objects.create(user=self.user, name='Essencial', color='#000000')
+
+        # Duplicate category name for same user ('Despesa' was created in setUp)
+        cat_form = CategoryForm(
+            data={'name': 'Despesa', 'type': 'despesa', 'color': '#000000'},
+            user=self.user
+        )
+        self.assertFalse(cat_form.is_valid())
+        self.assertIn('name', cat_form.errors)
+
+        # Duplicate tag name for same user
+        tag_form = TagForm(
+            data={'name': 'Essencial', 'color': '#000000'},
+            user=self.user
+        )
+        self.assertFalse(tag_form.is_valid())
+        self.assertIn('name', tag_form.errors)
+
+    def test_idor_protection_in_update_transaction(self):
+        other_user = User.objects.create_user(username='other_user', password='password123')
+        other_account = Account.objects.create(user=other_user, name='Conta Outro', type=Account.Types.CHECKING)
+
+        tx = Transaction.objects.create(
+            user=self.user,
+            account=self.account1,
+            category=self.cat_expense,
+            description='Minha Transação',
+            amount=Decimal('50.00'),
+            date=date(2026, 8, 1),
+            status=Transaction.Statuses.COMPLETED,
+        )
+
+        from django.http import Http404
+        from transactions.services import update_transaction
+
+        # Attempting to assign other_user's account must raise 404
+        with self.assertRaises(Http404):
+            update_transaction(tx, {
+                'account': other_account.id,
+                'category': self.cat_expense.id,
+                'description': 'Tentativa IDOR',
+                'amount': Decimal('50.00'),
+                'date': date(2026, 8, 1),
+                'status': Transaction.Statuses.COMPLETED,
+            })
+
+    def test_delete_transaction_service_and_recalc(self):
+        from transactions.services import delete_transaction
+
+        tx = Transaction.objects.create(
+            user=self.user,
+            account=self.account1,
+            category=self.cat_expense,
+            description='Transação Service Test',
+            amount=Decimal('100.00'),
+            date=date(2026, 8, 1),
+            status=Transaction.Statuses.COMPLETED,
+        )
+        delete_transaction(user=self.user, transaction_id=tx.id, delete_mode='single')
+        self.assertFalse(Transaction.objects.filter(id=tx.id).exists())
 
