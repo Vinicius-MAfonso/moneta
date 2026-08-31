@@ -410,3 +410,33 @@ class WalletsServicesTestCase(TestCase):
         for m in timeline[3:]:
             self.assertEqual(m['total'], Decimal('50.00'))
 
+    def test_calculate_balances_for_dates_batch(self):
+        import datetime
+        from moneta.common import TransactionType
+        from transactions.models import Category, Transaction
+        from wallets.services import calculate_balance_at_date, calculate_balances_for_dates
+
+        account = Account.objects.create(
+            user=self.user, name='Conta Corrente Teste', type=Account.Types.CHECKING, initial_balance=Decimal('1000.00')
+        )
+        cat_inc, _ = Category.objects.get_or_create(user=self.user, name='Salário', defaults={'type': TransactionType.INCOME})
+        cat_exp, _ = Category.objects.get_or_create(user=self.user, name='Mercado', defaults={'type': TransactionType.EXPENSE})
+
+        d1 = datetime.date(2026, 8, 1)
+        d2 = datetime.date(2026, 8, 5)
+        d3 = datetime.date(2026, 8, 10)
+
+        Transaction.objects.create(user=self.user, account=account, category=cat_inc, description='Salário', amount=Decimal('500.00'), date=d1, status=Transaction.Statuses.COMPLETED)
+        Transaction.objects.create(user=self.user, account=account, category=cat_exp, description='Mercado', amount=Decimal('200.00'), date=d2, status=Transaction.Statuses.COMPLETED)
+        Transaction.objects.create(user=self.user, account=account, category=cat_exp, description='Contas', amount=Decimal('100.00'), date=d3, status=Transaction.Statuses.COMPLETED)
+
+        dates = [d1, d2, d3]
+        batch_balances = calculate_balances_for_dates(self.user, dates, account_id=account.id)
+
+        self.assertEqual(batch_balances[d1], calculate_balance_at_date(self.user, d1, account_id=account.id))
+        self.assertEqual(batch_balances[d2], calculate_balance_at_date(self.user, d2, account_id=account.id))
+        self.assertEqual(batch_balances[d3], calculate_balance_at_date(self.user, d3, account_id=account.id))
+        self.assertEqual(batch_balances[d1], Decimal('1500.00'))
+        self.assertEqual(batch_balances[d2], Decimal('1300.00'))
+        self.assertEqual(batch_balances[d3], Decimal('1200.00'))
+

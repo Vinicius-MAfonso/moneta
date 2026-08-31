@@ -77,6 +77,7 @@ def transaction_list_view(request):
         tx_dict[tx.date].append(tx)
         
     date_balances = calculate_balances_for_dates(request.user, list(tx_dict.keys()), account_id)
+    tx_by_date = []
     for date, tx_list in tx_dict.items():
         tx_by_date.append({
             'date': date,

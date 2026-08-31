@@ -194,6 +194,109 @@ def calculate_balance_at_date(user, target_date, account_id=None):
     return initial_balance + incomes - expenses - transfers_out + transfers_in
 
 
+def calculate_balances_for_dates(user, dates, account_id=None):
+    """
+    Calculates account balance at the end of each specified date efficiently in batch.
+    Returns a dict mapping {date: balance_decimal}.
+    """
+    if not dates:
+        return {}
+
+    import datetime
+
+    from moneta.common import TransactionType
+    from transactions.models import Transaction, Transfer
+    from wallets.models import Account
+
+    unique_dates = sorted(set(dates))
+    min_date = unique_dates[0]
+    max_date = unique_dates[-1]
+
+    accounts = Account.objects.filter(user=user).exclude(type=Account.Types.CREDIT_CARD)
+    if account_id:
+        accounts = accounts.filter(id=account_id)
+
+    initial_balance = accounts.aggregate(total=models.Sum('initial_balance'))['total'] or Decimal('0.00')
+
+    prior_txs = Transaction.objects.filter(
+        account__in=accounts,
+        date__lt=min_date
+    ).exclude(category__type=TransactionType.TRANSFER)
+
+    prior_incomes = prior_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+    prior_expenses = prior_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+
+    prior_tf_out = Transfer.objects.filter(
+        out_transaction__account__in=accounts,
+        out_transaction__date__lt=min_date
+    ).aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
+
+    prior_tf_in = Transfer.objects.filter(
+        in_transaction__account__in=accounts,
+        in_transaction__date__lt=min_date
+    ).aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
+
+    running_balance = initial_balance + prior_incomes - prior_expenses - prior_tf_out + prior_tf_in
+
+    range_txs = Transaction.objects.filter(
+        account__in=accounts,
+        date__gte=min_date,
+        date__lte=max_date
+    ).exclude(category__type=TransactionType.TRANSFER)
+
+    range_incomes_by_date = dict(
+        range_txs.filter(category__type=TransactionType.INCOME)
+        .values('date')
+        .annotate(total=models.Sum('amount'))
+        .values_list('date', 'total')
+    )
+
+    range_expenses_by_date = dict(
+        range_txs.filter(category__type=TransactionType.EXPENSE)
+        .values('date')
+        .annotate(total=models.Sum('amount'))
+        .values_list('date', 'total')
+    )
+
+    range_tf_out_by_date = dict(
+        Transfer.objects.filter(
+            out_transaction__account__in=accounts,
+            out_transaction__date__gte=min_date,
+            out_transaction__date__lte=max_date
+        )
+        .values('out_transaction__date')
+        .annotate(total=models.Sum('out_transaction__amount'))
+        .values_list('out_transaction__date', 'total')
+    )
+
+    range_tf_in_by_date = dict(
+        Transfer.objects.filter(
+            in_transaction__account__in=accounts,
+            in_transaction__date__gte=min_date,
+            in_transaction__date__lte=max_date
+        )
+        .values('in_transaction__date')
+        .annotate(total=models.Sum('in_transaction__amount'))
+        .values_list('in_transaction__date', 'total')
+    )
+
+    delta_day = datetime.timedelta(days=1)
+    curr = min_date
+    date_balances = {}
+    target_set = set(unique_dates)
+
+    while curr <= max_date:
+        inc = range_incomes_by_date.get(curr, Decimal('0.00'))
+        exp = range_expenses_by_date.get(curr, Decimal('0.00'))
+        tout = range_tf_out_by_date.get(curr, Decimal('0.00'))
+        tin = range_tf_in_by_date.get(curr, Decimal('0.00'))
+        running_balance = running_balance + inc - exp - tout + tin
+        if curr in target_set:
+            date_balances[curr] = running_balance
+        curr += delta_day
+
+    return date_balances
+
 
 def get_or_create_bill_for_transaction(account, transaction_date):
     import datetime

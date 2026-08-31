@@ -61,8 +61,10 @@
                             </div>
                         </td>
                         <td class="px-2.5 py-2.5 align-middle text-xs max-w-[100px] truncate">
+                            {% with tags=tx.tags.all %}
                             <div class="flex flex-wrap gap-1">
                                 {% for tag in tags %}
+                                    <span class="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-md text-[10px] font-semibold border text-slate-800 shadow-sm" style="background-color: {{ tag.color }}20; border-color: {{ tag.color }}50;">
                                         <span class="w-1.5 h-1.5 rounded-full shadow-sm shrink-0" style="background-color: {{ tag.color }}; border: 1px solid {{ tag.color }}80;"></span>
                                         <span class="truncate max-w-[60px]">{{ tag.name }}</span>
                                     </span>
@@ -71,6 +73,7 @@
                                 {% endfor %}
                             </div>
                             {% endwith %}
+                        </td>
                         <td class="px-2.5 py-2.5 align-middle text-xs text-slate-500 whitespace-nowrap">{{ tx.date|date:"d/m/Y" }}</td>
                         <td class="px-2.5 py-2.5 align-middle whitespace-nowrap">
                             <span class="px-2 py-0.5 text-xs rounded-full font-medium {% if tx.status == 'concluída' %}bg-emerald-500/10 text-emerald-600 border border-emerald-500/20{% else %}bg-amber-500/10 text-amber-600 border border-amber-500/20{% endif %}">
@@ -160,6 +163,12 @@
                                             <span>•</span>
                                             <span class="text-indigo-600 font-medium truncate max-w-[60px]">{{ tags.0.name }}</span>
                                         {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+
+                            <!-- Direita: Valor, Status e Ações -->
+                            <div class="flex flex-col items-end shrink-0 gap-1">
                                 <p class="text-sm font-extrabold {% if tx.category.type == 'receita' %}text-emerald-600{% elif tx.category.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
                                     {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
                                 </p>
