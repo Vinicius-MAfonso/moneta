@@ -125,6 +125,7 @@ X_FRAME_OPTIONS = 'DENY'
 DEFAULT_CSP_POLICY = (
     "default-src 'self'; "
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' https://fonts.gstatic.com; "
     "img-src 'self' data: blob:; "
     "connect-src 'self'; "
