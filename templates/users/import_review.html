@@ -324,7 +324,7 @@
     </form>
 </div>
 {{ description_habits|json_script:"description-habits-data" }}
-<script>
+<script nonce="{{ request.csp_nonce }}">
 const globalDescriptionHabits = JSON.parse(document.getElementById('description-habits-data')?.textContent || '{}');
 
 function importRowItem(initial) {

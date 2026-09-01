@@ -128,6 +128,9 @@ class SecurityHeadersTestCase(TestCase):
         csp = response.headers['Content-Security-Policy']
         self.assertIn("default-src 'self'", csp)
         self.assertIn("script-src", csp)
+        self.assertIn("'nonce-", csp)
+        self.assertNotIn("script-src 'self' 'unsafe-inline'", csp)
+        self.assertNotIn("'unsafe-eval'", csp)
         self.assertIn("style-src", csp)
         self.assertIn("frame-ancestors 'none'", csp)
         self.assertIn("object-src 'none'", csp)
