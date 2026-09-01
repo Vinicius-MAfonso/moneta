@@ -1,11 +1,35 @@
 (function() {
+    window.monetaCharts = window.monetaCharts || {};
+
+    window.initChartWhenReady = window.initChartWhenReady || function(canvasId, renderFn) {
+        function tryInit() {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            if (typeof Chart === 'undefined') {
+                setTimeout(tryInit, 50);
+                return;
+            }
+            renderFn(canvas);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener("DOMContentLoaded", tryInit);
+        } else {
+            tryInit();
+        }
+        document.addEventListener("htmx:afterSettle", (evt) => {
+            if (document.getElementById(canvasId)) {
+                tryInit();
+            }
+        });
+    };
+
     function renderCashflowChart(canvas) {
         const labelsEl = document.getElementById('chart-labels');
         const incomesEl = document.getElementById('chart-incomes');
         const expensesEl = document.getElementById('chart-expenses');
         if (!labelsEl || !incomesEl || !expensesEl) return;
 
-        window.monetaCharts = window.monetaCharts || {};
         if (window.monetaCharts.cashflow) {
             window.monetaCharts.cashflow.destroy();
         }
@@ -53,7 +77,6 @@
         const balancesEl = document.getElementById('chart-balances');
         if (!labelsEl || !balancesEl) return;
 
-        window.monetaCharts = window.monetaCharts || {};
         if (window.monetaCharts.history) {
             window.monetaCharts.history.destroy();
         }
@@ -93,9 +116,6 @@
         });
     }
 
-    if (window.initChartWhenReady) {
-        window.initChartWhenReady('cashflowChart', renderCashflowChart);
-        window.initChartWhenReady('historyChart', renderHistoryChart);
-    }
+    window.initChartWhenReady('cashflowChart', renderCashflowChart);
+    window.initChartWhenReady('historyChart', renderHistoryChart);
 })();
-
