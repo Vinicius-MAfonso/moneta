@@ -32,6 +32,10 @@ class Account(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizada em')
 
     @property
+    def abs_balance(self):
+        return abs(self.balance)
+
+    @property
     def free_balance(self):
         if self.type == self.Types.CREDIT_CARD:
             return self.balance
@@ -153,12 +157,16 @@ class CreditCardBill(models.Model):
     def __str__(self):
         return f"Fatura {self.period_date.strftime('%m/%Y')} - {self.account.name}"
 
+    def get_summary(self):
+        if not hasattr(self, '_bill_summary_cache'):
+            from wallets.services import get_bill_summary
+            self._bill_summary_cache = get_bill_summary(self)
+        return self._bill_summary_cache
+
     @property
     def total_amount(self):
-        from wallets.services import get_bill_summary
-        return get_bill_summary(self)['total']
+        return self.get_summary()['total']
 
     @property
     def remaining_amount(self):
-        from wallets.services import get_bill_summary
-        return get_bill_summary(self)['remaining_amount']
+        return self.get_summary()['remaining_amount']

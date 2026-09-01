@@ -12,7 +12,11 @@ from wallets.models import Account
 
 @login_required(login_url='users_web:login')
 def account_list_view(request):
-    accounts = Account.objects.filter(user=request.user).select_related('credit_card_details')
+    accounts = (
+        Account.objects.filter(user=request.user)
+        .select_related('credit_card_details')
+        .prefetch_related('goals')
+    )
     context = {
         'accounts': accounts,
     }
@@ -161,7 +165,11 @@ def bill_detail_view(request, pk):
     from wallets.services import get_bill_summary
 
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
-    transactions = bill.transactions.filter(transfer_in__isnull=True).order_by('-date', '-created_at')
+    transactions = (
+        bill.transactions.filter(transfer_in__isnull=True)
+        .select_related('category')
+        .order_by('-date', '-created_at')
+    )
 
     summary = get_bill_summary(bill)
 
@@ -261,19 +269,17 @@ def bill_list_view(request, account_id):
 
 @login_required(login_url='users_web:login')
 def credit_card_dashboard_view(request):
-    import datetime
+    from django.utils import timezone
 
     from transactions.models import Transaction
-    from wallets.models import Account
     from wallets.services import get_credit_card_timeline
 
     accounts = Account.objects.filter(user=request.user, type=Account.Types.CREDIT_CARD, active=True).select_related('credit_card_details')
     
-    today = datetime.date.today()
+    today = timezone.now().date()
     start_of_month = today.replace(day=1)
     
     timeline = get_credit_card_timeline(request.user, start_of_month, months=12)
-
     installments = Transaction.objects.filter(
         user=request.user,
         account__type=Account.Types.CREDIT_CARD,

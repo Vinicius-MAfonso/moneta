@@ -440,3 +440,74 @@ class WalletsServicesTestCase(TestCase):
         self.assertEqual(batch_balances[d2], Decimal('1300.00'))
         self.assertEqual(batch_balances[d3], Decimal('1200.00'))
 
+    def test_account_abs_balance_property(self):
+        self.checking_account.balance = Decimal('-350.75')
+        self.assertEqual(self.checking_account.abs_balance, Decimal('350.75'))
+
+        self.checking_account.balance = Decimal('1200.00')
+        self.assertEqual(self.checking_account.abs_balance, Decimal('1200.00'))
+
+    def test_pay_credit_card_bill_idor_prevention(self):
+        import datetime
+        from moneta.common import TransactionType
+        from transactions.models import Category, Transaction
+        from wallets.services import (
+            get_or_create_bill_for_transaction,
+            pay_credit_card_bill,
+        )
+
+        other_user = User.objects.create_user(username='other_user', password='password123')
+        other_account = Account.objects.create(
+            user=other_user, name='Conta de Outro', type=Account.Types.CHECKING,
+            balance=Decimal('5000.00'), initial_balance=Decimal('5000.00')
+        )
+
+        cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Compras', defaults={'type': TransactionType.EXPENSE})
+        tx = Transaction.objects.create(
+            user=self.user, account=self.cc_account, category=cat_expense,
+            description='Compras', amount=Decimal('300.00'), date='2026-08-01',
+            status=Transaction.Statuses.COMPLETED
+        )
+        bill = get_or_create_bill_for_transaction(self.cc_account, datetime.date(2026, 8, 1))
+        tx.bill = bill
+        tx.save()
+
+        with self.assertRaises(ValueError) as ctx:
+            pay_credit_card_bill(bill, other_account.id)
+        self.assertIn("não pertence ao usuário", str(ctx.exception))
+
+    def test_bill_summary_single_query_and_caching(self):
+        import datetime
+        from moneta.common import TransactionType
+        from transactions.models import Category, Transaction
+        from wallets.services import (
+            get_bill_summary,
+            get_or_create_bill_for_transaction,
+        )
+
+        cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Mercado', defaults={'type': TransactionType.EXPENSE})
+        cat_income, _ = Category.objects.get_or_create(user=self.user, name='Estorno', defaults={'type': TransactionType.INCOME})
+
+        bill = get_or_create_bill_for_transaction(self.cc_account, datetime.date(2026, 8, 5))
+
+        Transaction.objects.create(
+            user=self.user, account=self.cc_account, category=cat_expense,
+            description='Supermercado', amount=Decimal('400.00'), date='2026-08-05',
+            status=Transaction.Statuses.COMPLETED, bill=bill
+        )
+        Transaction.objects.create(
+            user=self.user, account=self.cc_account, category=cat_income,
+            description='Reembolso', amount=Decimal('50.00'), date='2026-08-06',
+            status=Transaction.Statuses.COMPLETED, bill=bill
+        )
+
+        summary = get_bill_summary(bill)
+        self.assertEqual(summary['expenses'], Decimal('400.00'))
+        self.assertEqual(summary['incomes'], Decimal('50.00'))
+        self.assertEqual(summary['total'], Decimal('350.00'))
+        self.assertEqual(summary['remaining_amount'], Decimal('350.00'))
+
+        self.assertEqual(bill.total_amount, Decimal('350.00'))
+        self.assertTrue(hasattr(bill, '_bill_summary_cache'))
+        self.assertEqual(bill.remaining_amount, Decimal('350.00'))
+

@@ -80,39 +80,8 @@ def recalculate_all_user_balances(user):
 
 
 def calculate_expected_balance(account, end_date=None):
-    from moneta.common import TransactionType
-    from transactions.models import Transaction, Transfer
-
-    pending_txs = Transaction.objects.filter(
-        account=account,
-        status=Transaction.Statuses.PENDING,
-    ).exclude(category__type=TransactionType.TRANSFER)
-
-    if end_date:
-        pending_txs = pending_txs.filter(date__lte=end_date)
-
-    incomes = pending_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    expenses = pending_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-
-    transfers_out_qs = Transfer.objects.filter(
-        out_transaction__account=account,
-        out_transaction__status=Transaction.Statuses.PENDING,
-    )
-    if end_date:
-        transfers_out_qs = transfers_out_qs.filter(out_transaction__date__lte=end_date)
-    transfers_out = transfers_out_qs.aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
-
-    transfers_in_qs = Transfer.objects.filter(
-        in_transaction__account=account,
-        in_transaction__status=Transaction.Statuses.PENDING,
-    )
-    if end_date:
-        transfers_in_qs = transfers_in_qs.filter(in_transaction__date__lte=end_date)
-    transfers_in = transfers_in_qs.aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
-
-    return account.balance + incomes - expenses - transfers_out + transfers_in
-
-
+    results = get_expected_balances_bulk([account], end_date=end_date)
+    return results.get(account.id, account.balance)
 def get_expected_balances_bulk(accounts_qs, end_date=None):
 
     from django.db import models
@@ -380,7 +349,12 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
     if bill.status == CreditCardBill.Statuses.PAID:
         raise ValueError("Esta fatura já está paga.")
 
-    payment_account = Account.objects.get(id=payment_account_id)
+    payment_account = Account.objects.filter(
+        id=payment_account_id,
+        user=bill.account.user
+    ).first()
+    if not payment_account:
+        raise ValueError("Conta de pagamento não encontrada ou não pertence ao usuário.")
     
     summary = get_bill_summary(bill)
     total_amount = summary['remaining_amount']
@@ -399,6 +373,8 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
         if total_amount <= 0:
             bill.status = CreditCardBill.Statuses.PAID
             bill.save()
+            if hasattr(bill, '_bill_summary_cache'):
+                del bill._bill_summary_cache
         else:
             raise ValueError("O valor do pagamento deve ser estritamente maior que zero.")
         return bill
@@ -429,6 +405,7 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
             from transactions.models import Transaction
             bill.transactions.filter(status=Transaction.Statuses.PENDING).update(status=Transaction.Statuses.COMPLETED)
 
+
     return bill
 
 def reopen_credit_card_bill(bill):
@@ -445,9 +422,9 @@ def reopen_credit_card_bill(bill):
         for tx in payment_txs:
             transfer = getattr(tx, 'transfer_in', None)
             if transfer:
-                out_tx = transfer.out_transaction
+                transfer.delete()
+            else:
                 tx.delete()
-                out_tx.delete()
 
         if timezone.now().date() > bill.closing_date:
             bill.status = CreditCardBill.Statuses.CLOSED
@@ -455,8 +432,8 @@ def reopen_credit_card_bill(bill):
             bill.status = CreditCardBill.Statuses.OPEN
         bill.save()
 
-        from transactions.models import Transaction
-        bill.transactions.filter(status=Transaction.Statuses.COMPLETED).update(status=Transaction.Statuses.PENDING)
+        if hasattr(bill, '_bill_summary_cache'):
+            del bill._bill_summary_cache
 
 def adjust_account_balance(account, new_balance, adjustment_type, user):
     """
@@ -568,15 +545,21 @@ def update_account(account, validated_data):
 def get_bill_summary(bill):
     from decimal import Decimal
 
-    from django.db.models import Sum
+    from django.db import models
 
     from moneta.common import TransactionType
     
-    expenses = bill.transactions.filter(category__type=TransactionType.EXPENSE).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    incomes = bill.transactions.filter(category__type=TransactionType.INCOME).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-    transfers_out = bill.transactions.filter(transfer_out__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    aggs = bill.transactions.aggregate(
+        expenses=models.Sum('amount', filter=models.Q(category__type=TransactionType.EXPENSE)),
+        incomes=models.Sum('amount', filter=models.Q(category__type=TransactionType.INCOME)),
+        transfers_out=models.Sum('amount', filter=models.Q(transfer_out__isnull=False)),
+        paid_amount=models.Sum('amount', filter=models.Q(transfer_in__isnull=False)),
+    )
     
-    paid_amount = bill.transactions.filter(transfer_in__isnull=False).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    expenses = aggs['expenses'] or Decimal('0.00')
+    incomes = aggs['incomes'] or Decimal('0.00')
+    transfers_out = aggs['transfers_out'] or Decimal('0.00')
+    paid_amount = aggs['paid_amount'] or Decimal('0.00')
     
     total = expenses - incomes + transfers_out
     remaining_amount = total - paid_amount
@@ -605,6 +588,7 @@ def create_account(user, account_data):
             balance=account_data.get('balance', Decimal('0.00')),
             initial_balance=account_data.get('balance', Decimal('0.00')),
             color=account_data.get('color', '#000000'),
+            icon=account_data.get('icon'),
         )
         if account_data['type'] == Account.Types.CREDIT_CARD:
             CreditCardDetails.objects.create(
@@ -614,8 +598,6 @@ def create_account(user, account_data):
                 due_day=account_data.get('due_day', 10),
             )
         return account
-
-
 def delete_account(account):
     from django.db import transaction
     with transaction.atomic():

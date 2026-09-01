@@ -9,4 +9,4 @@ from .models import Account
 @receiver(post_delete, sender=Account)
 def trigger_balance_recalculation_on_account_change(sender, instance, **kwargs):
     if instance.user_id:
-        async_task('wallets.tasks.async_recalculate_user_balances', instance.user_id)
+        user_id = instance.user_id
