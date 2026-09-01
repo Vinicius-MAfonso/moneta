@@ -16,8 +16,7 @@
 
     <meta name="htmx-config" content='{"globalViewTransitions":true}'>
 
-    <script nonce="{{ request.csp_nonce }}">
-        if ('serviceWorker' in navigator) {
+    <script>
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register("{% url 'serviceworker' %}").then(function(registration) {
                     console.log('ServiceWorker registration successful with scope: ', registration.scope);
@@ -34,16 +33,11 @@
 
     {% tailwind_css %}
 
-    <script nonce="{{ request.csp_nonce }}" defer src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
-    <script nonce="{{ request.csp_nonce }}" defer src="{% static 'js/components.js' %}?v=2.3"></script>
-    <script nonce="{{ request.csp_nonce }}" defer src="https://cdn.jsdelivr.net/npm/@alpinejs/mask@3.x.x/dist/cdn.min.js"></script>
-    <script nonce="{{ request.csp_nonce }}" defer src="https://cdn.jsdelivr.net/npm/@alpinejs/csp@3.14.8/dist/cdn.min.js"></script>
-    <script nonce="{{ request.csp_nonce }}" defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
-
-    <style>
-        [x-cloak] {
-            display: none !important;
-        }
+    <script defer src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    <script defer src="{% static 'js/components.js' %}?v=2.3"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/mask@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.3/cdn.min.js" integrity="sha384-Rpe/8orFUm5Q1GplYBHxbuA8Az8O8C5sAoOsdbRWkqPjKFaxPgGZipj4zeHL7lxX" crossorigin="anonymous"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
 
         @keyframes slideDownFade {
             from { opacity: 0; transform: translateY(-8px); }
@@ -396,14 +390,13 @@
     </div>
 
     {% if messages %}
-        <script nonce="{{ request.csp_nonce }}">
+        <script>
             (function() {
                 const dispatchToasts = () => {
                     {% for msg in messages %}
                         window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: '{{ msg.message|escapejs }}', type: '{{ msg.tags }}' } }));
                     {% endfor %}
                 };
-                if (document.readyState === 'complete' || document.readyState === 'interactive') {
                     setTimeout(dispatchToasts, 100);
                 } else {
                     document.addEventListener('DOMContentLoaded', () => setTimeout(dispatchToasts, 100));
@@ -452,7 +445,7 @@
 
     <div id="modal-container"></div>
 
-    <script nonce="{{ request.csp_nonce }}">
+    <script>
         // Modal Background Scroll Lock Manager
         (function() {
             function updateModalScrollLock() {
@@ -460,7 +453,6 @@
                 const hasHtmxModal = modalContainer && modalContainer.querySelector('.fixed:not([style*="display: none"]), [role="dialog"]:not([style*="display: none"])') !== null;
                 const hasVisibleDialog = document.querySelector('body > .fixed[role="dialog"]:not([style*="display: none"])') !== null;
                 const isLocked = hasHtmxModal || hasVisibleDialog;
-
                 if (isLocked) {
                     document.body.classList.add('modal-open');
                     const mainEl = document.querySelector('main');

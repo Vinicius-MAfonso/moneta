@@ -438,8 +438,7 @@
 {{ chart_incomes|json_script:"chart-incomes" }}
 {{ chart_expenses|json_script:"chart-expenses" }}
 {{ chart_balances|json_script:"chart-balances" }}
-<script nonce="{{ request.csp_nonce }}">
-    function renderCashflowChart() {
+<script>
         const canvas = document.getElementById('cashflowChart');
         if (!canvas) return;
         

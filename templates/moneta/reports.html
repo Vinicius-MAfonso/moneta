@@ -143,8 +143,7 @@
 {{ pie_data|json_script:"pie-data" }}
 {{ pie_colors|json_script:"pie-colors" }}
 
-<script nonce="{{ request.csp_nonce }}">
-    function renderReportsCharts() {
+<script>
         const timelineLabelsEl = document.getElementById('timeline-labels');
         if (!timelineLabelsEl) return;
         
