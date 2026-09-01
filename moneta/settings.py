@@ -15,6 +15,8 @@ environ.Env.read_env(BASE_DIR / '.env')
 DEBUG = env.bool('DEBUG', default=False)
 SECRET_KEY = env('SECRET_KEY', default='django-insecure-moneta-production-change-me')
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+if 'testserver' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('testserver')
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['https://*.run.app', 'https://*.a.run.app'])
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -42,6 +44,7 @@ INTERNAL_IPS = ["127.0.0.1"]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'moneta.middleware.SecurityHeadersMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -111,13 +114,40 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=not DEBUG)
 CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=not DEBUG)
-SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=0)
-SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False)
-SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)
+SECURE_HSTS_SECONDS = env.int('SECURE_HSTS_SECONDS', default=31536000 if not DEBUG else 0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env.bool('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=not DEBUG)
+SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=not DEBUG)
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = 'same-origin'
 X_FRAME_OPTIONS = 'DENY'
+
+DEFAULT_CSP_POLICY = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' https://fonts.gstatic.com; "
+    "img-src 'self' data: blob:; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "object-src 'none'"
+)
+CONTENT_SECURITY_POLICY = env('CONTENT_SECURITY_POLICY', default=DEFAULT_CSP_POLICY)
+
+DEFAULT_PERMISSIONS_POLICY = (
+    "camera=(), "
+    "microphone=(), "
+    "geolocation=(), "
+    "payment=(), "
+    "usb=(), "
+    "accelerometer=(), "
+    "gyroscope=(), "
+    "magnetometer=(), "
+    "display-capture=()"
+)
+PERMISSIONS_POLICY = env('PERMISSIONS_POLICY', default=DEFAULT_PERMISSIONS_POLICY)
 
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 1
