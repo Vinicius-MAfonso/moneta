@@ -9,6 +9,7 @@ from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from moneta.common import TransactionType, format_form_errors, get_month_context
@@ -485,7 +486,11 @@ def transaction_delete_view(request, pk):
         })
         return response
     referer = request.META.get('HTTP_REFERER')
-    if referer:
+    if referer and url_has_allowed_host_and_scheme(
+        url=referer,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
         return redirect(referer)
     return redirect('transactions_web:list')
 

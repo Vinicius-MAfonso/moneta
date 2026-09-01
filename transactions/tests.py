@@ -55,6 +55,42 @@ class TransactionsWebTestCase(TestCase):
         self.assertEqual(res.status_code, 302)
         self.assertFalse(Transaction.objects.filter(id=tx.id).exists())
 
+    def test_transaction_delete_redirect_safe_referer(self):
+        tx = Transaction.objects.create(
+            user=self.user,
+            account=self.account1,
+            category=self.category,
+            description='Café',
+            amount=Decimal('10.00'),
+            date='2026-09-01',
+            status='concluída'
+        )
+        res = self.client.post(
+            f'/transactions/{tx.id}/delete/',
+            HTTP_REFERER='http://testserver/wallets/'
+        )
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res['Location'], 'http://testserver/wallets/')
+        self.assertFalse(Transaction.objects.filter(id=tx.id).exists())
+
+    def test_transaction_delete_redirect_unsafe_referer(self):
+        tx = Transaction.objects.create(
+            user=self.user,
+            account=self.account1,
+            category=self.category,
+            description='Cinema',
+            amount=Decimal('50.00'),
+            date='2026-09-01',
+            status='concluída'
+        )
+        res = self.client.post(
+            f'/transactions/{tx.id}/delete/',
+            HTTP_REFERER='https://evil.com/phishing-attack'
+        )
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res['Location'], '/transactions/')
+        self.assertFalse(Transaction.objects.filter(id=tx.id).exists())
+
     def test_transaction_one_cent_validation(self):
         payload = {
             'account': str(self.account1.id),
