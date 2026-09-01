@@ -71,10 +71,15 @@
         </form>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
+{{ vapid_public_key|json_script:"vapid-public-key" }}
 <script>
     const btnSubscribe = document.getElementById('btn-subscribe');
     const statusText = document.getElementById('push-status');
+    const vapidKeyEl = document.getElementById('vapid-public-key');
+    const vapidPublicKey = vapidKeyEl ? JSON.parse(vapidKeyEl.textContent || '""') : '';
     
     function urlB64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -188,7 +193,9 @@
         }
     }
 
-    btnSubscribe.addEventListener('click', subscribeUser);
-    updatePushUI();
+    if (btnSubscribe) {
+        btnSubscribe.addEventListener('click', subscribeUser);
+        updatePushUI();
+    }
 </script>
 {% endblock %}

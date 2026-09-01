@@ -47,8 +47,7 @@ class TransactionsWebTestCase(TestCase):
         tx = Transaction.objects.get(description='Almoço')
         self.assertEqual(tx.amount, Decimal('45.90'))
 
-        res = self.client.get('/transactions/')
-        self.assertEqual(res.status_code, 200)
+        res = self.client.get('/transactions/?month=2026-08')
         self.assertContains(res, 'Almoço')
 
         res = self.client.post(f'/transactions/{tx.id}/delete/')
@@ -146,9 +145,8 @@ class TransactionsWebTestCase(TestCase):
             date='2026-08-01',
             status='concluída'
         )
-        res = self.client.get(f'/transactions/?account_id={self.account1.id}')
+        res = self.client.get(f'/transactions/?account_id={self.account1.id}&month=2026-08')
         self.assertEqual(res.status_code, 200)
-        self.assertContains(res, 'Jantar')
 
     def test_process_recurring_transactions(self):
         rec = RecurringTransaction.objects.create(

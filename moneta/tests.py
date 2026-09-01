@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -164,4 +165,36 @@ class SecurityHeadersTestCase(TestCase):
     def test_custom_csp_override(self):
         response = self.client.get(reverse('health_check'))
         self.assertEqual(response.headers.get('Content-Security-Policy'), "default-src 'none';")
+
+
+class DashboardAndReportsViewsTestCase(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='viewtestuser',
+            email='viewtest@example.com',
+            password='password123'
+        )
+
+    def test_dashboard_view_authenticated(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'moneta/dashboard.html')
+
+    def test_reports_view_authenticated(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('reports'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'moneta/reports.html')
+        self.assertIn('report_data', response.context)
+        self.assertIn('chart_labels', response.context)
+        self.assertIn('pie_data', response.context)
+
+    def test_export_csv_view_authenticated(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('export_csv'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+
 

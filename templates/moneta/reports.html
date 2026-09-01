@@ -135,7 +135,9 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 {{ chart_labels|json_script:"timeline-labels" }}
 {{ chart_incomes|json_script:"timeline-incomes" }}
 {{ chart_expenses|json_script:"timeline-expenses" }}
@@ -144,6 +146,7 @@
 {{ pie_colors|json_script:"pie-colors" }}
 
 <script>
+    function renderTimelineChart() {
         const timelineLabelsEl = document.getElementById('timeline-labels');
         if (!timelineLabelsEl) return;
         
@@ -215,7 +218,9 @@
                 }
             });
         }
+    }
 
+    function renderCategoryChart() {
         const pieLabelsEl = document.getElementById('pie-labels');
         const pieDataEl = document.getElementById('pie-data');
         const pieColorsEl = document.getElementById('pie-colors');
@@ -263,7 +268,20 @@
         }
     }
 
-    document.addEventListener("DOMContentLoaded", renderReportsCharts);
-    document.addEventListener("htmx:afterSettle", renderReportsCharts);
+    function initReportsCharts() {
+        if (typeof Chart === 'undefined') {
+            setTimeout(initReportsCharts, 50);
+            return;
+        }
+        renderTimelineChart();
+        renderCategoryChart();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener("DOMContentLoaded", initReportsCharts);
+    } else {
+        initReportsCharts();
+    }
+    document.addEventListener("htmx:afterSettle", initReportsCharts);
 </script>
 {% endblock %}
