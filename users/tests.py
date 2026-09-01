@@ -221,6 +221,143 @@ class ImportStatementTestCase(TestCase):
         self.assertEqual(txs_inter[0]['type'], 'despesa')
         self.assertEqual(txs_inter[0]['amount'], '150.50')
 
+    def test_parse_ofx_variations(self):
+        import io
+        from users.services import parse_ofx_file
+
+        # 1. OFX with <MEMO> only (Nubank / standard Brazilian export)
+        ofx_nubank = """OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:UTF-8
+CHARSET:1252
+COMPRESSION:NONE
+OLDFILEENCODING:UTF-8
+NEWFILEENCODING:UTF-8
+
+<OFX>
+<BANKMSGSRSV1>
+<STMTTRNRS>
+<STMTRS>
+<CURDEF>BRL</CURDEF>
+<BANKACCTFROM>
+<BANKID>260</BANKID>
+<ACCTID>12345</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTFROM>
+<BANKTRANLIST>
+<DTSTART>20260801000000[-03:EST]</DTSTART>
+<DTEND>20260802000000[-03:EST]</DTEND>
+<STMTTRN>
+<TRNTYPE>OTHER</TRNTYPE>
+<DTPOSTED>20260801120000[-03:EST]</DTPOSTED>
+<TRNAMT>-89.70</TRNAMT>
+<FITID>nubank-001</FITID>
+<MEMO>Supermercado Pão de Açúcar</MEMO>
+</STMTTRN>
+<STMTTRN>
+<TRNTYPE>OTHER</TRNTYPE>
+<DTPOSTED>20260801120000[-03:EST]</DTPOSTED>
+<TRNAMT>2680.00</TRNAMT>
+<FITID>nubank-002</FITID>
+<NAME>Transferência Recebida - Cliente X</NAME>
+</STMTTRN>
+</BANKTRANLIST>
+</STMTRS>
+</STMTTRNRS>
+</BANKMSGSRSV1>
+</OFX>"""
+        txs = parse_ofx_file(io.BytesIO(ofx_nubank.encode('utf-8')))
+        self.assertEqual(len(txs), 2)
+        self.assertEqual(txs[0]['payee'], 'Supermercado Pão de Açúcar')
+        self.assertEqual(txs[0]['amount'], '89.70')
+        self.assertEqual(txs[0]['type'], 'despesa')
+        self.assertEqual(txs[1]['payee'], 'Transferência Recebida - Cliente X')
+        self.assertEqual(txs[1]['amount'], '2680.00')
+        self.assertEqual(txs[1]['type'], 'receita')
+
+        # 2. OFX with generic <NAME> and descriptive <MEMO>
+        ofx_combined = """OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:UTF-8
+CHARSET:1252
+COMPRESSION:NONE
+OLDFILEENCODING:UTF-8
+NEWFILEENCODING:UTF-8
+
+<OFX>
+<BANKMSGSRSV1>
+<STMTTRNRS>
+<STMTRS>
+<CURDEF>BRL</CURDEF>
+<BANKACCTFROM>
+<BANKID>341</BANKID>
+<ACCTID>98765</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTFROM>
+<BANKTRANLIST>
+<DTSTART>20260801000000[-03:EST]</DTSTART>
+<DTEND>20260802000000[-03:EST]</DTEND>
+<STMTTRN>
+<TRNTYPE>DEBIT</TRNTYPE>
+<DTPOSTED>20260801120000[-03:EST]</DTPOSTED>
+<TRNAMT>-45.00</TRNAMT>
+<FITID>itau-001</FITID>
+<NAME>COMPRA CARTAO</NAME>
+<MEMO>Farmacia Drogasil</MEMO>
+</STMTTRN>
+</BANKTRANLIST>
+</STMTRS>
+</STMTTRNRS>
+</BANKMSGSRSV1>
+</OFX>"""
+        txs_combined = parse_ofx_file(io.BytesIO(ofx_combined.encode('utf-8')))
+        self.assertEqual(len(txs_combined), 1)
+        self.assertEqual(txs_combined[0]['payee'], 'Farmacia Drogasil')
+
+        # 3. OFX in ISO-8859-1 (Latin-1)
+        ofx_latin1 = """OFXHEADER:100
+DATA:OFXSGML
+VERSION:102
+SECURITY:NONE
+ENCODING:USASCII
+CHARSET:1252
+COMPRESSION:NONE
+OLDFILEENCODING:IBMPC
+NEWFILEENCODING:IBMPC
+
+<OFX>
+<BANKMSGSRSV1>
+<STMTTRNRS>
+<STMTRS>
+<CURDEF>BRL</CURDEF>
+<BANKACCTFROM>
+<BANKID>001</BANKID>
+<ACCTID>11223</ACCTID>
+<ACCTTYPE>CHECKING</ACCTTYPE>
+</BANKACCTFROM>
+<BANKTRANLIST>
+<DTSTART>20260801000000[-03:EST]</DTSTART>
+<DTEND>20260802000000[-03:EST]</DTEND>
+<STMTTRN>
+<TRNTYPE>DEBIT</TRNTYPE>
+<DTPOSTED>20260801120000[-03:EST]</DTPOSTED>
+<TRNAMT>-70.00</TRNAMT>
+<FITID>bb-001</FITID>
+<MEMO>Açougue & Padaria São João</MEMO>
+</STMTTRN>
+</BANKTRANLIST>
+</STMTRS>
+</STMTTRNRS>
+</BANKMSGSRSV1>
+</OFX>"""
+        txs_latin1 = parse_ofx_file(io.BytesIO(ofx_latin1.encode('iso-8859-1')))
+        self.assertEqual(len(txs_latin1), 1)
+        self.assertEqual(txs_latin1[0]['payee'], 'Açougue & Padaria São João')
+
     def test_enrich_suggestions_and_duplicate_detection(self):
         from decimal import Decimal
 
@@ -284,6 +421,8 @@ class ImportStatementTestCase(TestCase):
         res_review = self.client.get(reverse('users_web:import_review'))
         self.assertEqual(res_review.status_code, 200)
         self.assertContains(res_review, 'Aluguel Apartamento')
+        self.assertContains(res_review, 'value="Aluguel Apartamento"')
+        self.assertContains(res_review, 'function importRowItem(initial)')
         self.assertIn('description_habits', res_review.context)
         self.assertIsInstance(res_review.context['description_habits'], dict)
 

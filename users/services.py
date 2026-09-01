@@ -289,21 +289,90 @@ def parse_csv_file(csv_file):
     return transactions
 
 
+def _extract_ofx_description(tx):
+    """
+    Extracts the most accurate description from an OFX transaction by evaluating
+    <NAME> (payee) and <MEMO> tags used across different Brazilian banking standards.
+    """
+    payee = (getattr(tx, 'payee', '') or '').strip()
+    memo = (getattr(tx, 'memo', '') or '').strip()
+
+    # Clean multiple spaces
+    payee = re.sub(r'\s+', ' ', payee)
+    memo = re.sub(r'\s+', ' ', memo)
+
+    if payee and not memo:
+        return payee
+    if memo and not payee:
+        return memo
+    if not payee and not memo:
+        return (getattr(tx, 'name', '') or '').strip() or "Transação sem descrição"
+
+    if payee.lower() == memo.lower():
+        return payee
+
+    # If one is a substring of another, return the more complete description
+    if payee.lower() in memo.lower():
+        return memo
+    if memo.lower() in payee.lower():
+        return payee
+
+    GENERIC_REGEX = re.compile(
+        r'^(pix(\s+enviado|\s+recebido)?|d[eé]bito(\s+autom[aá]tico)?|cr[eé]dito|compra(\s+no)?(\s+cart[aã]o)?|transfer[eê]ncia(\s+pix)?|pagamento(\s+eletr[oô]nico|\s+fatura)?|pagto(\s+eletr[oô]nico)?|ted|doc|outros|lan[cç]amento|saque)(\s*[:\-])?\s*$',
+        re.IGNORECASE
+    )
+
+    # If payee is generic and memo is specific
+    if GENERIC_REGEX.match(payee):
+        return memo
+    # If memo is generic and payee is specific
+    if GENERIC_REGEX.match(memo):
+        return payee
+
+    # When both are distinct and non-generic, combine them
+    return f"{payee} - {memo}"
+
+
 def parse_ofx_file(ofx_file):
     """
-    Parser for OFX bank statement files.
+    Parser for OFX bank statement files with robust description extraction and encoding support.
     """
-    ofx = OfxParser.parse(ofx_file)
+    if hasattr(ofx_file, 'seek'):
+        ofx_file.seek(0)
+
+    try:
+        ofx = OfxParser.parse(ofx_file)
+    except Exception:
+        # Fallback for non-standard encodings (e.g. latin-1 / windows-1252 without proper OFX header)
+        if hasattr(ofx_file, 'seek'):
+            ofx_file.seek(0)
+        content = ofx_file.read() if hasattr(ofx_file, 'read') else ofx_file
+        if isinstance(content, bytes):
+            for encoding in ('utf-8', 'iso-8859-1', 'cp1252', 'latin1'):
+                try:
+                    decoded = content.decode(encoding)
+                    ofx = OfxParser.parse(io.StringIO(decoded))
+                    break
+                except Exception:
+                    continue
+            else:
+                raise
+        else:
+            raise
+
     transactions = []
-    for account in ofx.accounts:
-        for tx in account.statement.transactions:
+    for account in getattr(ofx, 'accounts', []):
+        statement = getattr(account, 'statement', None)
+        if not statement:
+            continue
+        for tx in statement.transactions:
             raw_amount = Decimal(str(tx.amount)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
             tx_type = 'despesa' if raw_amount < 0 else 'receita'
             transactions.append({
                 'id': str(uuid.uuid4()),
                 'date': tx.date.strftime('%d/%m/%Y'),
                 'date_iso': tx.date.strftime('%Y-%m-%d'),
-                'payee': getattr(tx, 'payee', '') or getattr(tx, 'memo', '') or getattr(tx, 'name', '') or "Transação sem descrição",
+                'payee': _extract_ofx_description(tx),
                 'amount': str(abs(raw_amount)),
                 'type': tx_type,
                 'raw_amount': str(raw_amount)
