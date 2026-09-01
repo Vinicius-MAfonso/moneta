@@ -7,19 +7,11 @@
 
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Transações</h2>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Transações</h1>
             <p class="text-slate-500 text-xs md:text-sm mt-0.5 md:mt-1">Gerencie e filtre suas receitas, despesas e transferências</p>
         </div>
         <div class="flex items-center gap-2 w-full sm:w-auto">
-            <div class="h-10 flex items-center justify-between sm:justify-start w-full sm:w-auto bg-white border border-slate-200 rounded-xl px-2.5 shadow-sm text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap">
-                <a href="?{{ prev_month_url }}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
-                </a>
-                <span class="px-1.5 min-w-[90px] md:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs sm:text-sm whitespace-nowrap">{{ month_info.month_label }}</span>
-                <a href="?{{ next_month_url }}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
-                </a>
-            </div>
+            {% include 'partials/month_nav.html' with prev_url='?'|add:prev_month_url next_url='?'|add:next_month_url month_label=month_info.month_label extra_class='w-full sm:w-auto justify-between sm:justify-start' %}
 
             <button hx-get="{% url 'transactions_web:create' %}" hx-target="#modal-container" class="h-10 hidden sm:inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 shrink-0 whitespace-nowrap">
                 <svg class="w-4 h-4 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -33,13 +25,13 @@
             <input type="hidden" name="month" value="{{ month_info.current_month_str }}">
             
             <div class="col-span-2 sm:col-span-1">
-                <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Buscar</label>
-                <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Descrição..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
+                <label for="filter-search" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Buscar</label>
+                <input id="filter-search" type="text" name="search" value="{{ request.GET.search }}" placeholder="Descrição..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500">
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Tipo</label>
-                <select name="type" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 pr-7 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 truncate">
+                <label for="filter-type" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Tipo</label>
+                <select id="filter-type" name="type" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 pr-7 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 truncate">
                     <option value="">Todos os Tipos</option>
                     <option value="despesa" {% if request.GET.type == 'despesa' %}selected{% endif %}>Despesa</option>
                     <option value="receita" {% if request.GET.type == 'receita' %}selected{% endif %}>Receita</option>
@@ -48,8 +40,8 @@
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Conta</label>
-                <select name="account_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 pr-7 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 truncate">
+                <label for="filter-account" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Conta</label>
+                <select id="filter-account" name="account_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 pr-7 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 truncate">
                     <option value="">Todas as Contas</option>
                     {% for account in accounts %}
                         <option value="{{ account.id }}" {% if request.GET.account_id == account.id|stringformat:"s" %}selected{% endif %}>{{ account.name }}</option>
@@ -58,8 +50,8 @@
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Categoria</label>
-                <select name="category_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 pr-7 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 truncate">
+                <label for="filter-category" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Categoria</label>
+                <select id="filter-category" name="category_id" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 pr-7 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 truncate">
                     <option value="">Todas as Categorias</option>
                     {% for category in categories %}
                         <option value="{{ category.id }}" {% if request.GET.category_id == category.id|stringformat:"s" %}selected{% endif %}>{{ category.name }}</option>
@@ -68,8 +60,8 @@
             </div>
 
             <div>
-                <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Status</label>
-                <select name="status" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 pr-7 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 truncate">
+                <label for="filter-status" class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Status</label>
+                <select id="filter-status" name="status" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 pr-7 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 truncate">
                     <option value="">Todos</option>
                     <option value="concluída" {% if request.GET.status == 'concluída' %}selected{% endif %}>Concluída</option>
                     <option value="pendente" {% if request.GET.status == 'pendente' %}selected{% endif %}>Pendente</option>

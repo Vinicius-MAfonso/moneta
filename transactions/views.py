@@ -69,9 +69,8 @@ def transaction_list_view(request):
         qs = qs.exclude(transfer_in__isnull=False, account__type=Account.Types.CREDIT_CARD)
 
     transactions = qs.select_related(
-        'account', 'category', 'bill', 'transfer_out__in_transaction__bill'
-    ).prefetch_related('tags', 'transfer_in').order_by('-date', '-created_at')
-
+        'account', 'category', 'bill__account', 'transfer_out__in_transaction__bill__account'
+    )
     totals = qs.aggregate(
         income=Coalesce(Sum('amount', filter=Q(category__type=TransactionType.INCOME)), Decimal('0.00')),
         expense=Coalesce(Sum('amount', filter=Q(category__type=TransactionType.EXPENSE)), Decimal('0.00')),

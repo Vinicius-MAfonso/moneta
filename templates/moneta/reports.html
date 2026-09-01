@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static transaction_tags %}
 
 {% block title %}Relatórios - Moneta{% endblock %}
 
@@ -6,14 +7,14 @@
 <div class="space-y-6">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Relatórios de Fluxo de Caixa</h2>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Relatórios de Fluxo de Caixa</h1>
             <p class="text-slate-500 text-xs md:text-sm mt-0.5 md:mt-1">Análise detalhada de suas finanças e exportação de dados</p>
         </div>
         
         <form method="GET" action="{% url 'reports' %}" class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-2.5 w-full md:w-auto">
             <div class="col-span-2 sm:col-span-1 flex items-center gap-2 w-full sm:w-auto">
-                <input type="date" name="start_date" aria-label="Data inicial" value="{{ start_date }}" class="h-10 min-w-0 flex-1 sm:w-auto bg-white border border-slate-300 text-xs sm:text-sm rounded-xl px-2.5 sm:px-3 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
-                <input type="date" name="end_date" aria-label="Data final" value="{{ end_date }}" class="h-10 min-w-0 flex-1 sm:w-auto bg-white border border-slate-300 text-xs sm:text-sm rounded-xl px-2.5 sm:px-3 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
+                <input type="date" id="reports-start-date" name="start_date" aria-label="Data inicial" value="{{ start_date }}" class="h-10 min-w-0 flex-1 sm:w-auto bg-white border border-slate-300 text-xs sm:text-sm rounded-xl px-2.5 sm:px-3 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
+                <input type="date" id="reports-end-date" name="end_date" aria-label="Data final" value="{{ end_date }}" class="h-10 min-w-0 flex-1 sm:w-auto bg-white border border-slate-300 text-xs sm:text-sm rounded-xl px-2.5 sm:px-3 text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm">
             </div>
             <button type="submit" class="h-10 inline-flex items-center justify-center px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 shrink-0 whitespace-nowrap">
                 Filtrar
@@ -82,7 +83,7 @@
                             <td class="px-4 py-3 text-xs text-slate-500">{{ tx.date|date:"d/m/Y" }}</td>
                             <td class="px-4 py-3 font-medium text-slate-900">{{ tx.description }}</td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-1 rounded-md text-xs bg-slate-100">{{ tx.category.name }}</span>
+                                {% include 'partials/category_chip.html' with category=tx.category %}
                             </td>
                             <td class="px-4 py-3 text-xs text-slate-500">
                                 <div class="flex items-center space-x-2">
@@ -106,7 +107,7 @@
             {% for tx in report_data.top_transactions %}
                 <div class="p-3 flex items-center justify-between gap-3">
                     <div class="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-sm shadow-sm"
-                         style="background-color: {{ tx.category.color }}20; color: {{ tx.category.color }};">
+                         style="background-color: {{ tx.category.color|hex_alpha:'20' }}; color: {{ tx.category.color }};">
                         {% if tx.category.icon %}
                             <span>{{ tx.category.icon }}</span>
                         {% else %}
@@ -144,144 +145,5 @@
 {{ pie_labels|json_script:"pie-labels" }}
 {{ pie_data|json_script:"pie-data" }}
 {{ pie_colors|json_script:"pie-colors" }}
-
-<script>
-    function renderTimelineChart() {
-        const timelineLabelsEl = document.getElementById('timeline-labels');
-        if (!timelineLabelsEl) return;
-        
-        const timelineLabels = JSON.parse(timelineLabelsEl.textContent);
-        const timelineIncomes = JSON.parse(document.getElementById('timeline-incomes').textContent);
-        const timelineExpenses = JSON.parse(document.getElementById('timeline-expenses').textContent);
-        
-        const timelineCtx = document.getElementById('timelineChart');
-        if (timelineCtx) {
-            if (window.reportsTimelineChartInstance) {
-                window.reportsTimelineChartInstance.destroy();
-            }
-            window.reportsTimelineChartInstance = new Chart(timelineCtx, {
-                type: 'line',
-                data: {
-                    labels: timelineLabels,
-                    datasets: [
-                        {
-                            label: 'Receitas',
-                            data: timelineIncomes,
-                            borderColor: 'rgba(16, 185, 129, 1)',
-                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.3,
-                            fill: true
-                        },
-                        {
-                            label: 'Despesas',
-                            data: timelineExpenses,
-                            borderColor: 'rgba(244, 63, 94, 1)',
-                            backgroundColor: 'rgba(244, 63, 94, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.3,
-                            fill: true
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { 
-                        legend: { labels: { color: '#475569' } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) { label += ': '; }
-                                    if (context.parsed.y !== null) {
-                                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { ticks: { color: '#475569' }, grid: { display: false } },
-                        y: { 
-                            ticks: { 
-                                color: '#475569',
-                                callback: function(value) {
-                                    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: "compact", compactDisplay: "short" }).format(value);
-                                }
-                            }, 
-                            grid: { color: 'rgba(128,128,128,0.1)' } 
-                        }
-                    }
-                }
-            });
-        }
-    }
-
-    function renderCategoryChart() {
-        const pieLabelsEl = document.getElementById('pie-labels');
-        const pieDataEl = document.getElementById('pie-data');
-        const pieColorsEl = document.getElementById('pie-colors');
-        const categoryCtx = document.getElementById('categoryChart');
-
-        if (categoryCtx && pieLabelsEl && pieDataEl && pieColorsEl) {
-            const pieLabels = JSON.parse(pieLabelsEl.textContent);
-            const pieData = JSON.parse(pieDataEl.textContent);
-            const pieColors = JSON.parse(pieColorsEl.textContent);
-            
-            if (window.reportsCategoryChartInstance) {
-                window.reportsCategoryChartInstance.destroy();
-            }
-            window.reportsCategoryChartInstance = new Chart(categoryCtx, {
-                type: 'doughnut',
-                data: {
-                    labels: pieLabels,
-                    datasets: [{
-                        data: pieData,
-                        backgroundColor: pieColors,
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { color: '#475569', boxWidth: 12, padding: 15 } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.label || '';
-                                    if (label) { label += ': '; }
-                                    if (context.parsed !== null) {
-                                        label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
-        }
-    }
-
-    function initReportsCharts() {
-        if (typeof Chart === 'undefined') {
-            setTimeout(initReportsCharts, 50);
-            return;
-        }
-        renderTimelineChart();
-        renderCategoryChart();
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener("DOMContentLoaded", initReportsCharts);
-    } else {
-        initReportsCharts();
-    }
-    document.addEventListener("htmx:afterSettle", initReportsCharts);
-</script>
+<script defer src="{% static 'js/charts/reports.js' %}"></script>
 {% endblock %}

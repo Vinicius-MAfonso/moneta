@@ -573,3 +573,36 @@ class TransactionServicesTestCase(TestCase):
         delete_transaction(user=self.user, transaction_id=tx.id, delete_mode='single')
         self.assertFalse(Transaction.objects.filter(id=tx.id).exists())
 
+
+class TransactionTemplateTagsTestCase(TestCase):
+    def test_amount_sign_filter(self):
+        from transactions.templatetags.transaction_tags import amount_sign
+
+        self.assertEqual(amount_sign('receita'), '+')
+        self.assertEqual(amount_sign('income'), '+')
+        self.assertEqual(amount_sign('despesa'), '-')
+        self.assertEqual(amount_sign('expense'), '-')
+        self.assertEqual(amount_sign('transferência'), '')
+        self.assertEqual(amount_sign(''), '')
+        self.assertEqual(amount_sign(None), '')
+
+    def test_tx_color_class_filter(self):
+        from transactions.templatetags.transaction_tags import tx_color_class
+
+        self.assertEqual(tx_color_class('receita'), 'text-emerald-600')
+        self.assertEqual(tx_color_class('income'), 'text-emerald-600')
+        self.assertEqual(tx_color_class('despesa'), 'text-rose-600')
+        self.assertEqual(tx_color_class('expense'), 'text-rose-600')
+        self.assertEqual(tx_color_class('transferência'), 'text-indigo-600')
+        self.assertEqual(tx_color_class(''), 'text-slate-900')
+
+    def test_hex_alpha_filter(self):
+        from transactions.templatetags.transaction_tags import hex_alpha
+
+        self.assertEqual(hex_alpha('#6366f1', '20'), '#6366f120')
+        self.assertEqual(hex_alpha('#6366f1', '50'), '#6366f150')
+        self.assertEqual(hex_alpha('#FFF', '20'), '#FFF')
+        self.assertEqual(hex_alpha('', '20'), '')
+        self.assertEqual(hex_alpha(None), None)
+
+

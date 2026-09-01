@@ -1,0 +1,103 @@
+<!-- Mobile Bottom Sheet: More Options -->
+<div x-show="moreMenuOpen" x-cloak class="relative z-50 md:hidden">
+    <!-- Backdrop -->
+    <div x-show="moreMenuOpen"
+         x-transition:enter="transition-opacity ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition-opacity ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click="moreMenuOpen = false"
+         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+
+    <!-- Sheet Panel -->
+    <div x-show="moreMenuOpen"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="translate-y-full"
+         x-transition:enter-end="translate-y-0"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="translate-y-0"
+         x-transition:leave-end="translate-y-full"
+         class="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl p-5 pb-8 border-t border-slate-100 max-h-[85vh] overflow-y-auto">
+        
+        <!-- Sheet Header -->
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div class="flex items-center space-x-2.5">
+                <div class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </div>
+                <h3 class="text-base font-bold text-slate-900">Mais Opções</h3>
+            </div>
+            <button @click="moreMenuOpen = false" aria-label="Fechar" class="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <!-- Quick Navigation Grid -->
+        <div class="grid grid-cols-2 gap-2.5 mb-5">
+            <a href="{% url 'wallets_web:list' %}" class="flex items-center space-x-3 p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200/70 active:scale-98 transition group">
+                <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-[11px] sm:text-xs font-bold text-slate-900 group-hover:text-indigo-600 leading-tight line-clamp-2">Minhas Contas</p>
+                    <p class="text-[10px] text-slate-500 truncate mt-0.5">Saldos e extratos</p>
+                </div>
+            </a>
+
+            <a href="{% url 'wallets_web:credit_card_dashboard' %}" class="flex items-center space-x-3 p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200/70 active:scale-98 transition group">
+                <div class="w-9 h-9 rounded-xl bg-violet-500/10 text-violet-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-[11px] sm:text-xs font-bold text-slate-900 group-hover:text-indigo-600 leading-tight line-clamp-2">Cartões de Crédito</p>
+                    <p class="text-[10px] text-slate-500 truncate mt-0.5">Faturas e parcelas</p>
+                </div>
+            </a>
+
+            <a href="{% url 'transactions_web:category_list' %}" class="flex items-center space-x-3 p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200/70 active:scale-98 transition group">
+                <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-[11px] sm:text-xs font-bold text-slate-900 group-hover:text-indigo-600 leading-tight line-clamp-2">Categorias & Tags</p>
+                    <p class="text-[10px] text-slate-500 truncate mt-0.5">Organização</p>
+                </div>
+            </a>
+
+            <a href="{% url 'reports' %}" class="flex items-center space-x-3 p-3 rounded-2xl bg-slate-50 hover:bg-indigo-50/70 border border-slate-200/70 active:scale-98 transition group">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-[11px] sm:text-xs font-bold text-slate-900 group-hover:text-indigo-600 leading-tight line-clamp-2">Relatórios</p>
+                    <p class="text-[10px] text-slate-500 truncate mt-0.5">Gráficos e CSV</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- User Info & Logout -->
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center font-bold text-xs text-indigo-600 shrink-0">
+                    {{ user.first_name|default:user.username|slice:":1"|upper }}
+                </div>
+                <div class="min-w-0">
+                    <p class="text-xs font-bold text-slate-900 truncate">{{ user.get_full_name|default:user.username }}</p>
+                    <p class="text-[10px] text-slate-400 truncate">{{ user.email|default:user.username }}</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 shrink-0">
+                <a href="{% url 'users_web:settings' %}" aria-label="Configurações" title="Configurações" class="p-2 rounded-xl text-slate-500 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+                </a>
+                <a href="{% url 'users_web:logout' %}" class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-500 bg-rose-50 hover:bg-rose-100 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span>Sair</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+

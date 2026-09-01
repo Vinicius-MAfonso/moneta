@@ -10,8 +10,7 @@
             </button>
         </div>
 
-        <form hx-post="{% if transaction %}{% url 'transactions_web:edit' transaction.id %}{% else %}{% url 'transactions_web:create' %}{% endif %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { document.getElementById('filter-form') ? document.getElementById('filter-form').dispatchEvent(new Event('submit')) : window.location.reload(); this.closest('.fixed').remove(); }">
-            {% csrf_token %}
+        <form hx-post="{% if transaction %}{% url 'transactions_web:edit' transaction.id %}{% else %}{% url 'transactions_web:create' %}{% endif %}" hx-target="#modal-container" hx-on::after-request="window.afterModalSubmit(event)">
             <input type="hidden" name="tx_type" :value="txType">
 
             <div class="mb-6 col-span-1 md:col-span-2">

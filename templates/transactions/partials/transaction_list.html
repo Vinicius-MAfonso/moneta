@@ -1,3 +1,4 @@
+{% load transaction_tags %}
 <div class="space-y-4">
     <!-- Monthly Net Balance Header -->
     <div class="flex items-center justify-center py-1">
@@ -14,14 +15,14 @@
         <table class="w-full text-left text-sm text-slate-700">
             <thead class="text-xs uppercase bg-slate-100 text-slate-600 border-b border-slate-200 whitespace-nowrap">
                 <tr>
-                    <th class="px-2.5 py-2.5 font-semibold">Descrição</th>
-                    <th class="px-2.5 py-2.5 font-semibold">Categoria</th>
-                    <th class="px-2.5 py-2.5 font-semibold">Conta</th>
-                    <th class="px-2.5 py-2.5 font-semibold">Tags</th>
-                    <th class="px-2.5 py-2.5 font-semibold">Data</th>
-                    <th class="px-2.5 py-2.5 font-semibold">Status</th>
-                    <th class="px-2.5 py-2.5 font-semibold text-right">Valor</th>
-                    <th class="px-2.5 py-2.5 font-semibold text-center">Ações</th>
+                    <th scope="col" class="px-2.5 py-2.5 font-semibold">Descrição</th>
+                    <th scope="col" class="px-2.5 py-2.5 font-semibold">Categoria</th>
+                    <th scope="col" class="px-2.5 py-2.5 font-semibold">Conta</th>
+                    <th scope="col" class="px-2.5 py-2.5 font-semibold">Tags</th>
+                    <th scope="col" class="px-2.5 py-2.5 font-semibold">Data</th>
+                    <th scope="col" class="px-2.5 py-2.5 font-semibold">Status</th>
+                    <th scope="col" class="px-2.5 py-2.5 font-semibold text-right">Valor</th>
+                    <th scope="col" class="px-2.5 py-2.5 font-semibold text-center">Ações</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-200 whitespace-nowrap">
@@ -44,15 +45,7 @@
                             {% endif %}
                         </td>
                         <td class="px-2.5 py-2.5 align-middle text-xs text-slate-500 max-w-[120px] truncate">
-                            {% if tx.related_bill_payment %}
-                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-200 whitespace-nowrap" style="border-left: 3px solid #8B5CF6;">
-                                    <span>💳</span><span>Fatura Paga</span>
-                                </span>
-                            {% else %}
-                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 whitespace-nowrap" style="border-left: 3px solid {{ tx.category.color }};">
-                                    {% if tx.category.icon %}<span>{{ tx.category.icon }}</span>{% endif %}<span class="truncate">{{ tx.category.name }}</span>
-                                </span>
-                            {% endif %}
+                            {% include 'partials/category_chip.html' with category=tx.category is_bill_payment=tx.related_bill_payment %}
                         </td>
                         <td class="px-2.5 py-2.5 align-middle text-xs text-slate-500 max-w-[120px] truncate">
                             <div class="flex items-center space-x-1.5 whitespace-nowrap">
@@ -64,8 +57,8 @@
                             {% with tags=tx.tags.all %}
                             <div class="flex flex-wrap gap-1">
                                 {% for tag in tags %}
-                                    <span class="inline-flex items-center space-x-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold border text-slate-800 shadow-sm" style="background-color: {{ tag.color }}20; border-color: {{ tag.color }}50;">
-                                        <span class="w-1.5 h-1.5 rounded-full shadow-sm shrink-0" style="background-color: {{ tag.color }}; border: 1px solid {{ tag.color }}80;"></span>
+                                    <span class="inline-flex items-center space-x-1.5 px-1.5 py-0.5 rounded-md text-[10px] font-semibold border text-slate-800 shadow-sm" style="background-color: {{ tag.color|hex_alpha:'20' }}; border-color: {{ tag.color|hex_alpha:'50' }};">
+                                        <span class="w-1.5 h-1.5 rounded-full shadow-sm shrink-0" style="background-color: {{ tag.color }}; border: 1px solid {{ tag.color|hex_alpha:'80' }};"></span>
                                         <span class="truncate max-w-[60px]">{{ tag.name }}</span>
                                     </span>
                                 {% empty %}
@@ -76,12 +69,10 @@
                         </td>
                         <td class="px-2.5 py-2.5 align-middle text-xs text-slate-500 whitespace-nowrap">{{ tx.date|date:"d/m/Y" }}</td>
                         <td class="px-2.5 py-2.5 align-middle whitespace-nowrap">
-                            <span class="px-2 py-0.5 text-xs rounded-full font-medium {% if tx.status == 'concluída' %}bg-emerald-500/10 text-emerald-600 border border-emerald-500/20{% else %}bg-amber-500/10 text-amber-600 border border-amber-500/20{% endif %}">
-                                {{ tx.get_status_display }}
-                            </span>
+                            {% include 'partials/tx_status_badge.html' with status=tx.status label=tx.get_status_display %}
                         </td>
-                        <td class="px-2.5 py-2.5 align-middle text-right font-bold whitespace-nowrap {% if tx.category.type == 'receita' %}text-emerald-600{% elif tx.category.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
-                            {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
+                        <td class="px-2.5 py-2.5 align-middle text-right font-bold whitespace-nowrap {{ tx.category.type|tx_color_class }}">
+                            {{ tx.category.type|amount_sign }} R$ {{ tx.amount|floatformat:2 }}
                         </td>
                         <td class="px-2.5 py-2.5 align-middle text-center whitespace-nowrap">
                             <div class="flex items-center justify-center space-x-1">
@@ -91,14 +82,14 @@
                                     </a>
                                 {% else %}
                                     {% if tx.status == 'pendente' %}
-                                        <button hx-get="{% url 'transactions_web:pay' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-emerald-500 transition rounded-lg hover:bg-emerald-500/10" title="Efetivar">
+                                        <button hx-get="{% url 'transactions_web:pay' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-emerald-500 transition rounded-lg hover:bg-emerald-500/10" title="Efetivar" aria-label="Efetivar transação">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                         </button>
                                     {% endif %}
-                                    <button hx-get="{% url 'transactions_web:edit' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-indigo-500 transition rounded-lg hover:bg-indigo-500/10" title="Editar">
+                                    <button hx-get="{% url 'transactions_web:edit' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-indigo-500 transition rounded-lg hover:bg-indigo-500/10" title="Editar" aria-label="Editar transação">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                     </button>
-                                    <button hx-get="{% url 'transactions_web:confirm_delete' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10" title="Excluir">
+                                    <button hx-get="{% url 'transactions_web:confirm_delete' tx.id %}" hx-target="#modal-container" class="p-1 text-slate-400 hover:text-rose-500 transition rounded-lg hover:bg-rose-500/10" title="Excluir" aria-label="Excluir transação">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                     </button>
                                 {% endif %}
@@ -133,7 +124,7 @@
                         <div class="p-3.5 flex items-center justify-between gap-3 hover:bg-slate-50/80 transition" id="mobile-tx-{{ tx.id }}">
                             <!-- Category / Bill Icon -->
                             <div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-lg shadow-sm"
-                                 style="background-color: {% if tx.related_bill_payment %}#8B5CF620{% else %}{{ tx.category.color }}20{% endif %}; color: {% if tx.related_bill_payment %}#8B5CF6{% else %}{{ tx.category.color }}{% endif %};">
+                                 style="background-color: {% if tx.related_bill_payment %}#8B5CF620{% else %}{{ tx.category.color|hex_alpha:'20' }}{% endif %}; color: {% if tx.related_bill_payment %}#8B5CF6{% else %}{{ tx.category.color }}{% endif %};">
                                 {% if tx.related_bill_payment %}
                                     <span>💳</span>
                                 {% elif tx.category.icon %}
@@ -169,8 +160,8 @@
 
                             <!-- Right: Amount, Status and Actions -->
                             <div class="flex flex-col items-end shrink-0 gap-1">
-                                <p class="text-sm font-extrabold {% if tx.category.type == 'receita' %}text-emerald-600{% elif tx.category.type == 'despesa' %}text-rose-600{% else %}text-indigo-600{% endif %}">
-                                    {% if tx.category.type == 'receita' %}+{% elif tx.category.type == 'despesa' %}-{% endif %} R$ {{ tx.amount|floatformat:2 }}
+                                <p class="text-sm font-extrabold {{ tx.category.type|tx_color_class }}">
+                                    {{ tx.category.type|amount_sign }} R$ {{ tx.amount|floatformat:2 }}
                                 </p>
                                 <div class="flex items-center gap-1.5">
                                     {% if tx.related_bill_payment %}
