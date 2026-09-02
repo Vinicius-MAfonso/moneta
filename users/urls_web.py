@@ -13,8 +13,8 @@ urlpatterns = [
     path('import/', views.import_file_view, name='import_file'),
     path('import/ofx/', views.import_file_view, name='import_ofx'),
     path('import/review/', views.import_review_view, name='import_review'),
-    path('push/subscribe/', views.save_push_subscription, name='save_push_subscription'),
-    path('push/unsubscribe/', views.delete_push_subscription, name='delete_push_subscription'),
+    path('notifications/', views.notifications_list, name='notifications_list'),
+    path('notifications/read/', views.notifications_mark_read, name='notifications_mark_read'),
 
     path('password_reset/', auth_views.PasswordResetView.as_view(
         template_name='users/password_reset_form.html',

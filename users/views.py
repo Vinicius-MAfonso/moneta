@@ -9,11 +9,11 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.html import strip_tags
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from transactions.models import Category
 from wallets.models import Account
 
-from .models import PushSubscription
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -215,45 +215,28 @@ def import_review_view(request):
 
 
 @login_required
-def save_push_subscription(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            endpoint = data.get('endpoint')
-            keys = data.get('keys', {})
-            p256dh = keys.get('p256dh')
-            auth = keys.get('auth')
 
-            if not endpoint or not p256dh or not auth:
-                return JsonResponse({'status': 'error', 'message': 'Invalid subscription payload'}, status=400)
 
-            PushSubscription.objects.update_or_create(
-                user=request.user,
-                endpoint=endpoint,
-                defaults={
-                    'p256dh': p256dh,
-                    'auth': auth,
-                }
-            )
-
-            return JsonResponse({'status': 'success', 'message': 'Subscription saved'})
-        except Exception:
-            logger.exception("Erro ao salvar assinatura push.")
-            return JsonResponse({'status': 'error', 'message': 'Falha ao processar assinatura push.'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-
+def notifications_list(request):
+    from .models import Notification
+    notifications = Notification.objects.filter(user=request.user)[:10]
+    unread_notifications_count = Notification.objects.filter(user=request.user, is_read=False).count()
+    return render(request, 'users/partials/notification_list.html', {
+        'notifications': notifications,
+        'unread_notifications_count': unread_notifications_count
+    })
 
 @login_required
-def delete_push_subscription(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            endpoint = data.get('endpoint')
-            if endpoint:
-                PushSubscription.objects.filter(user=request.user, endpoint=endpoint).delete()
-            return JsonResponse({'status': 'success', 'message': 'Subscription deleted'})
-        except Exception:
-            logger.exception("Erro ao remover assinatura push.")
-            return JsonResponse({'status': 'error', 'message': 'Falha ao remover assinatura push.'}, status=400)
-    return JsonResponse({'status': 'error', 'message': 'Invalid method'}, status=405)
-
+@require_POST
+def notifications_mark_read(request):
+    from .models import Notification
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    
+    if request.headers.get('HX-Request'):
+        # Return empty with an HTMX trigger if needed, or re-render the list
+        notifications = Notification.objects.filter(user=request.user)[:10]
+        return render(request, 'users/partials/notification_list.html', {
+            'notifications': notifications,
+            'unread_notifications_count': 0
+        })
+    return redirect('dashboard')

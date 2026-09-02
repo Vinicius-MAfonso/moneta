@@ -1,0 +1,53 @@
+{% if notifications %}
+    {% for notif in notifications %}
+        <div class="px-4 py-3 border-b border-slate-100 {% if not notif.is_read %}bg-indigo-50/50{% else %}bg-white{% endif %} transition-colors">
+            <div class="flex items-start justify-between">
+                <div class="flex-1 pr-2">
+                    <p class="text-sm font-semibold {% if not notif.is_read %}text-indigo-900{% else %}text-slate-700{% endif %}">
+                        {{ notif.title }}
+                    </p>
+                    <p class="text-xs text-slate-500 mt-1 line-clamp-2">{{ notif.message }}</p>
+                    <p class="text-[10px] text-slate-400 mt-2">{{ notif.created_at|date:"d M, H:i" }}</p>
+                </div>
+                {% if not notif.is_read %}
+                <div class="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0"></div>
+                {% endif %}
+            </div>
+            {% if notif.url %}
+            <div class="mt-2">
+                <a href="{{ notif.url }}" class="text-xs font-medium text-indigo-600 hover:text-indigo-700">Ver detalhes &rarr;</a>
+            </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+    <div class="px-4 py-2 border-t border-slate-100 bg-slate-50 text-center sticky bottom-0">
+        <button hx-post="{% url 'users_web:notifications_mark_read' %}" 
+                hx-target="#notification-list-container" 
+                class="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors">
+            Marcar todas como lidas
+        </button>
+    </div>
+{% else %}
+    <div class="px-4 py-8 text-center">
+        <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3">
+            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+        </div>
+        <p class="text-sm text-slate-500">Nenhuma notificação</p>
+    </div>
+{% endif %}
+
+<!-- Atualizador do Badge (Out of Band) -->
+
+<div id="notification-badge-desktop" hx-swap-oob="true">
+    {% if unread_notifications_count and unread_notifications_count > 0 %}
+        <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full"></span>
+    {% endif %}
+</div>
+<div id="notification-badge-mobile" hx-swap-oob="true">
+    {% if unread_notifications_count and unread_notifications_count > 0 %}
+        <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full"></span>
+    {% endif %}
+</div>
+

@@ -1,6 +1,5 @@
 import csv
 import io
-import json
 import logging
 import re
 import unicodedata
@@ -8,10 +7,8 @@ import uuid
 from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
-from django.conf import settings
 from django.db import transaction as db_transaction
 from ofxparse import OfxParser
-from pywebpush import WebPushException, webpush
 
 from transactions.models import Category, Transaction
 from transactions.services import get_user_description_habits
@@ -528,33 +525,10 @@ process_ofx_transactions = process_import_transactions
 
 
 def send_push_notification(user, title, body, url='/dashboard/'):
-    subscriptions = user.push_subscriptions.all()
-    if not subscriptions.exists():
-        return
-
-    payload = json.dumps({
-        'title': title,
-        'body': body,
-        'url': url
-    })
-
-    for sub in subscriptions:
-        try:
-            webpush(
-                subscription_info={
-                    "endpoint": sub.endpoint,
-                    "keys": {
-                        "p256dh": sub.p256dh,
-                        "auth": sub.auth
-                    }
-                },
-                data=payload,
-                vapid_private_key=str(settings.VAPID_PRIVATE_KEY),
-                vapid_claims={
-                    "sub": f"mailto:{settings.VAPID_ADMIN_EMAIL.replace('mailto:', '')}"
-                }
-            )
-        except WebPushException as ex:
-            if ex.response is not None and ex.response.status_code in [404, 410]:
-                sub.delete()
-            logger.warning("Falha ao entregar notificação push para subscription ID %s: %s", getattr(sub, 'pk', None), ex)
+    from .models import Notification
+    Notification.objects.create(
+        user=user,
+        title=title,
+        message=body,
+        url=url
+    )
