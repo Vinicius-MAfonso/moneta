@@ -3,7 +3,8 @@ from datetime import date
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.db import models, transaction as db_transaction
+from django.db import models
+from django.db import transaction as db_transaction
 from django.utils import timezone
 from django.utils.html import strip_tags
 

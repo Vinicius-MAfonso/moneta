@@ -10,7 +10,6 @@ from moneta.common import TransactionType
 from planning.models import Budget, Goal
 from planning.services import (
     calculate_budget_progress,
-    calculate_budgets_progress_bulk,
     create_budget,
     create_goal,
     deposit_to_goal,
@@ -307,7 +306,7 @@ class PlanningWebTestCase(TestCase):
         self.assertFalse(budget.is_warning_notified)
 
     def test_get_active_budgets_and_bulk_progress(self):
-        budget = Budget.objects.create(
+        _ = Budget.objects.create(
             user=self.user,
             category=self.category,
             amount=Decimal('500.00'),
@@ -326,7 +325,7 @@ class PlanningWebTestCase(TestCase):
 
     def test_budget_overlapping_validation(self):
         # Recurring budget
-        Budget.objects.create(
+        _ = Budget.objects.create(
             user=self.user, category=self.category, amount=Decimal('500.00'),
             is_recurring=True, start_date='2026-08-01'
         )

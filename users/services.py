@@ -353,7 +353,7 @@ def parse_ofx_file(ofx_file):
                     decoded = content.decode(encoding)
                     ofx = OfxParser.parse(io.StringIO(decoded))
                     break
-                except Exception:
+                except Exception:  # noqa: S112
                     continue
             else:
                 raise

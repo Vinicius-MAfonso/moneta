@@ -1,4 +1,5 @@
 import json
+import re
 from decimal import Decimal
 
 from django.contrib import messages
@@ -22,7 +23,6 @@ from .services import (
     delete_category,
     delete_transaction,
     update_transaction,
-    update_transfer,
 )
 
 
@@ -290,6 +290,7 @@ def transaction_update_view(request, pk):
             if form.is_valid():
                 cd = form.cleaned_data
                 from django.core.exceptions import ValidationError
+
                 from .services import update_transfer
                 try:
                     update_transfer(transfer, cd)

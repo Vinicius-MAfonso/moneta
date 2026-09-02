@@ -91,8 +91,8 @@ def budget_create_view(request):
                 return response
             messages.error(request, msg)
             return redirect('planning_web:list')
-        except Exception as e:
-            logger.exception(f"Erro inesperado ao criar orçamento: {e}")
+        except Exception:
+            logger.exception("Erro inesperado ao criar orçamento: ")
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': "Erro inesperado ao criar orçamento.", 'type': 'error'}})
@@ -162,8 +162,8 @@ def goal_create_view(request):
                 return response
             messages.error(request, msg)
             return redirect('planning_web:list')
-        except Exception as e:
-            logger.exception(f"Erro inesperado ao criar objetivo: {e}")
+        except Exception:
+            logger.exception("Erro inesperado ao criar objetivo: ")
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': "Erro inesperado ao criar objetivo.", 'type': 'error'}})
@@ -199,8 +199,8 @@ def goal_deposit_view(request, pk):
                 return response
             messages.error(request, msg)
             return redirect('planning_web:list')
-        except Exception as e:
-            logger.exception(f"Erro inesperado ao depositar no objetivo: {e}")
+        except Exception:
+            logger.exception("Erro inesperado ao depositar no objetivo: ")
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': "Erro inesperado ao realizar depósito.", 'type': 'error'}})

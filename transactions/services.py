@@ -1,5 +1,6 @@
 import calendar
 from datetime import date, timedelta
+
 from django.utils import timezone
 from django.utils.html import strip_tags
 
@@ -203,13 +204,15 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
 
 
 def update_transfer(transfer, validated_data):
-    if 'description' in validated_data and validated_data['description']:
+    if validated_data.get('description'):
         validated_data['description'] = strip_tags(validated_data['description']).strip()
 
     import re
+
     from django.core.exceptions import ValidationError
     from django.db import transaction as db_transaction
     from django.shortcuts import get_object_or_404
+
     from wallets.models import Account
     from wallets.services import recalculate_account_balance
 
@@ -374,9 +377,9 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
 
 
 def update_transaction(transaction, validated_data):
-    if 'description' in validated_data and validated_data['description']:
+    if validated_data.get('description'):
         validated_data['description'] = strip_tags(validated_data['description']).strip()
-    if 'notes' in validated_data and validated_data['notes']:
+    if validated_data.get('notes'):
         validated_data['notes'] = strip_tags(validated_data['notes']).strip()
 
     from django.core.exceptions import ValidationError
@@ -482,9 +485,11 @@ def update_transaction(transaction, validated_data):
 
 def delete_transaction(user, transaction_id, delete_mode='single'):
     from datetime import timedelta
+
     from django.core.exceptions import ValidationError
     from django.db import transaction as db_transaction
     from django.shortcuts import get_object_or_404
+
     from transactions.models import Transaction
     from wallets.services import recalculate_account_balance
 
@@ -532,6 +537,7 @@ def delete_category(user, category_id, action='delete', fallback_category_id=Non
     from django.db import models
     from django.db import transaction as db_transaction
     from django.shortcuts import get_object_or_404
+
     from transactions.models import Category
 
     with db_transaction.atomic():

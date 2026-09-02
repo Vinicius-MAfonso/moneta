@@ -223,6 +223,7 @@ class ImportStatementTestCase(TestCase):
 
     def test_parse_ofx_variations(self):
         import io
+
         from users.services import parse_ofx_file
 
         # 1. OFX with <MEMO> only (Nubank / standard Brazilian export)

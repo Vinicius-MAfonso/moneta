@@ -412,9 +412,13 @@ class WalletsServicesTestCase(TestCase):
 
     def test_calculate_balances_for_dates_batch(self):
         import datetime
+
         from moneta.common import TransactionType
         from transactions.models import Category, Transaction
-        from wallets.services import calculate_balance_at_date, calculate_balances_for_dates
+        from wallets.services import (
+            calculate_balance_at_date,
+            calculate_balances_for_dates,
+        )
 
         account = Account.objects.create(
             user=self.user, name='Conta Corrente Teste', type=Account.Types.CHECKING, initial_balance=Decimal('1000.00')
@@ -449,6 +453,7 @@ class WalletsServicesTestCase(TestCase):
 
     def test_pay_credit_card_bill_idor_prevention(self):
         import datetime
+
         from moneta.common import TransactionType
         from transactions.models import Category, Transaction
         from wallets.services import (
@@ -478,6 +483,7 @@ class WalletsServicesTestCase(TestCase):
 
     def test_bill_summary_single_query_and_caching(self):
         import datetime
+
         from moneta.common import TransactionType
         from transactions.models import Category, Transaction
         from wallets.services import (

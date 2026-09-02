@@ -545,6 +545,7 @@ class TransactionServicesTestCase(TestCase):
         )
 
         from django.http import Http404
+
         from transactions.services import update_transaction
 
         # Attempting to assign other_user's account must raise 404
