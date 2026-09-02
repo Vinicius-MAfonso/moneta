@@ -1,0 +1,10 @@
+<div class="h-10 inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-xl px-2.5 shadow-sm text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap {{ extra_class }}">
+    <a href="{{ prev_url }}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+        <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+    </a>
+    <span class="px-1.5 min-w-[90px] md:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs sm:text-sm whitespace-nowrap">{{ month_label }}</span>
+    <a href="{{ next_url }}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
+        <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+    </a>
+</div>
+
