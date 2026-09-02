@@ -1,7 +1,7 @@
 import calendar
 from datetime import date, timedelta
-
 from django.utils import timezone
+from django.utils.html import strip_tags
 
 
 def add_months(orig_date, months=1):
@@ -117,6 +117,8 @@ def process_recurring_transactions(user, target_end_date=None):
 
 
 def create_transfer(user, out_account_id, in_account_id, description, amount, tx_date, status, tag_ids=None, is_recurring=False, frequency='monthly', recurring_end_date=None):
+    description = strip_tags(description).strip() if description else description
+
     from django.db import transaction as db_transaction
     from django.shortcuts import get_object_or_404
     from django_q.tasks import async_task
@@ -201,6 +203,9 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
 
 
 def update_transfer(transfer, validated_data):
+    if 'description' in validated_data and validated_data['description']:
+        validated_data['description'] = strip_tags(validated_data['description']).strip()
+
     import re
     from django.core.exceptions import ValidationError
     from django.db import transaction as db_transaction
@@ -259,6 +264,8 @@ def update_transfer(transfer, validated_data):
 
 
 def create_regular_transaction(user, account_id, category_id, description, amount, tx_date, status, tag_ids=None, is_recurring=False, frequency='monthly', recurring_end_date=None, installments=1):
+    description = strip_tags(description).strip() if description else description
+    
     from decimal import Decimal
     
     from django.db import models
@@ -367,6 +374,11 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
 
 
 def update_transaction(transaction, validated_data):
+    if 'description' in validated_data and validated_data['description']:
+        validated_data['description'] = strip_tags(validated_data['description']).strip()
+    if 'notes' in validated_data and validated_data['notes']:
+        validated_data['notes'] = strip_tags(validated_data['notes']).strip()
+
     from django.core.exceptions import ValidationError
     from django.db import models
     from django.db import transaction as db_transaction

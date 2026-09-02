@@ -5,6 +5,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models, transaction as db_transaction
 from django.utils import timezone
+from django.utils.html import strip_tags
 
 from moneta.common import TransactionType
 from planning.models import Budget, Goal
@@ -252,6 +253,8 @@ def delete_budget(budget):
 
 
 def create_goal(user, name, target_amount, current_amount, start_date, end_date=None, account=None):
+    name = strip_tags(name).strip() if name else name
+
     if not end_date:
         raise ValidationError("A data de término é obrigatória.")
         

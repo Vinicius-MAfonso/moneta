@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.db import models
+from django.utils.html import strip_tags
 
 
 def recalculate_account_balance(account):
@@ -491,6 +492,10 @@ def update_account(account, validated_data):
     """
     Update account data including credit card specifics if applicable.
     """
+    if 'name' in validated_data:
+        validated_data['name'] = strip_tags(validated_data['name']).strip()
+    if 'institution' in validated_data and validated_data['institution']:
+        validated_data['institution'] = strip_tags(validated_data['institution']).strip()
 
     account.name = validated_data['name']
     account.institution = validated_data['institution']
@@ -578,6 +583,11 @@ def create_account(user, account_data):
     from django.db import transaction
 
     from wallets.models import Account, CreditCardDetails
+
+    if 'name' in account_data:
+        account_data['name'] = strip_tags(account_data['name']).strip()
+    if 'institution' in account_data and account_data['institution']:
+        account_data['institution'] = strip_tags(account_data['institution']).strip()
 
     with transaction.atomic():
         account = Account.objects.create(
