@@ -265,3 +265,43 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
+
+window.monetaCharts = window.monetaCharts || {};
+
+window.afterModalSubmit = function(event) {
+    if (event && event.detail && event.detail.successful) {
+        const filterForm = document.getElementById('filter-form');
+        if (filterForm) {
+            filterForm.dispatchEvent(new Event('submit'));
+        } else {
+            window.location.reload();
+        }
+        const modal = event.target ? event.target.closest('.fixed') : null;
+        if (modal) {
+            modal.remove();
+        }
+    }
+};
+
+window.initChartWhenReady = window.initChartWhenReady || function(canvasId, renderFn) {
+    function tryInit() {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        if (typeof Chart === 'undefined') {
+            setTimeout(tryInit, 50);
+            return;
+        }
+        renderFn(canvas);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener("DOMContentLoaded", tryInit);
+    } else {
+        tryInit();
+    }
+    document.addEventListener("htmx:afterSettle", function(evt) {
+        if (document.getElementById(canvasId)) {
+            tryInit();
+        }
+    });
+};
