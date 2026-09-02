@@ -1,0 +1,25 @@
+{% extends "users/auth_base.html" %}
+
+{% block title %}Página não encontrada - Moneta{% endblock %}
+{% block subtitle %}Ops! A página que você tentou acessar não existe.{% endblock %}
+
+{% block content %}
+<div class="bg-white border border-slate-200 p-8 rounded-3xl shadow-2xl space-y-6 text-center">
+    
+    <div class="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+    </div>
+
+    <h2 class="text-xl font-bold text-slate-800">404 - Não Encontrado</h2>
+    <p class="text-sm text-slate-500 mb-6">
+        O link pode estar quebrado ou a página foi removida.
+    </p>
+
+    <a href="{% url 'dashboard' %}" class="block w-full py-3.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm transition-all shadow-lg shadow-indigo-600/30 mt-2">
+        Voltar para o Início
+    </a>
+</div>
+{% endblock %}
+

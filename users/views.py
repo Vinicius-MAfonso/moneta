@@ -7,6 +7,7 @@ from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.html import strip_tags
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from transactions.models import Category
@@ -52,9 +53,9 @@ def register_view(request):
         return redirect('dashboard')
 
     if request.method == 'POST':
-        username = request.POST.get('username')
-        first_name = request.POST.get('first_name', '')
-        last_name = request.POST.get('last_name', '')
+        username = strip_tags(request.POST.get('username', '')).strip()
+        first_name = strip_tags(request.POST.get('first_name', '')).strip()
+        last_name = strip_tags(request.POST.get('last_name', '')).strip()
         email = request.POST.get('email')
         password = request.POST.get('password')
         password_confirm = request.POST.get('password_confirm')
@@ -96,8 +97,8 @@ def logout_view(request):
 def settings_view(request):
     if request.method == 'POST':
         user = request.user
-        user.first_name = request.POST.get('first_name', user.first_name)
-        user.last_name = request.POST.get('last_name', user.last_name)
+        user.first_name = strip_tags(request.POST.get('first_name', user.first_name)).strip()
+        user.last_name = strip_tags(request.POST.get('last_name', user.last_name)).strip()
         user.email = request.POST.get('email', user.email)
         user.save()
         messages.success(request, 'Perfil e preferências atualizados com sucesso!')

@@ -384,3 +384,6 @@ def export_transactions_csv_view(request):
     ).select_related('category', 'account').order_by('-date', '-created_at')
 
     return generate_csv_export(transactions)
+
+def custom_404_view(request, exception):
+    return render(request, '404.html', status=404)
