@@ -62,8 +62,12 @@ def cron_notify_bills_view(request):
     """Executa a notificação de faturas a vencer de forma síncrona."""
     if not _verify_cron_auth(request):
         return JsonResponse({'error': 'Unauthorized'}, status=401)
-    from wallets.tasks import notify_due_credit_card_bills
+    from wallets.tasks import (
+        notify_due_credit_card_bills,
+        update_and_notify_closed_credit_card_bills,
+    )
     try:
+        update_and_notify_closed_credit_card_bills()
         notify_due_credit_card_bills()
         return JsonResponse({'status': 'ok', 'task': 'notify_due_credit_card_bills'})
     except Exception:
@@ -77,9 +81,10 @@ def cron_notify_budgets_view(request):
     """Executa a notificação de avisos de orçamento de forma síncrona."""
     if not _verify_cron_auth(request):
         return JsonResponse({'error': 'Unauthorized'}, status=401)
-    from planning.tasks import notify_budget_warnings
+    from planning.tasks import notify_budget_warnings, notify_goal_progress
     try:
         notify_budget_warnings()
+        notify_goal_progress()
         return JsonResponse({'status': 'ok', 'task': 'notify_budget_warnings'})
     except Exception:
         logger.exception("Erro ao notificar orçamentos via cron.")
