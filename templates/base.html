@@ -108,7 +108,7 @@
         {% include 'components/notification_bell.html' with bell_id="mobile" %}
     </header>
 
-    <aside class="hidden md:flex flex-col justify-between w-64 bg-white/90 border-r border-slate-200 p-4 glass-panel shrink-0">
+    <aside class="hidden relative z-40 md:flex flex-col justify-between w-64 bg-white/90 border-r border-slate-200 p-4 glass-panel shrink-0">
         <div>
             <div class="flex items-center justify-between px-2 py-4 mb-4 w-full">
                 <div
@@ -124,7 +124,7 @@
                 <div>
                     <span class="font-bold text-xl text-slate-900 tracking-tight block">Moneta</span>
                 </div>
-                {% include 'components/notification_bell.html' with bell_id="mobile" %}
+                {% include 'components/notification_bell.html' with bell_id="desktop" dropdown_class="left-0" %}
             </div>
 
             <nav class="space-y-1">

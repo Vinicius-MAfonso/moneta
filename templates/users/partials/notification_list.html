@@ -22,7 +22,7 @@
     {% endfor %}
     <div class="px-4 py-2 border-t border-slate-100 bg-slate-50 text-center sticky bottom-0">
         <button hx-post="{% url 'users_web:notifications_mark_read' %}" 
-                hx-target="#notification-list-container" 
+                hx-target="closest .notification-list-container" 
                 class="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors">
             Marcar todas como lidas
         </button>
