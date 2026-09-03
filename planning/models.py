@@ -95,6 +95,7 @@ class Goal(models.Model):
     start_date = models.DateField(verbose_name='data de início')
     end_date = models.DateField(verbose_name='data de término')
     is_near_target_notified = models.BooleanField(default=False, verbose_name='notificado quase atingindo')
+    is_completed_notified = models.BooleanField(default=False, verbose_name='notificado conclusao')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='criado em')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='atualizado em')
 

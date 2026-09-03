@@ -441,9 +441,27 @@ def update_transaction(transaction, validated_data):
             transaction.recurring = None
             
         elif was_recurring and is_recurring:
-            if old_date != transaction.date:
-                transaction.recurring.ignore_date(old_date)
+            edit_mode = validated_data.get('edit_mode', 'single')
+            if edit_mode == 'future':
+                recurring = transaction.recurring
+                recurring.amount = transaction.amount
+                recurring.description = transaction.description
+                recurring.category = transaction.category
+                recurring.account = transaction.account
+                recurring.save(update_fields=['amount', 'description', 'category', 'account'])
+                
+                from transactions.models import Transaction
+                Transaction.objects.filter(
+                    recurring=recurring,
+                    date__gt=transaction.date,
+                    status=Transaction.Statuses.PENDING
+                ).delete()
+                
                 trigger_async_process = True
+            else:
+                if old_date != transaction.date:
+                    transaction.recurring.ignore_date(old_date)
+                    trigger_async_process = True
             
         elif not was_recurring and is_recurring:
             from transactions.models import RecurringTransaction

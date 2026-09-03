@@ -22,6 +22,7 @@ class TransactionForm(forms.Form):
     is_recurring = forms.BooleanField(required=False)
     frequency = forms.ChoiceField(choices=[('daily', 'Diária'), ('weekly', 'Semanal'), ('monthly', 'Mensal'), ('yearly', 'Anual')], required=False)
     recurring_end_date = forms.DateField(required=False)
+    edit_mode = forms.ChoiceField(choices=[('single', 'Apenas esta'), ('future', 'Esta e futuras')], required=False, initial='single')
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
