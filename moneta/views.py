@@ -124,17 +124,22 @@ def cron_wake_view(request):
         return JsonResponse({'error': 'Unauthorized'}, status=401)
 
     from moneta.tasks import check_and_send_alerts
-    from planning.tasks import notify_budget_warnings
+    from planning.tasks import notify_budget_warnings, notify_goal_progress
     from transactions.tasks import (
         notify_due_transactions,
         process_all_recurring_transactions,
     )
-    from wallets.tasks import notify_due_credit_card_bills
+    from wallets.tasks import (
+        notify_due_credit_card_bills,
+        update_and_notify_closed_credit_card_bills,
+    )
 
     tasks = [
         ('process_all_recurring_transactions', process_all_recurring_transactions),
+        ('update_and_notify_closed_credit_card_bills', update_and_notify_closed_credit_card_bills),
         ('notify_due_credit_card_bills', notify_due_credit_card_bills),
         ('notify_budget_warnings', notify_budget_warnings),
+        ('notify_goal_progress', notify_goal_progress),
         ('notify_due_transactions', notify_due_transactions),
         ('check_and_send_alerts', check_and_send_alerts),
     ]
