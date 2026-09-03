@@ -24,7 +24,7 @@ def notify_due_transactions():
             status=Transaction.Statuses.PENDING
         )
         .select_related('user', 'category')
-        .prefetch_related('user__push_subscriptions')
+        
     )
     
     user_map = {}
@@ -35,10 +35,6 @@ def notify_due_transactions():
         
     for user_id, txs in user_transactions.items():
         user = user_map[user_id]
-        subscriptions = user.push_subscriptions.all()
-        
-        if not subscriptions.exists():
-            continue
             
         count = len(txs)
         if count == 1:

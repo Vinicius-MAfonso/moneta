@@ -32,6 +32,12 @@ def send_welcome_email(user_id):
 
     msg = EmailMultiAlternatives(subject, text_content, from_email, [to_email])
     msg.attach_alternative(html_content, "text/html")
-    msg.send()
+    try:
+        msg.send()
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Erro ao enviar email de boas vindas para {to_email}: {e}")
+        return False
 
     return True
