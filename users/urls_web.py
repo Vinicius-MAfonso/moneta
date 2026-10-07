@@ -15,6 +15,7 @@ urlpatterns = [
     path('import/review/', views.import_review_view, name='import_review'),
     path('notifications/', views.notifications_list, name='notifications_list'),
     path('notifications/read/', views.notifications_mark_read, name='notifications_mark_read'),
+    path('notifications/clear/', views.notifications_clear, name='notifications_clear'),
 
     path('password_reset/', auth_views.PasswordResetView.as_view(
         template_name='users/password_reset_form.html',

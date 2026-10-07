@@ -240,3 +240,16 @@ def notifications_mark_read(request):
             'unread_notifications_count': 0
         })
     return redirect('dashboard')
+
+@login_required
+@require_POST
+def notifications_clear(request):
+    from .models import Notification
+    Notification.objects.filter(user=request.user).delete()
+    
+    if request.headers.get('HX-Request'):
+        return render(request, 'users/partials/notification_list.html', {
+            'notifications': [],
+            'unread_notifications_count': 0
+        })
+    return redirect('dashboard')
