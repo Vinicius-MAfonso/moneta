@@ -524,7 +524,7 @@ def process_import_transactions(user, account, transactions_data, request_post):
 process_ofx_transactions = process_import_transactions
 
 
-def send_push_notification(user, title, body, url='/dashboard/'):
+def send_notification(user, title, body, url='/dashboard/'):
     from .models import Notification
     Notification.objects.create(
         user=user,

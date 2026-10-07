@@ -105,7 +105,6 @@ def settings_view(request):
         return redirect('users_web:settings')
 
     context = {
-        'vapid_public_key': settings.VAPID_PUBLIC_KEY
     }
     return render(request, 'users/settings.html', context)
 

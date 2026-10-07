@@ -107,9 +107,6 @@ if not DEBUG:
         },
     }
 
-VAPID_PUBLIC_KEY = env('VAPID_PUBLIC_KEY', default='')
-VAPID_PRIVATE_KEY = env('VAPID_PRIVATE_KEY', default='')
-VAPID_ADMIN_EMAIL = env('VAPID_ADMIN_EMAIL', default='')
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=not DEBUG)

@@ -10,7 +10,7 @@ def notify_due_credit_card_bills():
 
     from django.utils import timezone
 
-    from users.services import send_push_notification
+    from users.services import send_notification
     from wallets.models import CreditCardBill
 
     tomorrow = timezone.now().date() + timedelta(days=1)
@@ -26,14 +26,14 @@ def notify_due_credit_card_bills():
         title = "Fatura Vencendo Amanhã!"
         body = f"A fatura do seu cartão {bill.account.name} vence amanhã. Acesse o Moneta para pagar."
         
-        send_push_notification(user, title, body, url='/wallets/')
+        send_notification(user, title, body, url='/wallets/')
         
         bill.is_due_tomorrow_notified = True
         bill.save(update_fields=['is_due_tomorrow_notified', 'updated_at'])
 
 def update_and_notify_closed_credit_card_bills():
     from django.utils import timezone
-    from users.services import send_push_notification
+    from users.services import send_notification
     from wallets.models import CreditCardBill
 
     today = timezone.now().date()
@@ -58,7 +58,7 @@ def update_and_notify_closed_credit_card_bills():
         title = "Fatura Fechada!"
         body = f"A fatura do seu cartão {bill.account.name} fechou. O melhor dia para compras começou!"
         
-        send_push_notification(user, title, body, url='/wallets/')
+        send_notification(user, title, body, url='/wallets/')
         
         bill.is_closed_notified = True
         bill.save(update_fields=['is_closed_notified', 'updated_at'])

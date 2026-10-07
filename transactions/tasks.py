@@ -5,7 +5,7 @@ from django.utils import timezone
 
 from transactions.models import Transaction
 from transactions.services import process_recurring_transactions
-from users.services import send_push_notification
+from users.services import send_notification
 
 User = get_user_model()
 
@@ -45,5 +45,5 @@ def notify_due_transactions():
             title = f"{count} Contas Vencendo Hoje!"
             body = f"Você tem {count} transações pendentes para hoje. Acesse o Moneta para conferir."
             
-        send_push_notification(user, title, body, url='/dashboard/')
+        send_notification(user, title, body, url='/dashboard/')
 
