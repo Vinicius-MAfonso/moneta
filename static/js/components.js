@@ -238,20 +238,53 @@ document.addEventListener('alpine:init', () => {
 
     Alpine.data('toastContainer', () => ({
         toasts: [],
-        addToast(message, type = 'success') {
+        init() {
+            // Toasts that were still visible when the previous page unloaded (e.g. a reload right
+            // after an HTMX action) are restored with their remaining lifetime.
+            try {
+                const pending = JSON.parse(sessionStorage.getItem(TOAST_STORAGE_KEY) || '[]');
+                sessionStorage.removeItem(TOAST_STORAGE_KEY);
+                pending.forEach(t => this.addToast(t.message, t.type, t.remaining));
+            } catch (e) {
+                sessionStorage.removeItem(TOAST_STORAGE_KEY);
+            }
+
+            // Django messages rendered server-side (full page loads / HX-Redirect flows).
+            const source = document.getElementById('django-messages');
+            if (source) {
+                source.content.querySelectorAll('[data-toast-message]').forEach(el => {
+                    this.addToast(el.dataset.toastMessage, el.dataset.toastType || 'info');
+                });
+            }
+
+            window.addEventListener('pagehide', () => this.persist());
+        },
+        persist() {
+            const now = Date.now();
+            const visible = this.toasts
+                .filter(t => t.show && t.expiresAt - now > TOAST_MIN_RESTORE_MS)
+                .map(t => ({ message: t.message, type: t.type, remaining: t.expiresAt - now }));
+            if (visible.length) {
+                sessionStorage.setItem(TOAST_STORAGE_KEY, JSON.stringify(visible));
+            } else {
+                sessionStorage.removeItem(TOAST_STORAGE_KEY);
+            }
+        },
+        addToast(message, type = 'success', duration = TOAST_DURATION_MS) {
             if (!message) return;
             const id = Date.now() + Math.random().toString(36).slice(2, 9);
             const toast = {
                 id,
                 message,
                 type,
-                show: true
+                show: true,
+                expiresAt: Date.now() + duration
             };
             this.toasts.push(toast);
 
             setTimeout(() => {
                 this.removeToast(id);
-            }, 4000);
+            }, duration);
         },
         removeToast(id) {
             const toast = this.toasts.find(t => t.id === id);
@@ -265,21 +298,43 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
+const TOAST_STORAGE_KEY = 'moneta_pending_toasts';
+const TOAST_DURATION_MS = 4000;
+const TOAST_MIN_RESTORE_MS = 500;
+
 
 window.monetaCharts = window.monetaCharts || {};
 
+function responseHasErrorToast(xhr) {
+    const header = xhr && xhr.getResponseHeader('HX-Trigger');
+    if (!header) return false;
+    try {
+        const toast = JSON.parse(header)['show-toast'];
+        return !!toast && (toast.type === 'error' || toast.type === 'danger');
+    } catch (e) {
+        return false;
+    }
+}
+
 window.afterModalSubmit = function(event) {
-    if (event && event.detail && event.detail.successful) {
-        const filterForm = document.getElementById('filter-form');
-        if (filterForm) {
-            filterForm.dispatchEvent(new Event('submit'));
-        } else {
-            window.location.reload();
-        }
-        const modal = event.target ? event.target.closest('.fixed') : null;
-        if (modal) {
-            modal.remove();
-        }
+    if (!event || !event.detail || !event.detail.successful) return;
+
+    const xhr = event.detail.xhr;
+    // Validation/business errors come back as 204 + error toast: keep the modal open so the
+    // user can fix the input instead of losing it to a reload.
+    if (responseHasErrorToast(xhr)) return;
+    // HTMX already navigates on these headers; reloading here would race with it.
+    if (xhr && (xhr.getResponseHeader('HX-Redirect') || xhr.getResponseHeader('HX-Refresh'))) return;
+
+    const filterForm = document.getElementById('filter-form');
+    if (filterForm) {
+        filterForm.dispatchEvent(new Event('submit'));
+    } else {
+        window.location.reload();
+    }
+    const modal = event.target ? event.target.closest('.fixed') : null;
+    if (modal) {
+        modal.remove();
     }
 };
 

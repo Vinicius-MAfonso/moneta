@@ -476,8 +476,6 @@ def transaction_delete_view(request, pk):
         messages.error(request, error_msg)
         return redirect('transactions_web:list')
 
-    messages.success(request, "Transação excluída com sucesso.")
-
     if request.headers.get('HX-Request'):
         response = HttpResponse(status=204)
         response['HX-Trigger'] = json.dumps({
@@ -485,6 +483,8 @@ def transaction_delete_view(request, pk):
             'show-toast': {'message': 'Transação excluída com sucesso.', 'type': 'success'}
         })
         return response
+
+    messages.success(request, "Transação excluída com sucesso.")
     referer = request.META.get('HTTP_REFERER')
     if referer and url_has_allowed_host_and_scheme(
         url=referer,

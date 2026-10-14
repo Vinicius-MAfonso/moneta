@@ -8,7 +8,7 @@
             </button>
         </div>
 
-        <form hx-post="{% url 'transactions_web:pay' transaction.id %}" hx-target="#modal-container" hx-on::after-request="if(event.detail.successful) { document.getElementById('filter-form') ? document.getElementById('filter-form').dispatchEvent(new Event('submit')) : window.location.reload(); this.closest('.fixed').remove(); }">
+        <form hx-post="{% url 'transactions_web:pay' transaction.id %}" hx-target="#modal-container" hx-on::after-request="window.afterModalSubmit(event)">
             {% csrf_token %}
             <input type="hidden" name="date" :value="dateValue">
 

@@ -1,18 +1,10 @@
 {% if messages %}
-    <script>
-        (function() {
-            const dispatchToasts = () => {
-                {% for msg in messages %}
-                    window.dispatchEvent(new CustomEvent('show-toast', { detail: { message: '{{ msg.message|escapejs }}', type: '{{ msg.tags }}' } }));
-                {% endfor %}
-            };
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                setTimeout(dispatchToasts, 100);
-            } else {
-                document.addEventListener('DOMContentLoaded', () => setTimeout(dispatchToasts, 100));
-            }
-        })();
-    </script>
+    {# Read by toastContainer.init() in static/js/components.js #}
+    <template id="django-messages">
+        {% for msg in messages %}
+            <span data-toast-message="{{ msg.message }}" data-toast-type="{{ msg.level_tag }}"></span>
+        {% endfor %}
+    </template>
 {% endif %}
 
 <div x-data="toastContainer()" 
@@ -21,7 +13,7 @@
 
     <template x-for="toast in toasts" :key="toast.id">
         <div x-show="toast.show"
-            x-transition:enter="transition ease-out duration-500 transform"
+            x-transition:enter="transition ease-out duration-200 transform"
             x-transition:enter-start="opacity-0 translate-x-12 scale-95"
             x-transition:enter-end="opacity-100 translate-x-0 scale-100"
             x-transition:leave="transition ease-in duration-300 transform"

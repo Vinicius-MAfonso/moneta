@@ -227,11 +227,11 @@ def reopen_bill_view(request, pk):
                 response['HX-Redirect'] = reverse('wallets_web:bill_detail', args=[bill.pk])
                 return response
         except Exception as e:
-            messages.error(request, f"Erro ao reabrir fatura: {e!s}")
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
                 response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro ao reabrir fatura: {e!s}', 'type': 'error'}})
                 return response
+            messages.error(request, f"Erro ao reabrir fatura: {e!s}")
 
     return redirect('wallets_web:bill_detail', pk=bill.pk)
 
