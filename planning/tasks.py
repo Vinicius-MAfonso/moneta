@@ -47,8 +47,9 @@ def notify_budget_warnings():
 
 def notify_goal_progress():
     from django.utils import timezone
-    from users.services import send_notification
+
     from planning.models import Goal
+    from users.services import send_notification
 
     today = timezone.now().date()
 

@@ -1,11 +1,8 @@
-import json
 import logging
 
-from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.html import strip_tags
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -13,7 +10,6 @@ from django.views.decorators.http import require_POST
 
 from transactions.models import Category
 from wallets.models import Account
-
 
 logger = logging.getLogger(__name__)
 User = get_user_model()

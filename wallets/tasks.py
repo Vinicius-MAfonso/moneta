@@ -33,6 +33,7 @@ def notify_due_credit_card_bills():
 
 def update_and_notify_closed_credit_card_bills():
     from django.utils import timezone
+
     from users.services import send_notification
     from wallets.models import CreditCardBill
 

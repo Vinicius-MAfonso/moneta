@@ -1,10 +1,12 @@
 import os
+
 import django
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "moneta.settings")
 django.setup()
 
-from wallets.tasks import update_and_notify_closed_credit_card_bills
 from planning.tasks import notify_goal_progress
+from wallets.tasks import update_and_notify_closed_credit_card_bills
 
 try:
     print("Running update_and_notify_closed_credit_card_bills...")
@@ -14,7 +16,7 @@ try:
     print("Running notify_goal_progress...")
     notify_goal_progress()
     print("Done.")
-except Exception as e:
+except Exception:
     import traceback
     traceback.print_exc()
 
