@@ -125,15 +125,40 @@ class TransactionsWebTestCase(TestCase):
 
     def test_transfer_web_create(self):
         payload = {
+            'tx_type': 'transferencia',
             'out_account': str(self.account1.id),
             'in_account': str(self.account2.id),
             'description': 'Transferência Poupança',
             'amount': '500.00',
             'date': '2026-08-07',
         }
-        res = self.client.post('/transactions/transfers/create/', data=payload)
+        res = self.client.post('/transactions/create/', data=payload)
         self.assertEqual(res.status_code, 302)
         self.assertTrue(Transfer.objects.filter(user=self.user).exists())
+
+    def test_transaction_pay_view(self):
+        tx = Transaction.objects.create(
+            user=self.user,
+            account=self.account1,
+            category=self.category,
+            description='Conta Pendente',
+            amount=Decimal('120.00'),
+            date='2026-08-10',
+            status=Transaction.Statuses.PENDING,
+        )
+        res = self.client.post(
+            f'/transactions/{tx.id}/pay/',
+            data={
+                'account': str(self.account2.id),
+                'amount': '120.00',
+                'date': '2026-08-10',
+            },
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(res.status_code, 204)
+        tx.refresh_from_db()
+        self.assertEqual(tx.status, Transaction.Statuses.COMPLETED)
+        self.assertEqual(tx.account, self.account2)
 
     def test_transaction_web_filters(self):
         Transaction.objects.create(

@@ -21,7 +21,4 @@ urlpatterns = [
     path('tags/create/', views.tag_create_view, name='tag_create'),
     path('tags/<uuid:pk>/confirm-delete/', views.tag_confirm_delete_view, name='tag_confirm_delete'),
     path('tags/<uuid:pk>/delete/', views.tag_delete_view, name='tag_delete'),
-
-
-    path('transfers/create/', views.transfer_create_view, name='transfer_create'),
 ]

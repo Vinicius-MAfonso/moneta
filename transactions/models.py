@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
+from django.utils.dateparse import parse_date
 
 from moneta.common import TransactionType
 
@@ -213,14 +214,12 @@ class RecurringTransaction(models.Model):
 
     def is_date_ignored(self, target_date):
         if isinstance(target_date, str):
-            from datetime import datetime
-            target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+            target_date = parse_date(target_date)
         return self.ignored_date_entries.filter(date=target_date).exists()
 
     def ignore_date(self, target_date):
         if isinstance(target_date, str):
-            from datetime import datetime
-            target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+            target_date = parse_date(target_date)
         entry, _ = RecurringTransactionIgnoredDate.objects.get_or_create(recurring=self, date=target_date)
         return entry
 

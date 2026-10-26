@@ -16,26 +16,25 @@ def process_all_recurring_transactions():
 
 
 def notify_due_transactions():
-    today = timezone.now().date()
-    
+    today = timezone.localdate()
+
     due_transactions = (
         Transaction.objects.filter(
             date=today,
             status=Transaction.Statuses.PENDING
         )
         .select_related('user', 'category')
-        
     )
-    
+
     user_map = {}
     user_transactions = defaultdict(list)
     for tx in due_transactions:
         user_map[tx.user_id] = tx.user
         user_transactions[tx.user_id].append(tx)
-        
+
     for user_id, txs in user_transactions.items():
         user = user_map[user_id]
-            
+
         count = len(txs)
         if count == 1:
             tx = txs[0]
@@ -44,6 +43,6 @@ def notify_due_transactions():
         else:
             title = f"{count} Contas Vencendo Hoje!"
             body = f"Você tem {count} transações pendentes para hoje. Acesse o Moneta para conferir."
-            
-        send_notification(user, title, body, url='/dashboard/')
+
+        send_notification(user, title, body, url='/transactions/')
 

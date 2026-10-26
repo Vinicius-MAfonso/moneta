@@ -5,7 +5,7 @@ from django.db.models import Q
 
 from wallets.models import Account
 
-from .models import Category, Tag, Transaction
+from .models import Category, RecurringTransaction, Tag, Transaction
 
 
 class TransactionForm(forms.Form):
@@ -20,7 +20,7 @@ class TransactionForm(forms.Form):
     installments = forms.IntegerField(min_value=1, required=False, initial=1)
 
     is_recurring = forms.BooleanField(required=False)
-    frequency = forms.ChoiceField(choices=[('daily', 'Diária'), ('weekly', 'Semanal'), ('monthly', 'Mensal'), ('yearly', 'Anual')], required=False)
+    frequency = forms.ChoiceField(choices=RecurringTransaction.Frequencies.choices, required=False)
     recurring_end_date = forms.DateField(required=False)
     edit_mode = forms.ChoiceField(choices=[('single', 'Apenas esta'), ('future', 'Esta e futuras')], required=False, initial='single')
 
@@ -41,12 +41,12 @@ class TransferForm(forms.Form):
     out_account = forms.ModelChoiceField(queryset=Account.objects.none(), required=True)
     in_account = forms.ModelChoiceField(queryset=Account.objects.none(), required=True)
     description = forms.CharField(max_length=255, required=False)
-    amount = forms.DecimalField(max_digits=20, decimal_places=2, min_value=Decimal('0.01'), required=True)
+    amount = forms.DecimalField(max_digits=20, decimal_places=2, min_value=Decimal('0.01'), required=True, localize=True)
     date = forms.DateField(required=True)
     tags = forms.ModelMultipleChoiceField(queryset=Tag.objects.none(), required=False)
 
     is_recurring = forms.BooleanField(required=False)
-    frequency = forms.ChoiceField(choices=[('daily', 'Diária'), ('weekly', 'Semanal'), ('monthly', 'Mensal'), ('yearly', 'Anual')], required=False)
+    frequency = forms.ChoiceField(choices=RecurringTransaction.Frequencies.choices, required=False)
     recurring_end_date = forms.DateField(required=False)
     status = forms.ChoiceField(choices=Transaction.Statuses.choices, required=False, initial=Transaction.Statuses.COMPLETED)
 
@@ -69,6 +69,25 @@ class TransferForm(forms.Form):
         if out_account and in_account and out_account == in_account:
             raise forms.ValidationError("As contas de origem e destino devem ser diferentes.")
         return cleaned_data
+
+
+class TransactionPayForm(forms.Form):
+    account = forms.ModelChoiceField(queryset=Account.objects.none(), required=True, label='Conta')
+    amount = forms.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        required=True,
+        localize=True,
+        label='Valor',
+    )
+    date = forms.DateField(required=True, label='Data')
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if self.user:
+            self.fields['account'].queryset = Account.objects.filter(user=self.user, active=True)
 
 
 class CategoryForm(forms.ModelForm):

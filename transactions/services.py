@@ -26,7 +26,7 @@ def process_recurring_transactions(user, target_end_date=None):
     from wallets.models import Account
     from wallets.services import get_or_create_bill_for_transaction
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     if not target_end_date:
         target_end_date = add_months(today, 2)
 
@@ -301,7 +301,7 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
                 raise ValueError("O valor restante da última parcela seria inválido.")
             
             tx_instances = []
-            today = timezone.now().date()
+            today = timezone.localdate()
             for i in range(1, installments + 1):
                 current_amount = base_amount if i < installments else remaining_amount
                 current_date = add_months(tx_date, i - 1)
@@ -633,6 +633,210 @@ def get_user_description_habits(user, limit=50):
             break
 
     return habits
+
+
+def get_filtered_transactions_context(user, query_params):
+    from collections import defaultdict
+    from decimal import Decimal
+
+    from django.db.models import Q, Sum
+    from django.db.models.functions import Coalesce
+
+    from moneta.common import TransactionType, get_month_context
+    from transactions.models import Category, Transaction
+    from wallets.models import Account
+    from wallets.services import calculate_balances_for_dates
+
+    qs = Transaction.objects.filter(user=user)
+
+    month_param = query_params.get('month')
+    month_ctx = get_month_context(month_param)
+
+    tx_type = query_params.get('type')
+    account_id = query_params.get('account_id')
+    category_id = query_params.get('category_id')
+    status = query_params.get('status')
+    search = query_params.get('search')
+    start_date = query_params.get('start_date')
+    end_date = query_params.get('end_date')
+
+    if tx_type:
+        qs = qs.filter(category__type=tx_type)
+    if account_id:
+        qs = qs.filter(account_id=account_id)
+    if category_id:
+        qs = qs.filter(category_id=category_id)
+    if status:
+        qs = qs.filter(status=status)
+    if search:
+        qs = qs.filter(
+            Q(description__icontains=search) |
+            Q(tags__name__icontains=search) |
+            Q(category__name__icontains=search) |
+            Q(account__name__icontains=search)
+        ).distinct()
+
+    if start_date or end_date:
+        if start_date:
+            qs = qs.filter(date__gte=start_date)
+        if end_date:
+            qs = qs.filter(date__lte=end_date)
+    else:
+        qs = qs.filter(date__range=(month_ctx['start_date'], month_ctx['end_date']))
+
+    if not account_id:
+        qs = qs.exclude(transfer_in__isnull=False, account__type=Account.Types.CREDIT_CARD)
+
+    transactions = qs.select_related(
+        'account', 'category', 'bill__account', 'transfer_out__in_transaction__bill__account'
+    )
+    totals = qs.aggregate(
+        income=Coalesce(Sum('amount', filter=Q(category__type=TransactionType.INCOME)), Decimal('0.00')),
+        expense=Coalesce(Sum('amount', filter=Q(category__type=TransactionType.EXPENSE)), Decimal('0.00')),
+    )
+    month_net_balance = totals['income'] - totals['expense']
+
+    tx_dict = defaultdict(list)
+    for tx in transactions:
+        tx_dict[tx.date].append(tx)
+
+    date_balances = calculate_balances_for_dates(user, list(tx_dict.keys()), account_id)
+    tx_by_date = [
+        {
+            'date': tx_date,
+            'list': tx_list,
+            'balance': date_balances.get(tx_date, Decimal('0.00')),
+        }
+        for tx_date, tx_list in tx_dict.items()
+    ]
+
+    query_params_prev = query_params.copy()
+    query_params_prev['month'] = month_ctx['prev_month']
+    query_params_next = query_params.copy()
+    query_params_next['month'] = month_ctx['next_month']
+
+    return {
+        'transactions': transactions,
+        'tx_by_date': tx_by_date,
+        'accounts': Account.objects.filter(user=user),
+        'categories': Category.objects.filter(user=user, is_system=False),
+        'month_info': month_ctx,
+        'prev_month_url': query_params_prev.urlencode(),
+        'next_month_url': query_params_next.urlencode(),
+        'month_net_balance': month_net_balance,
+    }
+
+
+def get_transaction_form_context(user, transaction=None, transfer=None):
+    import re
+
+    from transactions.models import Category, Tag
+    from wallets.models import Account
+
+    accounts = list(Account.objects.filter(user=user, active=True).select_related('credit_card_details'))
+    transfer_accounts = [a for a in accounts if a.type != Account.Types.CREDIT_CARD]
+    categories = list(Category.objects.filter(user=user, is_system=False))
+    tags = list(Tag.objects.filter(user=user))
+
+    if transfer is not None:
+        raw_desc = transfer.out_transaction.description or ''
+        clean_desc = re.sub(r'^Transferência (p/|de) [^:]+:\s*', '', raw_desc).strip()
+        rec = transfer.out_transaction.recurring
+
+        initial_tx_data = {
+            'txType': 'transferencia',
+            'selectedAccountType': transfer.out_transaction.account.type,
+            'originalAccountId': str(transfer.out_transaction.account.id),
+            'selectedAccountId': str(transfer.out_transaction.account.id),
+            'outAccount': str(transfer.out_transaction.account.id),
+            'inAccount': str(transfer.in_transaction.account.id),
+            'originalAmount': float(transfer.out_transaction.amount),
+            'amount': float(transfer.out_transaction.amount),
+            'selectedAccountLimit': 0,
+            'categories': [],
+            'isRecurring': rec is not None,
+            'frequency': rec.frequency if rec else 'monthly',
+            'recurringEndDate': str(rec.end_date) if rec and rec.end_date else '',
+            'selectedCategoryId': str(transaction.category.id) if transaction and transaction.category else '',
+            'selectedTagIds': [str(t.id) for t in transfer.out_transaction.tags.all()],
+            'status': transfer.out_transaction.status,
+            'descriptionHabits': {},
+        }
+        return {
+            'transaction': transaction,
+            'transfer': transfer,
+            'clean_description': clean_desc,
+            'accounts': accounts,
+            'transfer_accounts': transfer_accounts,
+            'categories': categories,
+            'tags': tags,
+            'initial_tx_data': initial_tx_data,
+            'description_habits': {},
+        }
+
+    serialized_categories = [
+        {'id': str(c.id), 'name': f"{c.icon + ' ' if c.icon else ''}{c.name}", 'type': c.type}
+        for c in categories
+    ]
+
+    if transaction is not None:
+        rec = transaction.recurring
+        initial_tx_data = {
+            'txType': transaction.category.type,
+            'originalAccountId': str(transaction.account.id),
+            'selectedAccountId': str(transaction.account.id),
+            'originalAmount': float(transaction.amount),
+            'selectedAccountLimit': (
+                float(transaction.account.credit_card_details.available_limit)
+                if transaction.account.type == Account.Types.CREDIT_CARD
+                else 0
+            ),
+            'categories': serialized_categories,
+            'isRecurring': rec is not None,
+            'frequency': rec.frequency if rec else 'monthly',
+            'recurringEndDate': str(rec.end_date) if rec and rec.end_date else '',
+            'selectedCategoryId': str(transaction.category.id) if transaction.category else '',
+            'selectedTagIds': [str(t.id) for t in transaction.tags.all()],
+            'status': transaction.status,
+            'descriptionHabits': {},
+        }
+        return {
+            'transaction': transaction,
+            'accounts': accounts,
+            'categories': categories,
+            'tags': tags,
+            'initial_tx_data': initial_tx_data,
+        }
+
+    description_habits = get_user_description_habits(user)
+    initial_tx_data = {
+        'txType': 'despesa',
+        'selectedAccountType': accounts[0].type if accounts else '',
+        'originalAccountId': '',
+        'selectedAccountId': str(accounts[0].id) if accounts else '',
+        'originalAmount': 0,
+        'selectedAccountLimit': (
+            float(accounts[0].credit_card_details.available_limit)
+            if accounts and accounts[0].type == Account.Types.CREDIT_CARD
+            else 0
+        ),
+        'categories': serialized_categories,
+        'isRecurring': False,
+        'frequency': 'monthly',
+        'recurringEndDate': '',
+        'selectedCategoryId': '',
+        'selectedTagIds': [],
+        'status': 'concluída',
+        'descriptionHabits': description_habits,
+    }
+    return {
+        'accounts': accounts,
+        'transfer_accounts': transfer_accounts,
+        'categories': categories,
+        'tags': tags,
+        'initial_tx_data': initial_tx_data,
+        'description_habits': description_habits,
+    }
 
 
 
