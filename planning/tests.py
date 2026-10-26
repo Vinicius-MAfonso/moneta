@@ -5,6 +5,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils import timezone
 
 from moneta.common import TransactionType
 from planning.models import Budget, Goal
@@ -294,8 +295,8 @@ class PlanningWebTestCase(TestCase):
         self.assertTrue(budget.is_warning_notified)
 
         # Simulate month rollover (updated_at in the previous month)
-        past_date = date.today().replace(day=1) - timedelta(days=5)
-        Budget.objects.filter(id=budget.id).update(updated_at=past_date)
+        past_dt = timezone.now().replace(day=1) - timedelta(days=5)
+        Budget.objects.filter(id=budget.id).update(updated_at=past_dt)
 
         # In the new month, past expenses do not count towards the new month
         tx.delete()
@@ -337,4 +338,92 @@ class PlanningWebTestCase(TestCase):
         )
         with self.assertRaises(ValidationError):
             duplicate_budget.save()
+
+    def test_create_goal_validates_free_balance_and_credit_card(self):
+        checking = Account.objects.create(
+            user=self.user,
+            name='Conta Corrente',
+            type=Account.Types.CHECKING,
+            balance=Decimal('500.00'),
+            initial_balance=Decimal('500.00'),
+        )
+        credit_card = Account.objects.create(
+            user=self.user,
+            name='Cartão Crédito',
+            type=Account.Types.CREDIT_CARD,
+        )
+
+        # Reject credit card account
+        with self.assertRaises(ValidationError) as ctx_cc:
+            create_goal(
+                user=self.user,
+                name='Meta no Cartão',
+                target_amount=Decimal('1000.00'),
+                current_amount=Decimal('0.00'),
+                start_date='2026-08-01',
+                end_date='2026-12-31',
+                account=credit_card,
+            )
+        self.assertIn("cartões de crédito", str(ctx_cc.exception))
+
+        # Reject initial current_amount exceeding free_balance (500.00)
+        with self.assertRaises(ValidationError) as ctx_bal:
+            create_goal(
+                user=self.user,
+                name='Meta Maior que Saldo',
+                target_amount=Decimal('1000.00'),
+                current_amount=Decimal('600.00'),
+                start_date='2026-08-01',
+                end_date='2026-12-31',
+                account=checking,
+            )
+        self.assertIn("Saldo livre insuficiente", str(ctx_bal.exception))
+
+    @patch('users.services.send_notification')
+    def test_goal_progress_notifications_on_deposit_and_task(self, mock_notify):
+        from planning.tasks import notify_goal_progress
+
+        goal = create_goal(
+            user=self.user,
+            name='Meta 1000',
+            target_amount=Decimal('1000.00'),
+            current_amount=Decimal('800.00'),
+            start_date=date.today(),
+            end_date=date.today() + timedelta(days=30),
+        )
+        self.assertFalse(goal.is_near_target_notified)
+        self.assertFalse(goal.is_completed_notified)
+        mock_notify.assert_not_called()
+
+        # Deposit 100 -> reaches 900 (90%) -> triggers near-target notification immediately
+        deposit_to_goal(goal, Decimal('100.00'))
+        goal.refresh_from_db()
+        self.assertTrue(goal.is_near_target_notified)
+        self.assertFalse(goal.is_completed_notified)
+        self.assertEqual(mock_notify.call_count, 1)
+
+        # Deposit another 100 -> reaches 1000 (100%) -> triggers completed notification immediately
+        deposit_to_goal(goal, Decimal('100.00'))
+        goal.refresh_from_db()
+        self.assertTrue(goal.is_completed_notified)
+        self.assertEqual(mock_notify.call_count, 2)
+
+        # Running the cron task afterwards should be idempotent (no duplicate notifications)
+        notify_goal_progress()
+        self.assertEqual(mock_notify.call_count, 2)
+
+    def test_create_budget_rejects_income_category(self):
+        income_cat, _ = Category.objects.get_or_create(
+            user=self.user,
+            name='Salário',
+            defaults={'type': TransactionType.INCOME},
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            create_budget(
+                user=self.user,
+                category_id=str(income_cat.id),
+                amount=Decimal('1000.00'),
+                is_recurring=True,
+            )
+        self.assertIn("Categoria inválida ou não encontrada", str(ctx.exception))
 

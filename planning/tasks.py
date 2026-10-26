@@ -1,8 +1,12 @@
 from django.db import models
 from django.utils import timezone
 
-from planning.models import Budget
-from planning.services import calculate_budgets_progress_bulk, get_month_range
+from planning.models import Budget, Goal
+from planning.services import (
+    calculate_budgets_progress_bulk,
+    check_and_notify_goal_progress,
+    get_month_range,
+)
 from users.services import send_notification
 
 
@@ -39,47 +43,19 @@ def notify_budget_warnings():
             user = budget.user
             title = "Atenção ao Orçamento!"
             body = f"Você já consumiu {progress['percentage']:.0f}% do seu orçamento de {budget.category.name}."
-            
+
             send_notification(user, title, body, url='/planning/')
-            
+
             budget.is_warning_notified = True
             budget.save(update_fields=['is_warning_notified', 'updated_at'])
 
+
 def notify_goal_progress():
-    from django.utils import timezone
-
-    from planning.models import Goal
-    from users.services import send_notification
-
     today = timezone.now().date()
 
-    # Busca caixinhas que ainda estão no prazo (ativas)
     active_goals = Goal.objects.filter(
         end_date__gte=today
     ).select_related('user')
 
     for goal in active_goals:
-        if goal.target_amount <= 0:
-            continue
-            
-        percentage = (goal.current_amount / goal.target_amount) * 100
-
-        # Verifica meta atingida (100%)
-        if percentage >= 100 and not goal.is_completed_notified:
-            title = "Parabéns, Meta Atingida! 🏆"
-            body = f"Você alcançou 100% da sua meta '{goal.name}'!"
-            send_notification(goal.user, title, body, url='/planning/')
-            
-            goal.is_completed_notified = True
-            # Se atingiu 100% tão rápido que nem passou pelo 90%, marca os dois
-            goal.is_near_target_notified = True 
-            goal.save(update_fields=['is_completed_notified', 'is_near_target_notified', 'updated_at'])
-            
-        # Verifica quase atingida (>= 90% e < 100%)
-        elif 90 <= percentage < 100 and not goal.is_near_target_notified:
-            title = "Falta pouco! 🎯"
-            body = f"Sua caixinha '{goal.name}' já atingiu {percentage:.0f}% da meta!"
-            send_notification(goal.user, title, body, url='/planning/')
-            
-            goal.is_near_target_notified = True
-            goal.save(update_fields=['is_near_target_notified', 'updated_at'])
+        check_and_notify_goal_progress(goal, notify_fn=send_notification)

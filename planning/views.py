@@ -1,6 +1,6 @@
 import json
 import logging
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -22,6 +22,7 @@ from .services import (
     delete_goal,
     deposit_to_goal,
     get_budgets_with_progress,
+    get_goals_with_progress,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,21 +38,9 @@ def _format_error_message(e):
 
 @login_required(login_url='users_web:login')
 def planning_list_view(request):
-    raw_goals = Goal.objects.filter(user=request.user).select_related('account')
-
-    goals = []
-    for goal in raw_goals:
-        pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0
-        goal.percentage = round(pct, 1)
-        goal.bounded_pct = min(100, pct)
-        goal.bounded_pct_str = str(round(goal.bounded_pct, 2))
-        goals.append(goal)
-
-    budgets = get_budgets_with_progress(request.user)
-
     context = {
-        'budgets': budgets,
-        'goals': goals,
+        'budgets': get_budgets_with_progress(request.user),
+        'goals': get_goals_with_progress(request.user),
     }
     return render(request, 'planning/index.html', context)
 
@@ -83,7 +72,7 @@ def budget_create_view(request):
                 response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
-        except (ValidationError, ValueError) as e:
+        except (ValidationError, ValueError, InvalidOperation) as e:
             msg = _format_error_message(e)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
@@ -154,7 +143,7 @@ def goal_create_view(request):
                 response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
-        except (ValidationError, ValueError) as e:
+        except (ValidationError, ValueError, InvalidOperation) as e:
             msg = _format_error_message(e)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)
@@ -171,7 +160,11 @@ def goal_create_view(request):
             messages.error(request, "Erro inesperado ao criar objetivo.")
             return redirect('planning_web:list')
 
-    accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
+    accounts = (
+        Account.objects.filter(user=request.user, active=True)
+        .exclude(type=Account.Types.CREDIT_CARD)
+        .prefetch_related('goals')
+    )
     return render(request, 'planning/partials/goal_form.html', {'accounts': accounts})
 
 
@@ -191,7 +184,7 @@ def goal_deposit_view(request, pk):
                 response['HX-Redirect'] = reverse('planning_web:list')
                 return response
             return redirect('planning_web:list')
-        except (ValidationError, ValueError) as e:
+        except (ValidationError, ValueError, InvalidOperation) as e:
             msg = _format_error_message(e)
             if request.headers.get('HX-Request'):
                 response = HttpResponse(status=204)

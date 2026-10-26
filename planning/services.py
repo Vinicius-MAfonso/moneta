@@ -14,19 +14,21 @@ from transactions.models import Category, Transaction
 from wallets.models import Account
 
 
-def get_month_range(ref_date=None):
+def _coerce_reference_date(ref_date=None):
     if not ref_date:
-        ref_date = timezone.now().date()
-    elif isinstance(ref_date, str):
+        return timezone.now().date()
+    if isinstance(ref_date, str):
+        parts = ref_date.split('-')
         if len(ref_date) == 7:  # 'YYYY-MM'
-            parts = ref_date.split('-')
-            ref_date = date(int(parts[0]), int(parts[1]), 1)
-        else:
-            parts = ref_date.split('-')
-            ref_date = date(int(parts[0]), int(parts[1]), int(parts[2]))
+            return date(int(parts[0]), int(parts[1]), 1)
+        return date(int(parts[0]), int(parts[1]), int(parts[2]))
+    return ref_date
 
-    year = ref_date.year
-    month = ref_date.month
+
+def get_month_range(ref_date=None):
+    coerced = _coerce_reference_date(ref_date)
+    year = coerced.year
+    month = coerced.month
     _, last_day = calendar.monthrange(year, month)
     return date(year, month, 1), date(year, month, last_day)
 
@@ -86,16 +88,7 @@ def calculate_budgets_progress_bulk(budgets, reference_date=None):
     if not budgets:
         return []
 
-    if not reference_date:
-        reference_date = timezone.now().date()
-    elif isinstance(reference_date, str):
-        if len(reference_date) == 7:
-            p = reference_date.split('-')
-            reference_date = date(int(p[0]), int(p[1]), 1)
-        else:
-            p = reference_date.split('-')
-            reference_date = date(int(p[0]), int(p[1]), int(p[2]))
-
+    reference_date = _coerce_reference_date(reference_date)
     month_start, month_end = get_month_range(reference_date)
     user = budgets[0].user if budgets else None
     if not user:
@@ -177,16 +170,7 @@ def calculate_budgets_progress_bulk(budgets, reference_date=None):
 
 
 def get_active_budgets(user, reference_date=None):
-    if not reference_date:
-        reference_date = timezone.now().date()
-    elif isinstance(reference_date, str):
-        if len(reference_date) == 7:
-            p = reference_date.split('-')
-            reference_date = date(int(p[0]), int(p[1]), 1)
-        else:
-            p = reference_date.split('-')
-            reference_date = date(int(p[0]), int(p[1]), int(p[2]))
-
+    reference_date = _coerce_reference_date(reference_date)
     month_start, month_end = get_month_range(reference_date)
 
     budgets = Budget.objects.filter(
@@ -201,8 +185,7 @@ def get_active_budgets(user, reference_date=None):
 
 
 def get_budgets_with_progress(user, reference_date=None):
-    if not reference_date:
-        reference_date = timezone.now().date()
+    reference_date = _coerce_reference_date(reference_date)
 
     budgets = list(
         Budget.objects.filter(user=user)
@@ -228,8 +211,26 @@ def get_budgets_with_progress(user, reference_date=None):
 
     return result
 
+
+def get_goals_with_progress(user):
+    raw_goals = Goal.objects.filter(user=user).select_related('account')
+    goals = []
+    for goal in raw_goals:
+        pct = (goal.current_amount / goal.target_amount * 100) if goal.target_amount > 0 else 0
+        goal.percentage = round(pct, 1)
+        goal.bounded_pct = min(100, pct)
+        goal.bounded_pct_str = str(round(goal.bounded_pct, 2))
+        goals.append(goal)
+    return goals
+
+
 def create_budget(user, category_id, amount, is_recurring=True, start_date=None, end_date=None):
-    category = Category.objects.filter(id=category_id, user=user).first()
+    category = Category.objects.filter(
+        id=category_id,
+        user=user,
+        type=TransactionType.EXPENSE,
+        is_system=False,
+    ).first()
     if not category:
         raise ValidationError("Categoria inválida ou não encontrada.")
 
@@ -253,24 +254,68 @@ def delete_budget(budget):
     budget.delete()
 
 
+def check_and_notify_goal_progress(goal, notify_fn=None):
+    if notify_fn is None:
+        from users.services import send_notification
+        notify_fn = send_notification
+
+    if goal.target_amount <= 0:
+        return
+
+    percentage = (goal.current_amount / goal.target_amount) * 100
+
+    if percentage >= 100 and not goal.is_completed_notified:
+        title = "Parabéns, Meta Atingida! 🏆"
+        body = f"Você alcançou 100% da sua meta '{goal.name}'!"
+        notify_fn(goal.user, title, body, url='/planning/')
+
+        goal.is_completed_notified = True
+        goal.is_near_target_notified = True
+        goal.save(update_fields=['is_completed_notified', 'is_near_target_notified', 'updated_at'])
+
+    elif 90 <= percentage < 100 and not goal.is_near_target_notified:
+        title = "Falta pouco! 🎯"
+        body = f"Sua caixinha '{goal.name}' já atingiu {percentage:.0f}% da meta!"
+        notify_fn(goal.user, title, body, url='/planning/')
+
+        goal.is_near_target_notified = True
+        goal.save(update_fields=['is_near_target_notified', 'updated_at'])
+
+
 def create_goal(user, name, target_amount, current_amount, start_date, end_date=None, account=None):
     name = strip_tags(name).strip() if name else name
 
     if not end_date:
         raise ValidationError("A data de término é obrigatória.")
-        
-    if account and account.user_id != user.id:
-        raise ValidationError("Conta inválida para este usuário.")
 
-    return Goal.objects.create(
-        user=user,
-        account=account,
-        name=name,
-        target_amount=target_amount,
-        current_amount=current_amount,
-        start_date=start_date,
-        end_date=end_date,
-    )
+    current_amount_dec = Decimal(str(current_amount or '0.00'))
+
+    with db_transaction.atomic():
+        locked_account = None
+        if account:
+            if account.user_id != user.id:
+                raise ValidationError("Conta inválida para este usuário.")
+            if account.type == Account.Types.CREDIT_CARD:
+                raise ValidationError("Objetivos não podem ser vinculados a cartões de crédito.")
+
+            locked_account = Account.objects.select_for_update().get(pk=account.pk)
+            if current_amount_dec > locked_account.free_balance:
+                bal_str = f"{locked_account.free_balance:.2f}".replace('.', ',')
+                raise ValidationError(
+                    f"Saldo livre insuficiente na conta '{locked_account.name}'. Saldo disponível: R$ {bal_str}."
+                )
+
+        goal = Goal.objects.create(
+            user=user,
+            account=locked_account,
+            name=name,
+            target_amount=target_amount,
+            current_amount=current_amount,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        check_and_notify_goal_progress(goal)
+        return goal
 
 
 def delete_goal(goal):
@@ -285,7 +330,7 @@ def deposit_to_goal(goal, amount):
         raise ValueError("O valor do depósito deve ser maior que zero.")
 
     with db_transaction.atomic():
-        locked_goal = Goal.objects.select_for_update().get(pk=goal.pk)
+        locked_goal = Goal.objects.select_for_update().select_related('user').get(pk=goal.pk)
         if locked_goal.account_id:
             account = Account.objects.select_for_update().get(pk=locked_goal.account_id)
             if amount > account.free_balance:
@@ -295,4 +340,6 @@ def deposit_to_goal(goal, amount):
         Goal.objects.filter(pk=locked_goal.pk).update(
             current_amount=models.F('current_amount') + amount
         )
+        locked_goal.refresh_from_db()
+        check_and_notify_goal_progress(locked_goal)
     return True
