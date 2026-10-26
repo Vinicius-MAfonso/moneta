@@ -258,7 +258,7 @@ class PlanningWebTestCase(TestCase):
         self.assertEqual(goal.name, 'Caixinha Salva')
 
     @patch('planning.tasks.send_notification')
-    def test_notify_budget_warnings_and_monthly_reset(self, mock_push):
+    def test_notify_budget_warnings_and_monthly_reset(self, mock_notify):
         from planning.tasks import notify_budget_warnings
 
         account = Account.objects.create(
@@ -289,7 +289,7 @@ class PlanningWebTestCase(TestCase):
 
         notify_budget_warnings()
 
-        mock_push.assert_called_once()
+        mock_notify.assert_called_once()
         budget.refresh_from_db()
         self.assertTrue(budget.is_warning_notified)
 

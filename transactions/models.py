@@ -92,6 +92,8 @@ class Transaction(models.Model):
             models.Index(fields=['user', '-date'], name='transaction_user_date_idx'),
             models.Index(fields=['bill', 'status'], name='transaction_bill_status_idx'),
             models.Index(fields=['account', 'status', '-date'], name='tx_acc_status_date_idx'),
+            models.Index(fields=['recurring', 'date'], name='tx_recurring_date_idx'),
+            models.Index(fields=['user', 'status', '-date'], name='tx_user_status_date_idx'),
         ]
         constraints = [
             models.CheckConstraint(check=models.Q(amount__gte=Decimal('0.01')), name='transaction_amount_positive'),

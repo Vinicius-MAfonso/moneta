@@ -9,7 +9,7 @@ O projeto foi construído utilizando as seguintes tecnologias:
 - **Frontend Interativo:** [HTMX](https://htmx.org/) e [Alpine.js](https://alpinejs.dev/)
 - **Estilização:** [Tailwind CSS](https://tailwindcss.com/)
 - **Banco de Dados:** SQLite (padrão) com suporte plug-and-play para PostgreSQL.
-- **Tarefas em Background:** [Django-Q](https://django-q.readthedocs.io/) (para Notificações Push automáticas).
+- **Tarefas em Background:** [Django-Q](https://django-q.readthedocs.io/) (para notificações e rotinas automáticas).
 - **Gráficos:** [Chart.js](https://www.chartjs.org/)
 
 ## 🌟 Funcionalidades
@@ -58,12 +58,7 @@ O projeto foi construído utilizando as seguintes tecnologias:
    python manage.py runserver
    ```
 
-7. (Opcional) Em outro terminal, inicie o disparador de tarefas em background para testar as notificações Push:
-   ```bash
-   python manage.py qcluster
-   ```
-
-8. Acesse no navegador: `http://localhost:8000`
+7. Acesse no navegador: `http://localhost:8000`
 
 ## 🚀 Deploy no Google Cloud Run (São Paulo)
 

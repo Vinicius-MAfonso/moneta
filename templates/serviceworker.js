@@ -1,5 +1,5 @@
 // Bump this version whenever the caching strategy changes so old caches are purged on activate.
-const CACHE_NAME = 'moneta-v2';
+const CACHE_NAME = 'moneta-v3';
 const STATIC_ASSETS = [
     '/static/images/icon-192.png',
     '/static/images/icon-512.png',
@@ -66,30 +66,3 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-self.addEventListener('push', function(event) {
-    if (event.data) {
-        const data = event.data.json();
-        const options = {
-            body: data.body,
-            icon: '/static/images/icon-192.png',
-            badge: '/static/images/icon-192.png',
-            vibrate: [100, 50, 100],
-            data: {
-                dateOfArrival: Date.now(),
-                url: data.url || '/'
-            }
-        };
-        event.waitUntil(
-            self.registration.showNotification(data.title, options)
-        );
-    }
-});
-
-self.addEventListener('notificationclick', function(event) {
-    event.notification.close();
-    if (event.notification.data.url) {
-        event.waitUntil(
-            clients.openWindow(event.notification.data.url)
-        );
-    }
-});

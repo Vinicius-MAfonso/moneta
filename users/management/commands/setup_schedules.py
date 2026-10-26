@@ -14,10 +14,11 @@ class Command(BaseCommand):
 
         tasks = [
             {'func': 'transactions.tasks.process_all_recurring_transactions', 'hour': 0, 'minute': 0},
+            {'func': 'wallets.tasks.update_and_notify_closed_credit_card_bills', 'hour': 8, 'minute': 30},
             {'func': 'wallets.tasks.notify_due_credit_card_bills', 'hour': 9, 'minute': 0},
             {'func': 'planning.tasks.notify_budget_warnings', 'hour': 10, 'minute': 0},
+            {'func': 'planning.tasks.notify_goal_progress', 'hour': 10, 'minute': 30},
             {'func': 'transactions.tasks.notify_due_transactions', 'hour': 11, 'minute': 0},
-            {'func': 'moneta.tasks.check_and_send_alerts', 'hour': 12, 'minute': 0},
         ]
 
         now = timezone.now()

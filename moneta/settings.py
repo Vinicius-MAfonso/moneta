@@ -161,7 +161,7 @@ Q_CLUSTER = {
     'cpu_affinity': 1,
     'label': 'Django Q',
     'orm': 'default',
-    'sync': env.bool('Q_SYNC', default=DEBUG),
+    'sync': env.bool('Q_SYNC', default=True),
 }
 
 EMAIL_BACKEND = (

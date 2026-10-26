@@ -4,10 +4,7 @@ set -e
 PORT_NUMBER="${PORT:-8080}"
 
 echo "==> Running database migrations..."
-python manage.py migrate --noinput || true
-
-echo "==> Setting up Django-Q background schedules..."
-python manage.py setup_schedules || true
+python manage.py migrate --noinput
 
 echo "==> Creating superuser if env vars are present..."
 python manage.py createsuperuser --noinput || true

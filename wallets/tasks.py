@@ -16,7 +16,7 @@ def notify_due_credit_card_bills():
     tomorrow = timezone.now().date() + timedelta(days=1)
     
     bills = CreditCardBill.objects.filter(
-        status=CreditCardBill.Statuses.OPEN,
+        status__in=[CreditCardBill.Statuses.OPEN, CreditCardBill.Statuses.CLOSED],
         due_date=tomorrow,
         is_due_tomorrow_notified=False
     ).select_related('account__user')

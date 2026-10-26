@@ -5,7 +5,6 @@ from django.urls import include, path
 from django.views.generic import TemplateView
 
 from .views import (
-    cron_check_alerts_view,
     cron_notify_bills_view,
     cron_notify_budgets_view,
     cron_notify_transactions_view,
@@ -23,7 +22,6 @@ urlpatterns = [
     path('internal/cron/notify-bills/', cron_notify_bills_view, name='cron_notify_bills'),
     path('internal/cron/notify-budgets/', cron_notify_budgets_view, name='cron_notify_budgets'),
     path('internal/cron/notify-transactions/', cron_notify_transactions_view, name='cron_notify_transactions'),
-    path('internal/cron/check-alerts/', cron_check_alerts_view, name='cron_check_alerts'),
     path('internal/cron/wake/', cron_wake_view, name='cron_wake'),
     path('internal/cron/run-all/', cron_wake_view, name='cron_run_all'),
     path('admin/', admin.site.urls),
