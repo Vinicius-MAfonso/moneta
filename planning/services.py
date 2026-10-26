@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db import transaction as db_transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.utils.html import strip_tags
 
 from moneta.common import TransactionType
@@ -16,12 +17,15 @@ from wallets.models import Account
 
 def _coerce_reference_date(ref_date=None):
     if not ref_date:
-        return timezone.now().date()
+        return timezone.localdate()
     if isinstance(ref_date, str):
-        parts = ref_date.split('-')
         if len(ref_date) == 7:  # 'YYYY-MM'
-            return date(int(parts[0]), int(parts[1]), 1)
-        return date(int(parts[0]), int(parts[1]), int(parts[2]))
+            parsed = parse_date(f"{ref_date}-01")
+            if parsed:
+                return parsed
+        parsed = parse_date(ref_date)
+        if parsed:
+            return parsed
     return ref_date
 
 

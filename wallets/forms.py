@@ -33,3 +33,18 @@ class AccountForm(forms.ModelForm):
                 self.add_error('balance', 'O saldo inicial é obrigatório.')
                 
         return cleaned_data
+
+
+class BalanceAdjustmentForm(forms.Form):
+    new_balance = forms.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        localize=True,
+        required=True,
+        label='Novo Saldo',
+    )
+    adjustment_type = forms.ChoiceField(
+        choices=[('transaction', 'Criar Transação'), ('initial', 'Alterar Saldo Inicial')],
+        required=True,
+        label='Forma de Reajuste',
+    )

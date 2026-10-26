@@ -6,6 +6,7 @@ from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce, TruncDay, TruncMonth
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 
 def get_category_breakdown(base_tx_qs, tx_type, start_date, end_date):
@@ -204,23 +205,14 @@ def get_dashboard_data(user, month_param=None, account_id_param=None):
 
 
 def parse_report_dates(start_date_str=None, end_date_str=None):
-    today = timezone.now().date()
+    today = timezone.localdate()
     default_start = today - datetime.timedelta(days=30)
 
-    try:
-        start_date = (
-            datetime.datetime.strptime(start_date_str, '%Y-%m-%d').date()
-            if start_date_str
-            else default_start
-        )
-        end_date = (
-            datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()
-            if end_date_str
-            else today
-        )
-    except (ValueError, TypeError):
-        start_date = default_start
-        end_date = today
+    parsed_start = parse_date(start_date_str) if isinstance(start_date_str, str) else None
+    parsed_end = parse_date(end_date_str) if isinstance(end_date_str, str) else None
+
+    start_date = parsed_start or default_start
+    end_date = parsed_end or today
 
     if start_date > end_date:
         start_date, end_date = end_date, start_date

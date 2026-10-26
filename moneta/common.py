@@ -1,9 +1,11 @@
 import calendar
+import json
 from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 
 from django.db import models
+from django.http import HttpResponse
 from django.utils import timezone
 
 
@@ -25,7 +27,7 @@ MONTH_NAMES_PT = [
 
 
 def get_month_context(month_str=None):
-    today = timezone.now().date()
+    today = timezone.localdate()
     if not month_str:
         year = today.year
         month_num = today.month
@@ -117,7 +119,7 @@ def get_month_calendar_grid(user, start_date, end_date, account=None):
     month_days = list(cal.itermonthdays4(start_date.year, start_date.month))
 
     grid = []
-    today_date = timezone.now().date()
+    today_date = timezone.localdate()
     for year, month, day, _ in month_days:
         day_date = date(year, month, day)
         d_str = day_date.strftime('%Y-%m-%d')
@@ -148,6 +150,21 @@ def get_month_calendar_grid(user, start_date, end_date, account=None):
     return grid
 
 
+FIELD_LABELS_PT = {
+    'amount': 'Valor',
+    'target_amount': 'Valor Meta',
+    'current_amount': 'Valor Inicial',
+    'new_balance': 'Novo Saldo',
+    'description': 'Descrição',
+    'name': 'Nome',
+    'date': 'Data',
+    'start_date': 'Data de Início',
+    'end_date': 'Data de Término',
+    'account': 'Conta',
+    'category': 'Categoria',
+}
+
+
 def format_form_errors(form):
     """
     Retorna a primeira mensagem de erro limpa e amigável para exibição em toasts,
@@ -158,21 +175,39 @@ def format_form_errors(form):
 
     for field, errors in form.errors.items():
         if errors:
-            err = str(errors[0])
-            err = err.replace('0.01', '0,01')
-            if field == 'amount':
-                return f"Valor: {err}"
-            elif field == 'description':
-                return f"Descrição: {err}"
-            elif field == 'date':
-                return f"Data: {err}"
-            elif field == 'account':
-                return f"Conta: {err}"
-            elif field == 'category':
-                return f"Categoria: {err}"
-            elif field != '__all__':
-                field_label = form.fields.get(field).label if hasattr(form, 'fields') and field in form.fields and form.fields[field].label else field
+            err = str(errors[0]).replace('0.01', '0,01')
+            if field in FIELD_LABELS_PT:
+                return f"{FIELD_LABELS_PT[field]}: {err}"
+            if field != '__all__':
+                field_obj = form.fields.get(field) if hasattr(form, 'fields') else None
+                field_label = field_obj.label if field_obj and field_obj.label else field
                 return f"{field_label}: {err}" if field_label else err
             return err
 
     return "Verifique os dados informados no formulário."
+
+
+def format_exception_message(exc):
+    """Extrai mensagem amigável de ValidationError ou ValueError."""
+    if hasattr(exc, 'message_dict'):
+        return "; ".join(
+            f"{FIELD_LABELS_PT.get(k, k)}: {', '.join(v)}" if k != '__all__' else ", ".join(v)
+            for k, v in exc.message_dict.items()
+        )
+    if hasattr(exc, 'messages'):
+        return "; ".join(exc.messages)
+    return str(exc)
+
+
+def hx_redirect(url):
+    """Retorna HTTP 204 com header HX-Redirect para navegação via HTMX."""
+    response = HttpResponse(status=204)
+    response['HX-Redirect'] = url
+    return response
+
+
+def hx_toast(message, toast_type='error'):
+    """Retorna HTTP 204 com header HX-Trigger para disparar um Toast no Alpine.js."""
+    response = HttpResponse(status=204)
+    response['HX-Trigger'] = json.dumps({'show-toast': {'message': message, 'type': toast_type}})
+    return response

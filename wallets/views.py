@@ -1,16 +1,14 @@
-import json
-from decimal import Decimal
-
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_http_methods, require_POST
 
-from moneta.common import format_form_errors
+from moneta.common import format_form_errors, hx_redirect, hx_toast
 from wallets.models import Account
 
 
-@login_required(login_url='users_web:login')
+@login_required
 def account_list_view(request):
     accounts = (
         Account.objects.filter(user=request.user)
@@ -23,42 +21,32 @@ def account_list_view(request):
     return render(request, 'wallets/index.html', context)
 
 
-@login_required(login_url='users_web:login')
+@login_required
 def account_create_view(request):
-    from django.contrib import messages
-
     from .forms import AccountForm
+
     if request.method == 'POST':
         form = AccountForm(request.POST)
         if form.is_valid():
-            cd = form.cleaned_data
-            
             from wallets.services import create_account
-            create_account(request.user, cd)
 
-            if request.headers.get('HX-Request'):
-                messages.success(request, "Conta criada com sucesso!")
-                response = HttpResponse(status=204)
-                response['HX-Redirect'] = reverse('wallets_web:list')
-                return response
+            create_account(request.user, form.cleaned_data)
             messages.success(request, "Conta criada com sucesso!")
+            if request.headers.get('HX-Request'):
+                return hx_redirect(reverse('wallets_web:list'))
             return redirect('wallets_web:list')
         else:
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
-                response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{error_msg}', 'type': 'error'}})
-                return response
+                return hx_toast(error_msg)
             messages.error(request, f"Erro ao criar conta: {error_msg}")
             return redirect('wallets_web:list')
 
     return render(request, 'wallets/partials/account_form.html')
 
 
-@login_required(login_url='users_web:login')
+@login_required
 def account_update_view(request, pk):
-    from django.contrib import messages
-
     from .forms import AccountForm
 
     account = get_object_or_404(Account.objects.select_related('credit_card_details'), pk=pk, user=request.user)
@@ -66,23 +54,17 @@ def account_update_view(request, pk):
     if request.method == 'POST':
         form = AccountForm(request.POST)
         if form.is_valid():
-            cd = form.cleaned_data
             from wallets.services import update_account
-            update_account(account, cd)
 
-            if request.headers.get('HX-Request'):
-                messages.success(request, "Conta atualizada com sucesso!")
-                response = HttpResponse(status=204)
-                response['HX-Redirect'] = reverse('wallets_web:list')
-                return response
+            update_account(account, form.cleaned_data)
             messages.success(request, "Conta atualizada com sucesso!")
+            if request.headers.get('HX-Request'):
+                return hx_redirect(reverse('wallets_web:list'))
             return redirect('wallets_web:list')
         else:
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
-                response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'{error_msg}', 'type': 'error'}})
-                return response
+                return hx_toast(error_msg)
             context = {'account': account, 'form': form}
             return render(request, 'wallets/partials/account_form.html', context)
 
@@ -91,26 +73,29 @@ def account_update_view(request, pk):
     }
     return render(request, 'wallets/partials/account_form.html', context)
 
-@login_required(login_url='users_web:login')
-def account_balance_adjustment_view(request, pk):
-    from django.contrib import messages
 
+@login_required
+def account_balance_adjustment_view(request, pk):
+    from .forms import BalanceAdjustmentForm
 
     account = get_object_or_404(Account.objects.select_related('credit_card_details'), pk=pk, user=request.user)
 
     if request.method == 'POST':
-        new_balance_str = request.POST.get('new_balance')
-        adjustment_type = request.POST.get('adjustment_type')
-
-        try:
-            new_balance = Decimal(new_balance_str.replace(',', '.'))
-        except Exception:
+        form = BalanceAdjustmentForm(request.POST)
+        if not form.is_valid():
+            error_msg = format_form_errors(form)
+            if request.headers.get('HX-Request'):
+                return hx_toast(error_msg)
             messages.error(request, "Valor de saldo inválido.")
             return redirect('wallets_web:list')
 
+        cd = form.cleaned_data
         from wallets.services import adjust_account_balance
-        success, result_type = adjust_account_balance(account, new_balance, adjustment_type, request.user)
-        
+
+        success, result_type = adjust_account_balance(
+            account, cd['new_balance'], cd['adjustment_type'], request.user
+        )
+
         if success:
             if result_type == "initial":
                 messages.success(request, f"Saldo inicial de '{account.name}' atualizado.")
@@ -123,17 +108,14 @@ def account_balance_adjustment_view(request, pk):
                 messages.error(request, "Tipo de reajuste inválido.")
 
         if request.headers.get('HX-Request'):
-            response = HttpResponse(status=204)
-            response['HX-Redirect'] = reverse('wallets_web:list')
-            return response
+            return hx_redirect(reverse('wallets_web:list'))
         return redirect('wallets_web:list')
 
     context = {'account': account}
     return render(request, 'wallets/partials/balance_adjustment_form.html', context)
 
 
-
-@login_required(login_url='users_web:login')
+@login_required
 def account_confirm_delete_view(request, pk):
     account = get_object_or_404(Account, pk=pk, user=request.user)
     context = {
@@ -144,24 +126,23 @@ def account_confirm_delete_view(request, pk):
     return render(request, 'partials/confirm_modal.html', context)
 
 
-@login_required(login_url='users_web:login')
+@login_required
+@require_http_methods(["POST", "DELETE"])
 def account_delete_view(request, pk):
-    from django.contrib import messages
+    from wallets.services import delete_account
+
     account = get_object_or_404(Account, pk=pk, user=request.user)
-    if request.method in ['POST', 'DELETE']:
-        account_name = account.name
-        from wallets.services import delete_account
-        delete_account(account)
-        messages.success(request, f"Conta '{account_name}' excluída com sucesso.")
-        if request.headers.get('HX-Request'):
-            response = HttpResponse(status=204)
-            response['HX-Redirect'] = reverse('wallets_web:list')
-            return response
+    account_name = account.name
+    delete_account(account)
+    messages.success(request, f"Conta '{account_name}' excluída com sucesso.")
+    if request.headers.get('HX-Request'):
+        return hx_redirect(reverse('wallets_web:list'))
     return redirect('wallets_web:list')
 
-@login_required(login_url='users_web:login')
+
+@login_required
 def bill_detail_view(request, pk):
-    from wallets.models import Account, CreditCardBill
+    from wallets.models import CreditCardBill
     from wallets.services import get_bill_summary
 
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
@@ -172,7 +153,6 @@ def bill_detail_view(request, pk):
     )
 
     summary = get_bill_summary(bill)
-
     checking_accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
 
     context = {
@@ -188,57 +168,48 @@ def bill_detail_view(request, pk):
     return render(request, 'wallets/bill_detail.html', context)
 
 
-@login_required(login_url='users_web:login')
+@login_required
+@require_POST
 def pay_bill_view(request, pk):
-    from django.contrib import messages
-
     from wallets.models import CreditCardBill
     from wallets.services import pay_credit_card_bill
 
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
-
-    if request.method == 'POST':
-        payment_account_id = request.POST.get('payment_account')
-        payment_amount = request.POST.get('payment_amount')
-        try:
-            pay_credit_card_bill(bill, payment_account_id, payment_amount)
-            messages.success(request, f"Pagamento da fatura de {bill.period_date.strftime('%m/%Y')} registrado com sucesso!")
-        except Exception as e:
-            messages.error(request, f"Erro ao pagar fatura: {e!s}")
+    payment_account_id = request.POST.get('payment_account')
+    payment_amount = request.POST.get('payment_amount')
+    try:
+        pay_credit_card_bill(bill, payment_account_id, payment_amount)
+        messages.success(request, f"Pagamento da fatura de {bill.period_date.strftime('%m/%Y')} registrado com sucesso!")
+    except Exception as e:
+        messages.error(request, f"Erro ao pagar fatura: {e!s}")
 
     return redirect('wallets_web:bill_detail', pk=bill.pk)
 
 
-@login_required(login_url='users_web:login')
+@login_required
+@require_POST
 def reopen_bill_view(request, pk):
-    from django.contrib import messages
-
     from wallets.models import CreditCardBill
     from wallets.services import reopen_credit_card_bill
 
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
-
-    if request.method == 'POST':
-        try:
-            reopen_credit_card_bill(bill)
-            messages.success(request, f"O pagamento da fatura de {bill.period_date.strftime('%m/%Y')} foi cancelado e a fatura reaberta.")
-            if request.headers.get('HX-Request'):
-                response = HttpResponse(status=204)
-                response['HX-Redirect'] = reverse('wallets_web:bill_detail', args=[bill.pk])
-                return response
-        except Exception as e:
-            if request.headers.get('HX-Request'):
-                response = HttpResponse(status=204)
-                response['HX-Trigger'] = json.dumps({'show-toast': {'message': f'Erro ao reabrir fatura: {e!s}', 'type': 'error'}})
-                return response
-            messages.error(request, f"Erro ao reabrir fatura: {e!s}")
+    try:
+        reopen_credit_card_bill(bill)
+        messages.success(request, f"O pagamento da fatura de {bill.period_date.strftime('%m/%Y')} foi cancelado e a fatura reaberta.")
+        if request.headers.get('HX-Request'):
+            return hx_redirect(reverse('wallets_web:bill_detail', args=[bill.pk]))
+    except Exception as e:
+        if request.headers.get('HX-Request'):
+            return hx_toast(f'Erro ao reabrir fatura: {e!s}')
+        messages.error(request, f"Erro ao reabrir fatura: {e!s}")
 
     return redirect('wallets_web:bill_detail', pk=bill.pk)
 
 
-@login_required(login_url='users_web:login')
+@login_required
 def confirm_reopen_bill_view(request, pk):
     from wallets.models import CreditCardBill
+
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
     context = {
         'title': 'Reabrir Fatura',
@@ -250,9 +221,8 @@ def confirm_reopen_bill_view(request, pk):
     return render(request, 'partials/confirm_modal.html', context)
 
 
-@login_required(login_url='users_web:login')
+@login_required
 def bill_list_view(request, account_id):
-    from wallets.models import Account
     account = get_object_or_404(Account, pk=account_id, user=request.user, type=Account.Types.CREDIT_CARD)
     bills = account.bills.all().order_by('period_date')
 
@@ -267,7 +237,8 @@ def bill_list_view(request, account_id):
     }
     return render(request, 'wallets/bill_list.html', context)
 
-@login_required(login_url='users_web:login')
+
+@login_required
 def credit_card_dashboard_view(request):
     from django.utils import timezone
 
@@ -275,10 +246,10 @@ def credit_card_dashboard_view(request):
     from wallets.services import get_credit_card_timeline
 
     accounts = Account.objects.filter(user=request.user, type=Account.Types.CREDIT_CARD, active=True).select_related('credit_card_details')
-    
-    today = timezone.now().date()
+
+    today = timezone.localdate()
     start_of_month = today.replace(day=1)
-    
+
     timeline = get_credit_card_timeline(request.user, start_of_month, months=12)
     installments = Transaction.objects.filter(
         user=request.user,

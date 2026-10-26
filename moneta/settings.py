@@ -60,6 +60,10 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
 
+LOGIN_URL = 'users_web:login'
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = 'users_web:login'
+
 ROOT_URLCONF = 'moneta.urls'
 
 TEMPLATES = [
