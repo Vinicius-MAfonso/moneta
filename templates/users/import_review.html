@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Revisar Importação de Extrato - Moneta{% endblock %}
 {% block content %}
-<div class="space-y-8 pb-10" x-data="importReviewData()">
+<div class="space-y-8 pb-10" x-data="importReviewData()" @resize.window="isMobile = window.innerWidth < 768">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
             <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">Revisar Importação</h2>
@@ -135,6 +135,7 @@
                                     <input type="text"
                                            name="description_{{ tx.id }}"
                                            x-model="description"
+                                           :disabled="isMobile"
                                            value="{{ tx.payee }}"
                                            @input.debounce.150ms="onInput($event.target.value)"
                                            @focus="if (matchingSuggestions.length > 0) showSuggestions = true"
@@ -192,6 +193,7 @@
                             <td class="px-6 py-4">
                                 <select name="category_{{ tx.id }}"
                                         x-model="selectedCategory"
+                                        :disabled="isMobile"
                                         required
                                         class="w-full min-w-[220px] bg-white border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 shadow-sm transition">
                                     <option value="" disabled {% if not tx.suggested_category_id and not tx.is_duplicate %}selected{% endif %}>Selecione uma categoria...</option>
@@ -248,6 +250,7 @@
                     <input type="text"
                            name="description_{{ tx.id }}"
                            x-model="description"
+                           :disabled="!isMobile"
                            value="{{ tx.payee }}"
                            @input.debounce.150ms="onInput($event.target.value)"
                            @focus="if (matchingSuggestions.length > 0) showSuggestions = true"
@@ -277,6 +280,7 @@
                     <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Categoria</label>
                     <select name="category_{{ tx.id }}"
                             x-model="selectedCategory"
+                            :disabled="!isMobile"
                             required
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition">
                         <option value="" disabled {% if not tx.suggested_category_id and not tx.is_duplicate %}selected{% endif %}>Selecione uma categoria...</option>
@@ -363,6 +367,7 @@ function importRowItem(initial) {
 
 function importReviewData() {
     return {
+        isMobile: window.innerWidth < 768,
         ignoreAllDuplicates() {
             // Sincroniza em todos os elementos marcados como duplicata
             document.querySelectorAll('[data-is-duplicate="true"]').forEach(el => {

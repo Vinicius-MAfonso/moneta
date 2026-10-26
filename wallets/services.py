@@ -4,7 +4,7 @@ from django.db import models
 from django.utils.html import strip_tags
 
 
-def recalculate_account_balance(account):
+def compute_account_balance(account):
     from django.utils import timezone
 
     from moneta.common import TransactionType
@@ -31,7 +31,7 @@ def recalculate_account_balance(account):
     )
 
     if account.type == Account.Types.CREDIT_CARD:
-        today = timezone.now().date()
+        today = timezone.localdate()
         # Future projections/subscriptions (recurring or single transactions without installments)
         # should not consume the credit card limit upfront.
         # Only installments (installment_number is not null) consume the limit upfront across future months.
@@ -67,8 +67,13 @@ def recalculate_account_balance(account):
     transfers_in = transfers_in_query.aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
 
     new_balance = account.initial_balance + incomes - expenses - transfers_out + transfers_in
-    new_balance = Decimal(new_balance).quantize(Decimal('.01'))
+    return Decimal(new_balance).quantize(Decimal('.01'))
 
+
+def recalculate_account_balance(account):
+    from wallets.models import Account
+
+    new_balance = compute_account_balance(account)
     Account.objects.filter(id=account.id).update(balance=new_balance)
     account.refresh_from_db()
     return new_balance
@@ -391,7 +396,7 @@ def pay_credit_card_bill(bill, payment_account_id, payment_amount=None):
             in_account_id=bill.account.id,
             description=f"Pagamento Fatura {bill.period_date.strftime('%m/%Y')}",
             amount=amount_to_pay,
-            tx_date=timezone.now().date(),
+            tx_date=timezone.localdate(),
             status='concluída'
         )
 
@@ -427,7 +432,7 @@ def reopen_credit_card_bill(bill):
             else:
                 tx.delete()
 
-        if timezone.now().date() > bill.closing_date:
+        if timezone.localdate() > bill.closing_date:
             bill.status = CreditCardBill.Statuses.CLOSED
         else:
             bill.status = CreditCardBill.Statuses.OPEN
@@ -477,7 +482,7 @@ def adjust_account_balance(account, new_balance, adjustment_type, user):
             account=account,
             category=category,
             amount=abs(delta),
-            date=timezone.now().date(),
+            date=timezone.localdate(),
             description="Reajuste de Saldo",
             status=Transaction.Statuses.COMPLETED
         )
@@ -726,3 +731,60 @@ def get_credit_card_timeline(user, start_date, months=12):
         })
 
     return timeline
+
+
+def get_bill_detail_context(user, bill):
+    from wallets.models import Account
+
+    transactions = (
+        bill.transactions.filter(transfer_in__isnull=True)
+        .select_related('category')
+        .order_by('-date', '-created_at')
+    )
+    summary = get_bill_summary(bill)
+    checking_accounts = Account.objects.filter(user=user).exclude(type=Account.Types.CREDIT_CARD)
+
+    return {
+        'bill': bill,
+        'transactions': transactions,
+        'expenses': summary['expenses'],
+        'incomes': summary['incomes'],
+        'total': summary['total'],
+        'paid_amount': summary['paid_amount'],
+        'remaining_amount': summary['remaining_amount'],
+        'checking_accounts': checking_accounts,
+    }
+
+
+def get_credit_card_dashboard_context(user):
+    from django.utils import timezone
+
+    from transactions.models import Transaction
+    from wallets.models import Account
+
+    accounts = Account.objects.filter(
+        user=user,
+        type=Account.Types.CREDIT_CARD,
+        active=True,
+    ).select_related('credit_card_details')
+
+    today = timezone.localdate()
+    start_of_month = today.replace(day=1)
+
+    timeline = get_credit_card_timeline(user, start_of_month, months=12)
+    installments = (
+        Transaction.objects.filter(
+            user=user,
+            account__type=Account.Types.CREDIT_CARD,
+            installment_number__isnull=False,
+            status=Transaction.Statuses.PENDING,
+        )
+        .select_related('account', 'category')
+        .order_by('date')[:20]
+    )
+
+    return {
+        'accounts': accounts,
+        'timeline': timeline,
+        'installments': installments,
+    }

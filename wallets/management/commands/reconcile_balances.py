@@ -1,9 +1,7 @@
-from decimal import Decimal
-
 from django.core.management.base import BaseCommand
 
 from wallets.models import Account
-from wallets.services import recalculate_account_balance
+from wallets.services import compute_account_balance, recalculate_account_balance
 
 
 class Command(BaseCommand):
@@ -25,35 +23,7 @@ class Command(BaseCommand):
 
         for account in accounts:
             current_balance = account.balance
-            # Calculate what the balance should be without saving
-            from moneta.common import TransactionType
-            from transactions.models import Transaction, Transfer
-
-            status_filter = [Transaction.Statuses.COMPLETED]
-            if account.type == Account.Types.CREDIT_CARD:
-                status_filter.append(Transaction.Statuses.PENDING)
-
-            completed_txs = Transaction.objects.filter(
-                account=account,
-                status__in=status_filter,
-            ).exclude(category__type=TransactionType.TRANSFER)
-
-            from django.db import models
-            incomes = completed_txs.filter(category__type=TransactionType.INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-            expenses = completed_txs.filter(category__type=TransactionType.EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-
-            transfers_out = Transfer.objects.filter(
-                out_transaction__account=account,
-                out_transaction__status__in=status_filter,
-            ).aggregate(total=models.Sum('out_transaction__amount'))['total'] or Decimal('0.00')
-
-            transfers_in = Transfer.objects.filter(
-                in_transaction__account=account,
-                in_transaction__status__in=status_filter,
-            ).aggregate(total=models.Sum('in_transaction__amount'))['total'] or Decimal('0.00')
-
-            expected_balance = account.initial_balance + incomes - expenses - transfers_out + transfers_in
-            expected_balance = Decimal(expected_balance).quantize(Decimal('.01'))
+            expected_balance = compute_account_balance(account)
 
             if current_balance != expected_balance:
                 discrepancies += 1

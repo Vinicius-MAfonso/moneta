@@ -1,11 +1,29 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
 
-from moneta.common import format_form_errors, hx_redirect, hx_toast
-from wallets.models import Account
+from moneta.common import (
+    format_exception_message,
+    format_form_errors,
+    hx_redirect,
+    hx_toast,
+)
+
+from .forms import AccountForm, BalanceAdjustmentForm, PayBillForm
+from .models import Account, CreditCardBill
+from .services import (
+    adjust_account_balance,
+    create_account,
+    delete_account,
+    get_bill_detail_context,
+    get_credit_card_dashboard_context,
+    pay_credit_card_bill,
+    reopen_credit_card_bill,
+    update_account,
+)
 
 
 @login_required
@@ -15,22 +33,23 @@ def account_list_view(request):
         .select_related('credit_card_details')
         .prefetch_related('goals')
     )
-    context = {
-        'accounts': accounts,
-    }
-    return render(request, 'wallets/index.html', context)
+    return render(request, 'wallets/index.html', {'accounts': accounts})
 
 
 @login_required
 def account_create_view(request):
-    from .forms import AccountForm
-
     if request.method == 'POST':
-        form = AccountForm(request.POST)
+        form = AccountForm(request.POST, user=request.user)
         if form.is_valid():
-            from wallets.services import create_account
+            try:
+                create_account(request.user, form.cleaned_data)
+            except (ValueError, ValidationError) as e:
+                error_msg = format_exception_message(e)
+                if request.headers.get('HX-Request'):
+                    return hx_toast(error_msg)
+                messages.error(request, f"Erro ao criar conta: {error_msg}")
+                return redirect('wallets_web:list')
 
-            create_account(request.user, form.cleaned_data)
             messages.success(request, "Conta criada com sucesso!")
             if request.headers.get('HX-Request'):
                 return hx_redirect(reverse('wallets_web:list'))
@@ -47,16 +66,20 @@ def account_create_view(request):
 
 @login_required
 def account_update_view(request, pk):
-    from .forms import AccountForm
-
     account = get_object_or_404(Account.objects.select_related('credit_card_details'), pk=pk, user=request.user)
 
     if request.method == 'POST':
-        form = AccountForm(request.POST)
+        form = AccountForm(request.POST, user=request.user, account_id=account.id)
         if form.is_valid():
-            from wallets.services import update_account
+            try:
+                update_account(account, form.cleaned_data)
+            except (ValueError, ValidationError) as e:
+                error_msg = format_exception_message(e)
+                if request.headers.get('HX-Request'):
+                    return hx_toast(error_msg)
+                messages.error(request, f"Erro ao atualizar conta: {error_msg}")
+                return redirect('wallets_web:list')
 
-            update_account(account, form.cleaned_data)
             messages.success(request, "Conta atualizada com sucesso!")
             if request.headers.get('HX-Request'):
                 return hx_redirect(reverse('wallets_web:list'))
@@ -65,19 +88,14 @@ def account_update_view(request, pk):
             error_msg = format_form_errors(form)
             if request.headers.get('HX-Request'):
                 return hx_toast(error_msg)
-            context = {'account': account, 'form': form}
-            return render(request, 'wallets/partials/account_form.html', context)
+            messages.error(request, f"Erro ao atualizar conta: {error_msg}")
+            return redirect('wallets_web:list')
 
-    context = {
-        'account': account,
-    }
-    return render(request, 'wallets/partials/account_form.html', context)
+    return render(request, 'wallets/partials/account_form.html', {'account': account})
 
 
 @login_required
 def account_balance_adjustment_view(request, pk):
-    from .forms import BalanceAdjustmentForm
-
     account = get_object_or_404(Account.objects.select_related('credit_card_details'), pk=pk, user=request.user)
 
     if request.method == 'POST':
@@ -90,11 +108,16 @@ def account_balance_adjustment_view(request, pk):
             return redirect('wallets_web:list')
 
         cd = form.cleaned_data
-        from wallets.services import adjust_account_balance
-
-        success, result_type = adjust_account_balance(
-            account, cd['new_balance'], cd['adjustment_type'], request.user
-        )
+        try:
+            success, result_type = adjust_account_balance(
+                account, cd['new_balance'], cd['adjustment_type'], request.user
+            )
+        except (ValueError, ValidationError) as e:
+            error_msg = format_exception_message(e)
+            if request.headers.get('HX-Request'):
+                return hx_toast(error_msg)
+            messages.error(request, error_msg)
+            return redirect('wallets_web:list')
 
         if success:
             if result_type == "initial":
@@ -111,8 +134,7 @@ def account_balance_adjustment_view(request, pk):
             return hx_redirect(reverse('wallets_web:list'))
         return redirect('wallets_web:list')
 
-    context = {'account': account}
-    return render(request, 'wallets/partials/balance_adjustment_form.html', context)
+    return render(request, 'wallets/partials/balance_adjustment_form.html', {'account': account})
 
 
 @login_required
@@ -129,8 +151,6 @@ def account_confirm_delete_view(request, pk):
 @login_required
 @require_http_methods(["POST", "DELETE"])
 def account_delete_view(request, pk):
-    from wallets.services import delete_account
-
     account = get_object_or_404(Account, pk=pk, user=request.user)
     account_name = account.name
     delete_account(account)
@@ -142,46 +162,26 @@ def account_delete_view(request, pk):
 
 @login_required
 def bill_detail_view(request, pk):
-    from wallets.models import CreditCardBill
-    from wallets.services import get_bill_summary
-
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
-    transactions = (
-        bill.transactions.filter(transfer_in__isnull=True)
-        .select_related('category')
-        .order_by('-date', '-created_at')
-    )
-
-    summary = get_bill_summary(bill)
-    checking_accounts = Account.objects.filter(user=request.user).exclude(type=Account.Types.CREDIT_CARD)
-
-    context = {
-        'bill': bill,
-        'transactions': transactions,
-        'expenses': summary['expenses'],
-        'incomes': summary['incomes'],
-        'total': summary['total'],
-        'paid_amount': summary['paid_amount'],
-        'remaining_amount': summary['remaining_amount'],
-        'checking_accounts': checking_accounts,
-    }
+    context = get_bill_detail_context(request.user, bill)
     return render(request, 'wallets/bill_detail.html', context)
 
 
 @login_required
 @require_POST
 def pay_bill_view(request, pk):
-    from wallets.models import CreditCardBill
-    from wallets.services import pay_credit_card_bill
-
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
-    payment_account_id = request.POST.get('payment_account')
-    payment_amount = request.POST.get('payment_amount')
+    form = PayBillForm(request.POST, user=request.user)
+    if not form.is_valid():
+        messages.error(request, f"Erro ao pagar fatura: {format_form_errors(form)}")
+        return redirect('wallets_web:bill_detail', pk=bill.pk)
+
+    cd = form.cleaned_data
     try:
-        pay_credit_card_bill(bill, payment_account_id, payment_amount)
+        pay_credit_card_bill(bill, cd['payment_account'].id, cd.get('payment_amount'))
         messages.success(request, f"Pagamento da fatura de {bill.period_date.strftime('%m/%Y')} registrado com sucesso!")
-    except Exception as e:
-        messages.error(request, f"Erro ao pagar fatura: {e!s}")
+    except (ValueError, ValidationError) as e:
+        messages.error(request, f"Erro ao pagar fatura: {format_exception_message(e)}")
 
     return redirect('wallets_web:bill_detail', pk=bill.pk)
 
@@ -189,27 +189,23 @@ def pay_bill_view(request, pk):
 @login_required
 @require_POST
 def reopen_bill_view(request, pk):
-    from wallets.models import CreditCardBill
-    from wallets.services import reopen_credit_card_bill
-
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
     try:
         reopen_credit_card_bill(bill)
         messages.success(request, f"O pagamento da fatura de {bill.period_date.strftime('%m/%Y')} foi cancelado e a fatura reaberta.")
         if request.headers.get('HX-Request'):
             return hx_redirect(reverse('wallets_web:bill_detail', args=[bill.pk]))
-    except Exception as e:
+    except (ValueError, ValidationError) as e:
+        error_msg = f"Erro ao reabrir fatura: {format_exception_message(e)}"
         if request.headers.get('HX-Request'):
-            return hx_toast(f'Erro ao reabrir fatura: {e!s}')
-        messages.error(request, f"Erro ao reabrir fatura: {e!s}")
+            return hx_toast(error_msg)
+        messages.error(request, error_msg)
 
     return redirect('wallets_web:bill_detail', pk=bill.pk)
 
 
 @login_required
 def confirm_reopen_bill_view(request, pk):
-    from wallets.models import CreditCardBill
-
     bill = get_object_or_404(CreditCardBill, pk=pk, account__user=request.user)
     context = {
         'title': 'Reabrir Fatura',
@@ -227,7 +223,7 @@ def bill_list_view(request, account_id):
     bills = account.bills.all().order_by('period_date')
 
     status_filter = request.GET.get('status')
-    if status_filter in ['open', 'closed', 'paid']:
+    if status_filter in CreditCardBill.Statuses.values:
         bills = bills.filter(status=status_filter)
 
     context = {
@@ -240,27 +236,5 @@ def bill_list_view(request, account_id):
 
 @login_required
 def credit_card_dashboard_view(request):
-    from django.utils import timezone
-
-    from transactions.models import Transaction
-    from wallets.services import get_credit_card_timeline
-
-    accounts = Account.objects.filter(user=request.user, type=Account.Types.CREDIT_CARD, active=True).select_related('credit_card_details')
-
-    today = timezone.localdate()
-    start_of_month = today.replace(day=1)
-
-    timeline = get_credit_card_timeline(request.user, start_of_month, months=12)
-    installments = Transaction.objects.filter(
-        user=request.user,
-        account__type=Account.Types.CREDIT_CARD,
-        installment_number__isnull=False,
-        status=Transaction.Statuses.PENDING
-    ).select_related('account', 'category').order_by('date')[:20]
-
-    context = {
-        'accounts': accounts,
-        'timeline': timeline,
-        'installments': installments,
-    }
+    context = get_credit_card_dashboard_context(request.user)
     return render(request, 'wallets/credit_card_dashboard.html', context)

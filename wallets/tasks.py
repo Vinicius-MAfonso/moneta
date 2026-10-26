@@ -13,8 +13,8 @@ def notify_due_credit_card_bills():
     from users.services import send_notification
     from wallets.models import CreditCardBill
 
-    tomorrow = timezone.now().date() + timedelta(days=1)
-    
+    tomorrow = timezone.localdate() + timedelta(days=1)
+
     bills = CreditCardBill.objects.filter(
         status__in=[CreditCardBill.Statuses.OPEN, CreditCardBill.Statuses.CLOSED],
         due_date=tomorrow,
@@ -25,9 +25,9 @@ def notify_due_credit_card_bills():
         user = bill.account.user
         title = "Fatura Vencendo Amanhã!"
         body = f"A fatura do seu cartão {bill.account.name} vence amanhã. Acesse o Moneta para pagar."
-        
+
         send_notification(user, title, body, url='/wallets/')
-        
+
         bill.is_due_tomorrow_notified = True
         bill.save(update_fields=['is_due_tomorrow_notified', 'updated_at'])
 
@@ -37,7 +37,7 @@ def update_and_notify_closed_credit_card_bills():
     from users.services import send_notification
     from wallets.models import CreditCardBill
 
-    today = timezone.now().date()
+    today = timezone.localdate()
     
     # 1. Altera faturas OPEN que já passaram da data de fechamento para CLOSED
     bills_to_close = CreditCardBill.objects.filter(

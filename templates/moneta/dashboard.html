@@ -24,15 +24,13 @@
                 </select>
             </form>
 
-            <div class="h-10 inline-flex items-center space-x-1 bg-white border border-slate-200 rounded-xl px-2.5 shadow-sm text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap">
-                <a href="?month={{ month_info.prev_month }}{% if selected_account_id %}&amp;account_id={{ selected_account_id }}{% endif %}" aria-label="Mês anterior" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
-                </a>
-                <span class="px-1.5 min-w-[90px] md:min-w-[110px] text-center font-bold text-indigo-600 capitalize text-xs sm:text-sm whitespace-nowrap">{{ month_info.month_label }}</span>
-                <a href="?month={{ month_info.next_month }}{% if selected_account_id %}&amp;account_id={{ selected_account_id }}{% endif %}" aria-label="Próximo mês" class="p-1 text-slate-500 hover:text-indigo-600 transition">
-                    <svg class="w-4 h-4" aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
-                </a>
-            </div>
+            {% if selected_account_id %}
+                {% with acc_param='&account_id='|add:selected_account_id %}
+                    {% include 'partials/month_nav.html' with prev_url='?month='|add:month_info.prev_month|add:acc_param next_url='?month='|add:month_info.next_month|add:acc_param month_label=month_info.month_label %}
+                {% endwith %}
+            {% else %}
+                {% include 'partials/month_nav.html' with prev_url='?month='|add:month_info.prev_month next_url='?month='|add:month_info.next_month month_label=month_info.month_label %}
+            {% endif %}
 
             <button hx-get="{% url 'transactions_web:create' %}" hx-target="#modal-container" class="h-10 hidden sm:inline-flex items-center justify-center space-x-2 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all shadow-lg shadow-indigo-600/25 shrink-0 whitespace-nowrap">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>

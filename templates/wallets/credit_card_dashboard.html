@@ -58,8 +58,7 @@
                         </div>
                         
                         <div class="w-full bg-slate-100 rounded-full h-2 mt-2 overflow-hidden">
-                            {% widthratio account.balance account.credit_card_details.limit|default:1 100 as limit_pct %}
-                            <div class="bg-rose-500 h-2 rounded-full" style="width: {% if limit_pct > 100 %}100{% else %}{{ limit_pct }}{% endif %}%;"></div>
+                            <div class="h-2 rounded-full transition-all duration-300 {% if account.credit_card_details.limit_usage_pct >= 90 %}bg-rose-500{% elif account.credit_card_details.limit_usage_pct >= 75 %}bg-amber-500{% else %}bg-indigo-500{% endif %}" style="width: min({{ account.credit_card_details.limit_usage_pct_str }}%, 100%);"></div>
                         </div>
                     </div>
                 </div>

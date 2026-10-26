@@ -56,6 +56,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('transactionForm', (initialData) => ({
         txType: initialData.txType,
         isRecurring: initialData.isRecurring || false,
+        editMode: 'single',
         frequency: initialData.frequency || 'monthly',
         recurringEndDate: initialData.recurringEndDate || '',
         installments: 1,
