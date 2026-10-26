@@ -8,14 +8,23 @@ from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.db import transaction as db_transaction
+from django.utils.dateparse import parse_date
 from ofxparse import OfxParser
 
 from transactions.models import Category, Transaction
 from transactions.services import get_user_description_habits
+from wallets.models import Account
 
 logger = logging.getLogger(__name__)
 
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+def _validate_file_size(uploaded_file):
+    if hasattr(uploaded_file, 'size') and uploaded_file.size > MAX_UPLOAD_SIZE:
+        raise ValueError("O arquivo excede o limite máximo permitido de 5MB.")
+    if isinstance(uploaded_file, (bytes, str)) and len(uploaded_file) > MAX_UPLOAD_SIZE:
+        raise ValueError("O arquivo excede o limite máximo permitido de 5MB.")
 
 
 def _decode_file(uploaded_file):
@@ -23,8 +32,7 @@ def _decode_file(uploaded_file):
     Decodes the uploaded file trying utf-8-sig (BOM), utf-8, latin-1, and cp1252.
     Enforces maximum file size limit.
     """
-    if hasattr(uploaded_file, 'size') and uploaded_file.size > MAX_UPLOAD_SIZE:
-        raise ValueError("O arquivo excede o limite máximo permitido de 5MB.")
+    _validate_file_size(uploaded_file)
 
     if hasattr(uploaded_file, 'read'):
         content = uploaded_file.read()
@@ -334,6 +342,8 @@ def parse_ofx_file(ofx_file):
     """
     Parser for OFX bank statement files with robust description extraction and encoding support.
     """
+    _validate_file_size(ofx_file)
+
     if hasattr(ofx_file, 'seek'):
         ofx_file.seek(0)
 
@@ -392,8 +402,8 @@ def enrich_transactions_with_suggestions_and_duplicates(user, transactions):
     # Get date range to search existing transactions
     dates_iso = [t['date_iso'] for t in transactions if t.get('date_iso')]
     if dates_iso:
-        min_date_obj = datetime.strptime(min(dates_iso), '%Y-%m-%d').date() - timedelta(days=2)
-        max_date_obj = datetime.strptime(max(dates_iso), '%Y-%m-%d').date() + timedelta(days=2)
+        min_date_obj = parse_date(min(dates_iso)) - timedelta(days=2)
+        max_date_obj = parse_date(max(dates_iso)) + timedelta(days=2)
         existing_txs = list(
             Transaction.objects.filter(
                 user=user,
@@ -449,7 +459,7 @@ def enrich_transactions_with_suggestions_and_duplicates(user, transactions):
         tx_amount = Decimal(str(tx.get('amount', '0.00')))
         tx_date_str = tx.get('date_iso')
         if tx_date_str:
-            tx_date_obj = datetime.strptime(tx_date_str, '%Y-%m-%d').date()
+            tx_date_obj = parse_date(tx_date_str)
             is_dup = False
             dup_reason = ''
 
@@ -468,6 +478,51 @@ def enrich_transactions_with_suggestions_and_duplicates(user, transactions):
             tx['duplicate_reason'] = ''
 
     return transactions
+
+
+def parse_statement_file(upload_file):
+    """
+    Dispatches bank statement parsing based on file extension (.ofx vs .csv/.txt),
+    falling back from OFX to CSV when extension is unknown.
+    """
+    filename = (getattr(upload_file, 'name', '') or '').lower()
+    if filename.endswith('.ofx'):
+        return parse_ofx_file(upload_file)
+    if filename.endswith(('.csv', '.txt')):
+        return parse_csv_file(upload_file)
+    try:
+        return parse_ofx_file(upload_file)
+    except ValueError:
+        raise
+    except Exception:
+        return parse_csv_file(upload_file)
+
+
+def get_import_review_context(user, transactions):
+    """
+    Enriches imported transactions with category suggestions and duplicate flags,
+    and returns the template context for the import review screen.
+    """
+    enriched = enrich_transactions_with_suggestions_and_duplicates(user, transactions)
+    accounts = Account.objects.filter(
+        user=user,
+        type__in=[Account.Types.CHECKING, Account.Types.OTHER],
+        active=True,
+    ).order_by('name')
+    categories = Category.objects.filter(user=user, is_system=False).order_by('type', 'name')
+    suggestions_count = sum(1 for t in enriched if t.get('suggested_category_id'))
+    duplicates_count = sum(1 for t in enriched if t.get('is_duplicate'))
+    description_habits = get_user_description_habits(user)
+
+    return {
+        'transactions': enriched,
+        'accounts': accounts,
+        'categories': categories,
+        'total_count': len(enriched),
+        'suggestions_count': suggestions_count,
+        'duplicates_count': duplicates_count,
+        'description_habits': description_habits,
+    }
 
 
 def process_import_transactions(user, account, transactions_data, request_post):
@@ -520,11 +575,7 @@ def process_import_transactions(user, account, transactions_data, request_post):
     return len(transactions_to_create)
 
 
-# Alias for backward compatibility
-process_ofx_transactions = process_import_transactions
-
-
-def send_notification(user, title, body, url='/dashboard/'):
+def send_notification(user, title, body, url='/'):
     from .models import Notification
     Notification.objects.create(
         user=user,

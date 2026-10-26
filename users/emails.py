@@ -1,7 +1,12 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.urls import reverse
+
+logger = logging.getLogger(__name__)
 
 
 def send_welcome_email(user_id):
@@ -13,7 +18,7 @@ def send_welcome_email(user_id):
 
     context = {
         'user_name': user.first_name or user.username,
-        'login_url': f"{settings.SITE_URL.rstrip('/')}/users/login/"
+        'login_url': f"{settings.SITE_URL.rstrip('/')}{reverse('users_web:login')}",
     }
 
     subject_template = 'users/emails/welcome_subject.txt'
@@ -35,8 +40,6 @@ def send_welcome_email(user_id):
     try:
         msg.send()
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.error(f"Erro ao enviar email de boas vindas para {to_email}: {e}")
         return False
 

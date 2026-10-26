@@ -29,6 +29,16 @@ class UsersWebTestCase(TestCase):
         self.assertEqual(self.user.first_name, 'João')
         self.assertEqual(self.user.last_name, 'Silva')
 
+        # Invalid email should not update user
+        res_invalid = self.client.post('/users/settings/', data={
+            'first_name': 'João',
+            'last_name': 'Silva',
+            'email': 'not-an-email',
+        })
+        self.assertEqual(res_invalid.status_code, 302)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, 'joao@example.com')
+
     def test_login_and_register_views(self):
         self.client.logout()
 
@@ -376,4 +386,9 @@ NEWFILEENCODING:IBMPC
         res = self.client.post(reverse('users_web:import_file'), {'file': upload_file}, follow=True)
         self.assertEqual(res.status_code, 200)
         self.assertContains(res, 'excede o limite')
+
+        upload_ofx = SimpleUploadedFile("huge.ofx", huge_content, content_type="application/x-ofx")
+        res_ofx = self.client.post(reverse('users_web:import_file'), {'file': upload_ofx}, follow=True)
+        self.assertEqual(res_ofx.status_code, 200)
+        self.assertContains(res_ofx, 'excede o limite')
 

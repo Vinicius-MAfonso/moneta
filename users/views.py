@@ -3,13 +3,19 @@ import logging
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.html import strip_tags
+from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
-from transactions.models import Category
-from wallets.models import Account
+from moneta.common import format_form_errors
+
+from .forms import ImportReviewForm, UserProfileForm, UserRegistrationForm
+from .models import Notification
+from .services import (
+    get_import_review_context,
+    parse_statement_file,
+    process_import_transactions,
+)
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -49,36 +55,12 @@ def register_view(request):
         return redirect('dashboard')
 
     if request.method == 'POST':
-        username = strip_tags(request.POST.get('username', '')).strip()
-        first_name = strip_tags(request.POST.get('first_name', '')).strip()
-        last_name = strip_tags(request.POST.get('last_name', '')).strip()
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        password_confirm = request.POST.get('password_confirm')
-
-        if password != password_confirm:
-            messages.error(request, 'As senhas não coincidem.')
-        elif User.objects.filter(username=username).exists():
-            messages.error(request, 'Nome de usuário já em uso.')
-        else:
-            try:
-                from django.contrib.auth.password_validation import validate_password
-                from django.core.exceptions import ValidationError
-                validate_password(password)
-            except ValidationError as e:
-                messages.error(request, ' '.join(e.messages))
-                return render(request, 'users/register.html')
-
-            User.objects.create_user(
-                username=username,
-                email=email,
-                password=password,
-                first_name=first_name,
-                last_name=last_name,
-                is_active=False,
-            )
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            form.save()
             messages.success(request, 'Conta criada com sucesso! Aguarde a aprovação do administrador para acessar.')
             return redirect('users_web:login')
+        messages.error(request, format_form_errors(form))
 
     return render(request, 'users/register.html')
 
@@ -89,162 +71,104 @@ def logout_view(request):
     return redirect('users_web:login')
 
 
-@login_required(login_url='users_web:login')
+@login_required
 def settings_view(request):
     if request.method == 'POST':
-        user = request.user
-        user.first_name = strip_tags(request.POST.get('first_name', user.first_name)).strip()
-        user.last_name = strip_tags(request.POST.get('last_name', user.last_name)).strip()
-        user.email = request.POST.get('email', user.email)
-        user.save()
-        messages.success(request, 'Perfil e preferências atualizados com sucesso!')
+        form = UserProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Perfil e preferências atualizados com sucesso!')
+        else:
+            messages.error(request, format_form_errors(form))
         return redirect('users_web:settings')
 
-    context = {
-    }
-    return render(request, 'users/settings.html', context)
+    return render(request, 'users/settings.html', {})
 
 
-@login_required(login_url='users_web:login')
+@login_required
 def import_file_view(request):
-    upload_file = request.FILES.get('file') or request.FILES.get('ofx_file')
+    upload_file = request.FILES.get('file')
     if request.method == 'POST' and upload_file:
-        filename = upload_file.name.lower()
         try:
-            from users.services import parse_csv_file, parse_ofx_file
-
-            if filename.endswith('.ofx'):
-                transactions = parse_ofx_file(upload_file)
-            elif filename.endswith(('.csv', '.txt')):
-                transactions = parse_csv_file(upload_file)
-            else:
-                # Try OFX first; fallback to CSV if it fails
-                try:
-                    transactions = parse_ofx_file(upload_file)
-                except Exception:
-                    transactions = parse_csv_file(upload_file)
-
+            transactions = parse_statement_file(upload_file)
             if not transactions:
                 messages.warning(request, 'O arquivo foi lido, mas nenhuma transação válida foi encontrada.')
                 return redirect('users_web:settings')
 
             request.session['import_transactions'] = transactions
-            request.session['ofx_transactions'] = transactions  # Backward compatibility
             messages.info(request, f'Foram lidas {len(transactions)} transações do extrato. Revise os lançamentos abaixo.')
             return redirect('users_web:import_review')
-
         except Exception as e:
             messages.error(request, f'Erro ao processar arquivo: {e!s}')
             return redirect('users_web:settings')
-    else:
-        messages.warning(request, 'Nenhum arquivo de extrato (.OFX ou .CSV) foi enviado.')
 
+    messages.warning(request, 'Nenhum arquivo de extrato (.OFX ou .CSV) foi enviado.')
     return redirect('users_web:settings')
 
 
-# Alias for backward compatibility
-import_ofx_view = import_file_view
-
-
-@login_required(login_url='users_web:login')
+@login_required
 def import_review_view(request):
-    transactions = request.session.get('import_transactions') or request.session.get('ofx_transactions', [])
+    transactions = request.session.get('import_transactions', [])
 
     if not transactions:
         messages.warning(request, 'Nenhuma transação na memória. Faça o upload do extrato novamente.')
         return redirect('users_web:settings')
 
     if request.method == 'POST':
-        account_id = request.POST.get('account_id')
-        if not account_id:
-            messages.error(request, 'Selecione uma conta de destino.')
+        form = ImportReviewForm(request.POST, user=request.user)
+        if not form.is_valid():
+            messages.error(request, format_form_errors(form))
             return redirect('users_web:import_review')
 
-        account = get_object_or_404(Account, id=account_id, user=request.user)
+        account = form.cleaned_data['account_id']
 
         try:
-            from users.services import process_import_transactions
             saved_count = process_import_transactions(request.user, account, transactions, request.POST)
         except Exception as e:
             messages.error(request, f"Erro ao importar transações: {e!s}")
             return redirect('users_web:import_review')
 
-        if 'import_transactions' in request.session:
-            del request.session['import_transactions']
-        if 'ofx_transactions' in request.session:
-            del request.session['ofx_transactions']
-
+        request.session.pop('import_transactions', None)
         messages.success(request, f'{saved_count} transações importadas com sucesso!')
         return redirect('dashboard')
 
-    from users.services import enrich_transactions_with_suggestions_and_duplicates
-    transactions = enrich_transactions_with_suggestions_and_duplicates(request.user, transactions)
-    # Update session with enriched transactions
-    request.session['import_transactions'] = transactions
-
-    # Support Checking and Other accounts (Savings/Investments)
-    accounts = Account.objects.filter(
-        user=request.user,
-        type__in=[Account.Types.CHECKING, Account.Types.OTHER],
-        active=True
-    ).order_by('name')
-
-    categories = Category.objects.filter(user=request.user, is_system=False).order_by('type', 'name')
-
-    suggestions_count = sum(1 for t in transactions if t.get('suggested_category_id'))
-    duplicates_count = sum(1 for t in transactions if t.get('is_duplicate'))
-
-    from transactions.services import get_user_description_habits
-    description_habits = get_user_description_habits(request.user)
-
-    context = {
-        'transactions': transactions,
-        'accounts': accounts,
-        'categories': categories,
-        'total_count': len(transactions),
-        'suggestions_count': suggestions_count,
-        'duplicates_count': duplicates_count,
-        'description_habits': description_habits,
-    }
+    context = get_import_review_context(request.user, transactions)
+    request.session['import_transactions'] = context['transactions']
     return render(request, 'users/import_review.html', context)
 
 
 @login_required
-
-
 def notifications_list(request):
-    from .models import Notification
     notifications = Notification.objects.filter(user=request.user)[:10]
     unread_notifications_count = Notification.objects.filter(user=request.user, is_read=False).count()
     return render(request, 'users/partials/notification_list.html', {
         'notifications': notifications,
-        'unread_notifications_count': unread_notifications_count
+        'unread_notifications_count': unread_notifications_count,
     })
+
 
 @login_required
 @require_POST
 def notifications_mark_read(request):
-    from .models import Notification
     Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-    
+
     if request.headers.get('HX-Request'):
-        # Return empty with an HTMX trigger if needed, or re-render the list
         notifications = Notification.objects.filter(user=request.user)[:10]
         return render(request, 'users/partials/notification_list.html', {
             'notifications': notifications,
-            'unread_notifications_count': 0
+            'unread_notifications_count': 0,
         })
     return redirect('dashboard')
+
 
 @login_required
 @require_POST
 def notifications_clear(request):
-    from .models import Notification
     Notification.objects.filter(user=request.user).delete()
-    
+
     if request.headers.get('HX-Request'):
         return render(request, 'users/partials/notification_list.html', {
             'notifications': [],
-            'unread_notifications_count': 0
+            'unread_notifications_count': 0,
         })
     return redirect('dashboard')

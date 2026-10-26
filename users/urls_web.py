@@ -11,7 +11,6 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('settings/', views.settings_view, name='settings'),
     path('import/', views.import_file_view, name='import_file'),
-    path('import/ofx/', views.import_file_view, name='import_ofx'),
     path('import/review/', views.import_review_view, name='import_review'),
     path('notifications/', views.notifications_list, name='notifications_list'),
     path('notifications/read/', views.notifications_mark_read, name='notifications_mark_read'),
