@@ -281,7 +281,7 @@ class WalletsServicesTestCase(TestCase):
         self.assertEqual(cc.used_limit, Decimal('0.00'))
 
         cat_expense, _ = Category.objects.get_or_create(user=self.user, name='Streaming', defaults={'type': TransactionType.EXPENSE})
-        today = timezone.now().date()
+        today = timezone.localdate()
 
         # 1. Add recurring subscription (e.g. Netflix 50.00) with 1 current charge and 5 future projections
         recurring = RecurringTransaction.objects.create(

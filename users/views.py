@@ -1,7 +1,7 @@
 import logging
 
 from django.contrib import messages
-from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -9,7 +9,12 @@ from django.views.decorators.http import require_POST
 
 from moneta.common import format_form_errors
 
-from .forms import ImportReviewForm, UserProfileForm, UserRegistrationForm
+from .forms import (
+    ImportReviewForm,
+    UserLoginForm,
+    UserProfileForm,
+    UserRegistrationForm,
+)
 from .models import Notification
 from .services import (
     get_import_review_context,
@@ -18,7 +23,6 @@ from .services import (
 )
 
 logger = logging.getLogger(__name__)
-User = get_user_model()
 
 
 def login_view(request):
@@ -26,11 +30,9 @@ def login_view(request):
         return redirect('dashboard')
 
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
+        form = UserLoginForm(request, data=request.POST)
+        if form.is_valid():
+            login(request, form.get_user())
             next_url = request.GET.get('next')
             redirect_to = 'dashboard'
             if next_url and url_has_allowed_host_and_scheme(
@@ -40,12 +42,10 @@ def login_view(request):
             ):
                 redirect_to = next_url
             return redirect(redirect_to)
+        if form.is_pending_approval:
+            messages.warning(request, form.error_messages['inactive'])
         else:
-            user_obj = User.objects.filter(username=username).first()
-            if user_obj and user_obj.check_password(password) and not user_obj.is_active:
-                messages.warning(request, 'Sua conta ainda está em análise pelo administrador. Aguarde a aprovação.')
-            else:
-                messages.error(request, 'Usuário ou senha incorretos.')
+            messages.error(request, form.error_messages['invalid_login'])
 
     return render(request, 'users/login.html')
 

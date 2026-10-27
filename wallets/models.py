@@ -3,13 +3,10 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-HEX_COLOR_VALIDATOR = RegexValidator(
-    regex=r'^#[0-9A-Fa-f]{6}$',
-    message='Insira uma cor hexadecimal válida no formato #RRGGBB.'
-)
+from moneta.common import HEX_COLOR_VALIDATOR
 
 
 class Account(models.Model):
@@ -76,9 +73,21 @@ class Account(models.Model):
 
 class CreditCardDetails(models.Model):
     account = models.OneToOneField(Account, on_delete=models.CASCADE, primary_key=True, related_name='credit_card_details', verbose_name='conta')
-    limit = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name='limite')
-    closing_day = models.PositiveSmallIntegerField(verbose_name='dia de fechamento')
-    due_day = models.PositiveSmallIntegerField(verbose_name='dia de vencimento')
+    limit = models.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal('0.00'), message='O limite do cartão de crédito não pode ser negativo.')],
+        verbose_name='limite',
+    )
+    closing_day = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(31)],
+        verbose_name='dia de fechamento',
+    )
+    due_day = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(31)],
+        verbose_name='dia de vencimento',
+    )
 
     class Meta:
         verbose_name = 'detalhes do cartão de crédito'

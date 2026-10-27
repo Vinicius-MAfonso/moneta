@@ -210,7 +210,7 @@ class DashboardAndReportsViewsTestCase(TestCase):
             name='Cartão Teste',
             type=Account.Types.CREDIT_CARD,
         )
-        tomorrow = timezone.now().date() + timedelta(days=1)
+        tomorrow = timezone.localdate() + timedelta(days=1)
         bill = CreditCardBill.objects.create(
             account=cc_account,
             period_date=date(tomorrow.year, tomorrow.month, 1),

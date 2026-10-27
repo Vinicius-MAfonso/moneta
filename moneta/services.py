@@ -2,6 +2,7 @@ import csv
 import datetime
 from decimal import Decimal
 
+from dateutil.relativedelta import relativedelta
 from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce, TruncDay, TruncMonth
 from django.http import HttpResponse
@@ -126,16 +127,7 @@ def get_dashboard_data(user, month_param=None, account_id_param=None):
         user, month_ctx['start_date'], month_ctx['end_date'], account=selected_account
     )
 
-    current_year = month_ctx['year']
-    current_month_num = month_ctx['month_num']
-
-    start_m_num = current_month_num - 5
-    start_y_num = current_year
-    while start_m_num < 1:
-        start_m_num += 12
-        start_y_num -= 1
-
-    six_months_start = get_month_context(f"{start_y_num}-{start_m_num:02d}")['start_date']
+    six_months_start = month_ctx['start_date'] - relativedelta(months=5)
 
     monthly_stats = (
         base_tx_qs.filter(date__range=(six_months_start, month_ctx['end_date']))
@@ -161,15 +153,10 @@ def get_dashboard_data(user, month_param=None, account_id_param=None):
     chart_balances = []
 
     for i in range(5, -1, -1):
-        m_num = current_month_num - i
-        y_num = current_year
-        while m_num < 1:
-            m_num += 12
-            y_num -= 1
-
-        m_ctx = get_month_context(f"{y_num}-{m_num:02d}")
+        target_month_date = month_ctx['start_date'] - relativedelta(months=i)
+        m_key = target_month_date.strftime('%Y-%m')
+        m_ctx = get_month_context(m_key)
         chart_labels.append(m_ctx['month_label'])
-        m_key = f"{y_num}-{m_num:02d}"
 
         inc = float(stats_dict.get(m_key, {}).get('income', 0))
         exp = float(stats_dict.get(m_key, {}).get('expense', 0))

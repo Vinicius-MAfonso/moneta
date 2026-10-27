@@ -3,16 +3,11 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator, RegexValidator
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.dateparse import parse_date
 
-from moneta.common import TransactionType
-
-HEX_COLOR_VALIDATOR = RegexValidator(
-    regex=r'^#[0-9A-Fa-f]{6}$',
-    message='Insira uma cor hexadecimal válida no formato #RRGGBB.'
-)
+from moneta.common import HEX_COLOR_VALIDATOR, TransactionType
 
 
 class Category(models.Model):

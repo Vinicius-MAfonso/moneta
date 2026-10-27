@@ -4,9 +4,16 @@ from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 
+from dateutil.relativedelta import relativedelta
+from django.core.validators import RegexValidator
 from django.db import models
 from django.http import HttpResponse
 from django.utils import timezone
+
+HEX_COLOR_VALIDATOR = RegexValidator(
+    regex=r'^#[0-9A-Fa-f]{6}$',
+    message='Insira uma cor hexadecimal válida no formato #RRGGBB.',
+)
 
 
 class TransactionType(models.TextChoices):
@@ -40,27 +47,15 @@ def get_month_context(month_str=None):
             year = today.year
             month_num = today.month
 
-    if month_num < 1:
-        month_num = 1
-    elif month_num > 12:
-        month_num = 12
+    month_num = max(1, min(12, month_num))
 
-    _, last_day = calendar.monthrange(year, month_num)
     start_date = date(year, month_num, 1)
-    end_date = date(year, month_num, last_day)
-
-    if month_num == 1:
-        prev_month = f"{year - 1}-12"
-    else:
-        prev_month = f"{year}-{month_num - 1:02d}"
-
-    if month_num == 12:
-        next_month = f"{year + 1}-01"
-    else:
-        next_month = f"{year}-{month_num + 1:02d}"
+    end_date = start_date + relativedelta(day=31)
+    prev_month = (start_date - relativedelta(months=1)).strftime('%Y-%m')
+    next_month = (start_date + relativedelta(months=1)).strftime('%Y-%m')
 
     month_label = f"{MONTH_NAMES_PT[month_num - 1]} {year}"
-    current_month_str = f"{year}-{month_num:02d}"
+    current_month_str = start_date.strftime('%Y-%m')
 
     return {
         'current_month_str': current_month_str,

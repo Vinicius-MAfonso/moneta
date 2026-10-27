@@ -1,23 +1,16 @@
-import calendar
-from datetime import date, timedelta
+from datetime import timedelta
 
+from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 from django.utils.html import strip_tags
 
 
 def add_months(orig_date, months=1):
-    new_year = orig_date.year + (orig_date.month + months - 1) // 12
-    new_month = (orig_date.month + months - 1) % 12 + 1
-    max_day = calendar.monthrange(new_year, new_month)[1]
-    new_day = min(orig_date.day, max_day)
-    return date(new_year, new_month, new_day)
+    return orig_date + relativedelta(months=months)
 
 
 def add_years(orig_date, years=1):
-    try:
-        return orig_date.replace(year=orig_date.year + years)
-    except ValueError:
-        return orig_date.replace(year=orig_date.year + years, day=28)
+    return orig_date + relativedelta(years=years)
 
 
 def process_recurring_transactions(user, target_end_date=None):

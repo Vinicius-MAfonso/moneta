@@ -282,6 +282,8 @@ def calculate_balances_for_dates(user, dates, account_id=None):
 def get_or_create_bill_for_transaction(account, transaction_date):
     import datetime
 
+    from dateutil.relativedelta import relativedelta
+
     from wallets.models import CreditCardBill
 
     if account.type != account.Types.CREDIT_CARD or not hasattr(account, 'credit_card_details'):
@@ -291,36 +293,15 @@ def get_or_create_bill_for_transaction(account, transaction_date):
     closing_day = cc.closing_day
     due_day = cc.due_day
 
-    if transaction_date.day <= closing_day:
-        cycle_month = transaction_date.month
-        cycle_year = transaction_date.year
-    else:
-        cycle_month = transaction_date.month + 1
-        cycle_year = transaction_date.year
-        if cycle_month > 12:
-            cycle_month = 1
-            cycle_year += 1
-
-    import calendar
-    def get_valid_date(year, month, day):
-        _, max_day = calendar.monthrange(year, month)
-        return datetime.date(year, month, min(day, max_day))
+    cycle_base = datetime.date(transaction_date.year, transaction_date.month, 1)
+    if transaction_date.day > closing_day:
+        cycle_base += relativedelta(months=1)
 
     while True:
-        closing_date = get_valid_date(cycle_year, cycle_month, closing_day)
-
-        if due_day > closing_day:
-            due_month = cycle_month
-            due_year = cycle_year
-        else:
-            due_month = cycle_month + 1
-            due_year = cycle_year
-            if due_month > 12:
-                due_month = 1
-                due_year += 1
-
-        due_date = get_valid_date(due_year, due_month, due_day)
-        period_date = datetime.date(due_year, due_month, 1)
+        closing_date = cycle_base + relativedelta(day=closing_day)
+        due_base = cycle_base if due_day > closing_day else cycle_base + relativedelta(months=1)
+        due_date = due_base + relativedelta(day=due_day)
+        period_date = due_base.replace(day=1)
 
         bill, _created = CreditCardBill.objects.get_or_create(
             account=account,
@@ -335,10 +316,7 @@ def get_or_create_bill_for_transaction(account, transaction_date):
         if bill.status == CreditCardBill.Statuses.OPEN:
             break
 
-        cycle_month += 1
-        if cycle_month > 12:
-            cycle_month = 1
-            cycle_year += 1
+        cycle_base += relativedelta(months=1)
 
     return bill
 
@@ -521,31 +499,16 @@ def update_account(account, validated_data):
         cc.save()
 
         if old_closing != cc.closing_day or old_due != cc.due_day:
-            import calendar
-            import datetime
+            from dateutil.relativedelta import relativedelta
 
             from wallets.models import CreditCardBill
-            
+
             open_bills = account.bills.filter(status=CreditCardBill.Statuses.OPEN)
             for bill in open_bills:
-                due_month = bill.period_date.month
-                due_year = bill.period_date.year
-                
-                _, max_day = calendar.monthrange(due_year, due_month)
-                bill.due_date = datetime.date(due_year, due_month, min(cc.due_day, max_day))
-                
-                if cc.due_day > cc.closing_day:
-                    cycle_month = due_month
-                    cycle_year = due_year
-                else:
-                    cycle_month = due_month - 1
-                    cycle_year = due_year
-                    if cycle_month < 1:
-                        cycle_month = 12
-                        cycle_year -= 1
-                
-                _, max_day = calendar.monthrange(cycle_year, cycle_month)
-                bill.closing_date = datetime.date(cycle_year, cycle_month, min(cc.closing_day, max_day))
+                due_base = bill.period_date.replace(day=1)
+                bill.due_date = due_base + relativedelta(day=cc.due_day)
+                cycle_base = due_base if cc.due_day > cc.closing_day else due_base - relativedelta(months=1)
+                bill.closing_date = cycle_base + relativedelta(day=cc.closing_day)
                 bill.save()
 
     recalculate_account_balance(account)
