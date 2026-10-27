@@ -16,10 +16,7 @@ django-axes==6.*
 # Frontend & Assets
 django-tailwind==3.8.0
 
-# Background Tasks & Scheduling
-django-q2==1.7.4
-django-picklefield==3.4.0
-arrow==1.4.0
+# Date & Time Utilities
 python-dateutil==2.9.0.post0
 six==1.17.0
 

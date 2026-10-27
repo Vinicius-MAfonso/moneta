@@ -347,3 +347,51 @@ def deposit_to_goal(goal, amount):
         locked_goal.refresh_from_db()
         check_and_notify_goal_progress(locked_goal)
     return True
+
+
+def check_and_notify_user_budgets_and_goals(user, notify_fn=None):
+    if notify_fn is None:
+        from users.services import send_notification
+        notify_fn = send_notification
+
+    today = timezone.localdate()
+    month_start, month_end = get_month_range(today)
+
+    # 1. Reset warning notification flag for recurring monthly budgets in a new month
+    Budget.objects.filter(
+        user=user,
+        is_recurring=True,
+        is_warning_notified=True,
+        updated_at__date__lt=month_start,
+    ).update(is_warning_notified=False)
+
+    # 2. Fetch unnotified active budgets for this user
+    active_budgets = list(
+        Budget.objects.filter(
+            user=user,
+            is_warning_notified=False,
+        ).filter(
+            models.Q(is_recurring=True, start_date__lte=month_end) |
+            models.Q(is_recurring=False, start_date__lte=today, end_date__gte=today)
+        ).select_related('user', 'category')
+    )
+
+    if active_budgets:
+        progress_list = calculate_budgets_progress_bulk(active_budgets, reference_date=today)
+        for progress in progress_list:
+            if progress['is_warning']:
+                budget = progress['budget']
+                title = "Atenção ao Orçamento!"
+                body = f"Você já consumiu {progress['percentage']:.0f}% do seu orçamento de {budget.category.name}."
+                notify_fn(user, title, body, url='/planning/')
+                budget.is_warning_notified = True
+                budget.save(update_fields=['is_warning_notified', 'updated_at'])
+
+    # 3. Check active goals for this user
+    active_goals = Goal.objects.filter(
+        user=user,
+        end_date__gte=today,
+    ).select_related('user')
+
+    for goal in active_goals:
+        check_and_notify_goal_progress(goal, notify_fn=notify_fn)

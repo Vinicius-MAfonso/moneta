@@ -115,7 +115,6 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
 
     from django.db import transaction as db_transaction
     from django.shortcuts import get_object_or_404
-    from django_q.tasks import async_task
 
     from moneta.common import TransactionType
     from transactions.models import (
@@ -186,7 +185,7 @@ def create_transfer(user, out_account_id, in_account_id, description, amount, tx
 
         if is_recurring:
             db_transaction.on_commit(
-                lambda: async_task('transactions.services.process_recurring_transactions', user)
+                lambda u=user: process_recurring_transactions(u)
             )
 
         from wallets.services import recalculate_account_balance
@@ -267,7 +266,6 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
     from django.db import models
     from django.db import transaction as db_transaction
     from django.shortcuts import get_object_or_404
-    from django_q.tasks import async_task
 
     from transactions.models import Category, RecurringTransaction, Transaction
     from wallets.models import Account
@@ -362,7 +360,7 @@ def create_regular_transaction(user, account_id, category_id, description, amoun
 
             if is_recurring:
                 db_transaction.on_commit(
-                    lambda u=user: async_task('transactions.services.process_recurring_transactions', u)
+                    lambda u=user: process_recurring_transactions(u)
                 )
                 
         from wallets.services import recalculate_account_balance
@@ -481,9 +479,8 @@ def update_transaction(transaction, validated_data):
             transaction.tags.set(tag_ids)
 
         if trigger_async_process:
-            from django_q.tasks import async_task
             db_transaction.on_commit(
-                lambda u=transaction.user: async_task('transactions.services.process_recurring_transactions', u)
+                lambda u=transaction.user: process_recurring_transactions(u)
             )
 
         recalculate_account_balance(transaction.account)
@@ -830,6 +827,48 @@ def get_transaction_form_context(user, transaction=None, transfer=None):
         'initial_tx_data': initial_tx_data,
         'description_habits': description_habits,
     }
+
+
+def check_and_notify_user_due_transactions(user, notify_fn=None):
+    from transactions.models import Transaction
+    from users.models import Notification
+
+    if notify_fn is None:
+        from users.services import send_notification
+        notify_fn = send_notification
+
+    today = timezone.localdate()
+
+    # Avoid duplicate notifications on the same day for the same user
+    if Notification.objects.filter(
+        user=user,
+        url='/transactions/',
+        created_at__date=today,
+        title__icontains='Vencendo Hoje',
+    ).exists():
+        return
+
+    due_transactions = list(
+        Transaction.objects.filter(
+            user=user,
+            date=today,
+            status=Transaction.Statuses.PENDING,
+        ).only('description', 'amount')
+    )
+
+    if not due_transactions:
+        return
+
+    count = len(due_transactions)
+    if count == 1:
+        tx = due_transactions[0]
+        title = "Conta Vencendo Hoje!"
+        body = f"{tx.description} no valor de R$ {tx.amount}."
+    else:
+        title = f"{count} Contas Vencendo Hoje!"
+        body = f"Você tem {count} transações pendentes para hoje."
+
+    notify_fn(user, title, body, url='/transactions/')
 
 
 

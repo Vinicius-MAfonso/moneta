@@ -258,9 +258,9 @@ class PlanningWebTestCase(TestCase):
         self.assertIsNone(goal.account)
         self.assertEqual(goal.name, 'Caixinha Salva')
 
-    @patch('planning.tasks.send_notification')
+    @patch('users.services.send_notification')
     def test_notify_budget_warnings_and_monthly_reset(self, mock_notify):
-        from planning.tasks import notify_budget_warnings
+        from planning.services import check_and_notify_user_budgets_and_goals
 
         account = Account.objects.create(
             user=self.user,
@@ -274,7 +274,7 @@ class PlanningWebTestCase(TestCase):
             category=self.category,
             amount=Decimal('100.00'),
             is_recurring=True,
-            start_date=date.today(),
+            start_date=timezone.localdate(),
             is_warning_notified=False
         )
         # Expense of 85 (85%)
@@ -284,11 +284,11 @@ class PlanningWebTestCase(TestCase):
             category=self.category,
             description='Gasto 85%',
             amount=Decimal('85.00'),
-            date=date.today(),
+            date=timezone.localdate(),
             status=Transaction.Statuses.COMPLETED
         )
 
-        notify_budget_warnings()
+        check_and_notify_user_budgets_and_goals(self.user)
 
         mock_notify.assert_called_once()
         budget.refresh_from_db()
@@ -301,8 +301,8 @@ class PlanningWebTestCase(TestCase):
         # In the new month, past expenses do not count towards the new month
         tx.delete()
 
-        # Running the task in the new month resets is_warning_notified
-        notify_budget_warnings()
+        # Running the check in the new month resets is_warning_notified
+        check_and_notify_user_budgets_and_goals(self.user)
         budget.refresh_from_db()
         self.assertFalse(budget.is_warning_notified)
 
@@ -381,15 +381,15 @@ class PlanningWebTestCase(TestCase):
 
     @patch('users.services.send_notification')
     def test_goal_progress_notifications_on_deposit_and_task(self, mock_notify):
-        from planning.tasks import notify_goal_progress
+        from planning.services import check_and_notify_user_budgets_and_goals
 
         goal = create_goal(
             user=self.user,
             name='Meta 1000',
             target_amount=Decimal('1000.00'),
             current_amount=Decimal('800.00'),
-            start_date=date.today(),
-            end_date=date.today() + timedelta(days=30),
+            start_date=timezone.localdate(),
+            end_date=timezone.localdate() + timedelta(days=30),
         )
         self.assertFalse(goal.is_near_target_notified)
         self.assertFalse(goal.is_completed_notified)
@@ -408,8 +408,8 @@ class PlanningWebTestCase(TestCase):
         self.assertTrue(goal.is_completed_notified)
         self.assertEqual(mock_notify.call_count, 2)
 
-        # Running the cron task afterwards should be idempotent (no duplicate notifications)
-        notify_goal_progress()
+        # Running the daily check afterwards should be idempotent (no duplicate notifications)
+        check_and_notify_user_budgets_and_goals(self.user)
         self.assertEqual(mock_notify.call_count, 2)
 
     def test_create_budget_rejects_income_category(self):

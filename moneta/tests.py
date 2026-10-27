@@ -25,95 +25,6 @@ class HealthCheckTestCase(TestCase):
         self.assertNotIn('error', data)
 
 
-class DedicatedCronEndpointsTestCase(TestCase):
-    @override_settings(CRON_SECRET='test-secret-token-123')
-    def test_all_endpoints_reject_unauthorized(self):
-        endpoints = [
-            'cron_process_recurring',
-            'cron_notify_bills',
-            'cron_notify_budgets',
-            'cron_notify_transactions',
-            'cron_wake',
-            'cron_run_all',
-        ]
-        for ep in endpoints:
-            # Without auth header
-            res1 = self.client.post(reverse(ep))
-            self.assertEqual(res1.status_code, 401, f"{ep} did not reject missing auth")
-
-            # With wrong token
-            res2 = self.client.post(reverse(ep), HTTP_AUTHORIZATION='Bearer wrong-token')
-            self.assertEqual(res2.status_code, 401, f"{ep} did not reject invalid auth")
-
-    @override_settings(CRON_SECRET='test-secret-token-123')
-    @patch('transactions.tasks.process_all_recurring_transactions')
-    def test_cron_process_recurring_authorized(self, mock_task):
-        response = self.client.post(
-            reverse('cron_process_recurring'),
-            HTTP_AUTHORIZATION='Bearer test-secret-token-123'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {'status': 'ok', 'task': 'process_all_recurring_transactions'})
-        self.assertEqual(mock_task.call_count, 1)
-
-    @override_settings(CRON_SECRET='test-secret-token-123')
-    @patch('wallets.tasks.notify_due_credit_card_bills')
-    def test_cron_notify_bills_authorized(self, mock_task):
-        response = self.client.post(
-            reverse('cron_notify_bills'),
-            HTTP_AUTHORIZATION='Bearer test-secret-token-123'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {'status': 'ok', 'task': 'notify_due_credit_card_bills'})
-        self.assertEqual(mock_task.call_count, 1)
-
-    @override_settings(CRON_SECRET='test-secret-token-123')
-    @patch('planning.tasks.notify_budget_warnings')
-    def test_cron_notify_budgets_authorized(self, mock_task):
-        response = self.client.post(
-            reverse('cron_notify_budgets'),
-            HTTP_AUTHORIZATION='Bearer test-secret-token-123'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {'status': 'ok', 'task': 'notify_budget_warnings'})
-        self.assertEqual(mock_task.call_count, 1)
-
-    @override_settings(CRON_SECRET='test-secret-token-123')
-    @patch('transactions.tasks.notify_due_transactions')
-    def test_cron_notify_transactions_authorized(self, mock_task):
-        response = self.client.post(
-            reverse('cron_notify_transactions'),
-            HTTP_AUTHORIZATION='Bearer test-secret-token-123'
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {'status': 'ok', 'task': 'notify_due_transactions'})
-        self.assertEqual(mock_task.call_count, 1)
-
-    @override_settings(CRON_SECRET='test-secret-token-123')
-    @patch('transactions.tasks.process_all_recurring_transactions')
-    @patch('wallets.tasks.update_and_notify_closed_credit_card_bills')
-    @patch('wallets.tasks.notify_due_credit_card_bills')
-    @patch('planning.tasks.notify_budget_warnings')
-    @patch('planning.tasks.notify_goal_progress')
-    @patch('transactions.tasks.notify_due_transactions')
-    def test_cron_wake_run_all_authorized(self, m6, m5, m4, m3, m2, m1):
-        response = self.client.post(
-            reverse('cron_run_all'),
-            HTTP_AUTHORIZATION='Bearer test-secret-token-123'
-        )
-        self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertEqual(data['status'], 'ok')
-        self.assertEqual(data['total'], 6)
-        self.assertEqual(len(data['executed_tasks']), 6)
-        self.assertEqual(m1.call_count, 1)
-        self.assertEqual(m2.call_count, 1)
-        self.assertEqual(m3.call_count, 1)
-        self.assertEqual(m4.call_count, 1)
-        self.assertEqual(m5.call_count, 1)
-        self.assertEqual(m6.call_count, 1)
-
-
 class SecurityHeadersTestCase(TestCase):
     def test_content_security_policy_header_present(self):
         response = self.client.get(reverse('health_check'))
@@ -201,9 +112,9 @@ class DashboardAndReportsViewsTestCase(TestCase):
         content = response.content.decode('utf-8')
         self.assertTrue(content.startswith('\ufeffData,Descrição'))
 
-    def test_notify_due_credit_card_bills_includes_closed_bills(self):
+    def test_on_entry_daily_checks_create_notifications_once_per_day(self):
+        from users.models import Notification
         from wallets.models import Account, CreditCardBill
-        from wallets.tasks import notify_due_credit_card_bills
 
         cc_account = Account.objects.create(
             user=self.user,
@@ -218,13 +129,21 @@ class DashboardAndReportsViewsTestCase(TestCase):
             due_date=tomorrow,
             status=CreditCardBill.Statuses.CLOSED,
             is_due_tomorrow_notified=False,
+            is_closed_notified=True,
         )
 
-        with patch('users.services.send_notification') as mock_notify:
-            notify_due_credit_card_bills()
-            self.assertEqual(mock_notify.call_count, 1)
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('dashboard'))
+        self.assertEqual(response.status_code, 200)
 
         bill.refresh_from_db()
         self.assertTrue(bill.is_due_tomorrow_notified)
+        self.assertEqual(Notification.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(self.client.session.get('last_daily_check'), str(timezone.localdate()))
+
+        # Subsequent page loads on the same day skip run_user_daily_checks via session gate
+        with patch('users.services.run_user_daily_checks') as mock_checks:
+            self.client.get(reverse('dashboard'))
+            mock_checks.assert_not_called()
 
 

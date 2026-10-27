@@ -751,3 +751,54 @@ def get_credit_card_dashboard_context(user):
         'timeline': timeline,
         'installments': installments,
     }
+
+
+def check_and_notify_user_credit_card_bills(user, notify_fn=None):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from wallets.models import CreditCardBill
+
+    if notify_fn is None:
+        from users.services import send_notification
+        notify_fn = send_notification
+
+    today = timezone.localdate()
+    tomorrow = today + timedelta(days=1)
+
+    # 1. Close OPEN bills for this user whose closing_date has passed
+    CreditCardBill.objects.filter(
+        account__user=user,
+        status=CreditCardBill.Statuses.OPEN,
+        closing_date__lt=today,
+    ).update(status=CreditCardBill.Statuses.CLOSED, updated_at=timezone.now())
+
+    # 2. Notify CLOSED bills not yet notified
+    closed_bills = CreditCardBill.objects.filter(
+        account__user=user,
+        status=CreditCardBill.Statuses.CLOSED,
+        is_closed_notified=False,
+    ).select_related('account')
+
+    for bill in closed_bills:
+        title = "Fatura Fechada!"
+        body = f"A fatura do seu cartão {bill.account.name} fechou. O melhor dia para compras começou!"
+        notify_fn(user, title, body, url='/wallets/')
+        bill.is_closed_notified = True
+        bill.save(update_fields=['is_closed_notified', 'updated_at'])
+
+    # 3. Notify OPEN/CLOSED bills due tomorrow
+    due_bills = CreditCardBill.objects.filter(
+        account__user=user,
+        status__in=[CreditCardBill.Statuses.OPEN, CreditCardBill.Statuses.CLOSED],
+        due_date=tomorrow,
+        is_due_tomorrow_notified=False,
+    ).select_related('account')
+
+    for bill in due_bills:
+        title = "Fatura Vencendo Amanhã!"
+        body = f"A fatura do seu cartão {bill.account.name} vence amanhã."
+        notify_fn(user, title, body, url='/wallets/')
+        bill.is_due_tomorrow_notified = True
+        bill.save(update_fields=['is_due_tomorrow_notified', 'updated_at'])

@@ -2,10 +2,10 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django_q.tasks import async_task
 
 from moneta.common import TransactionType
 from transactions.models import Category
+from users.emails import send_welcome_email
 
 User = get_user_model()
 
@@ -54,5 +54,5 @@ def track_user_activation_presave(sender, instance, **kwargs):
 @receiver(post_save, sender=User)
 def send_welcome_email_postsave(sender, instance, created, **kwargs):
     if getattr(instance, '_just_activated', False):
-        transaction.on_commit(lambda: async_task('users.emails.send_welcome_email', instance.pk))
+        transaction.on_commit(lambda pk=instance.pk: send_welcome_email(pk))
         instance._just_activated = False

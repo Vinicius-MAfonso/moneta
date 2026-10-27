@@ -52,10 +52,6 @@ COPY . .
 COPY --from=builder /app/staticfiles /app/staticfiles
 COPY --from=builder /app/theme/static/css /app/theme/static/css
 
-# Ensure scripts have LF line endings and are executable
-RUN sed -i 's/\r$//' ./start.sh 2>/dev/null || true && \
-    chmod +x ./start.sh 2>/dev/null || true
-
 EXPOSE 8080
 
-CMD ["./start.sh"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && (python manage.py createsuperuser --noinput || true) && exec gunicorn moneta.wsgi:application --bind 0.0.0.0:${PORT:-8080} --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile -"]

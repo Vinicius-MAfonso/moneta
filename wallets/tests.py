@@ -331,56 +331,6 @@ class WalletsServicesTestCase(TestCase):
         self.assertEqual(cc.used_limit, Decimal('1550.00'))
         self.assertEqual(cc.available_limit, Decimal('3450.00'))
 
-    def test_reconcile_balances_management_command(self):
-        from io import StringIO
-
-        from django.core.management import call_command
-
-        from wallets.models import Account
-
-        # Introduce intentional drift on checking_account
-        Account.objects.filter(id=self.checking_account.id).update(balance=Decimal('9999.00'))
-        self.checking_account.refresh_from_db()
-        self.assertEqual(self.checking_account.balance, Decimal('9999.00'))
-
-        # Run command without --fix
-        out = StringIO()
-        call_command('reconcile_balances', stdout=out)
-        output = out.getvalue()
-        self.assertIn('[MISMATCH]', output)
-        self.checking_account.refresh_from_db()
-        self.assertEqual(self.checking_account.balance, Decimal('9999.00'))
-
-        # Run command with --fix
-        out_fix = StringIO()
-        call_command('reconcile_balances', '--fix', stdout=out_fix)
-        output_fix = out_fix.getvalue()
-        self.assertIn('[FIXED]', output_fix)
-        self.checking_account.refresh_from_db()
-        self.assertEqual(self.checking_account.balance, Decimal('1000.00'))
-
-        # Verify credit card with future pending subscription is NOT falsely flagged as MISMATCH
-        from datetime import timedelta
-
-        from django.utils import timezone
-
-        from moneta.common import TransactionType
-        from transactions.models import Category, Transaction
-
-        cat_exp, _ = Category.objects.get_or_create(user=self.user, name='Streaming', defaults={'type': TransactionType.EXPENSE})
-        Transaction.objects.create(
-            user=self.user,
-            account=self.cc_account,
-            category=cat_exp,
-            description='Assinatura Futura',
-            amount=Decimal('50.00'),
-            date=timezone.localdate() + timedelta(days=30),
-            status=Transaction.Statuses.PENDING,
-        )
-        out_cc = StringIO()
-        call_command('reconcile_balances', stdout=out_cc)
-        self.assertIn('All account balances are consistent', out_cc.getvalue())
-
     def test_get_credit_card_timeline_recurring_subscriptions(self):
         import datetime
         from decimal import Decimal

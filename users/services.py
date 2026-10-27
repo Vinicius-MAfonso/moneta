@@ -583,3 +583,32 @@ def send_notification(user, title, body, url='/'):
         message=body,
         url=url
     )
+
+
+def run_user_daily_checks(user):
+    """
+    Runs all daily financial checks and notification generators for the given user:
+    1. Projects recurring transactions.
+    2. Closes overdue OPEN credit card bills and notifies on closed/due-tomorrow bills.
+    3. Evaluates budget warning thresholds and goal progress milestones.
+    4. Notifies on pending transactions due today.
+    """
+    from planning.services import check_and_notify_user_budgets_and_goals
+    from transactions.services import (
+        check_and_notify_user_due_transactions,
+        process_recurring_transactions,
+    )
+    from wallets.services import check_and_notify_user_credit_card_bills
+
+    checks = [
+        ('process_recurring_transactions', process_recurring_transactions),
+        ('check_and_notify_user_credit_card_bills', check_and_notify_user_credit_card_bills),
+        ('check_and_notify_user_budgets_and_goals', check_and_notify_user_budgets_and_goals),
+        ('check_and_notify_user_due_transactions', check_and_notify_user_due_transactions),
+    ]
+
+    for name, fn in checks:
+        try:
+            fn(user)
+        except Exception:
+            logger.exception("Erro ao executar verificação diária '%s' para usuário %s", name, user.pk)

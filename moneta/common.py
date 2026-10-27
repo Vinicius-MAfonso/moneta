@@ -1,8 +1,5 @@
-import calendar
 import json
-from collections import defaultdict
 from datetime import date
-from decimal import Decimal
 
 from dateutil.relativedelta import relativedelta
 from django.core.validators import RegexValidator
@@ -67,82 +64,6 @@ def get_month_context(month_str=None):
         'year': year,
         'month_num': month_num,
     }
-
-
-def get_month_calendar_grid(user, start_date, end_date, account=None):
-    from django.db.models import Sum
-
-    from transactions.models import Transaction
-
-    qs = Transaction.objects.filter(
-        user=user,
-        date__range=(start_date, end_date),
-    ).exclude(category__type=TransactionType.TRANSFER)
-
-    if account:
-        qs = qs.filter(account=account)
-
-    daily_txs = (
-        qs.values('date', 'category__type', 'status')
-        .annotate(total=Sum('amount'))
-    )
-
-    daily_totals = defaultdict(lambda: {
-        'income_done': Decimal('0.00'),
-        'expense_done': Decimal('0.00'),
-        'income_pending': Decimal('0.00'),
-        'expense_pending': Decimal('0.00'),
-    })
-
-    for item in daily_txs:
-        d_str = item['date'].strftime('%Y-%m-%d')
-        c_type = item['category__type']
-        is_done = (item['status'] == Transaction.Statuses.COMPLETED)
-
-        if c_type == TransactionType.INCOME:
-            if is_done:
-                daily_totals[d_str]['income_done'] += item['total']
-            else:
-                daily_totals[d_str]['income_pending'] += item['total']
-        elif c_type == TransactionType.EXPENSE:
-            if is_done:
-                daily_totals[d_str]['expense_done'] += item['total']
-            else:
-                daily_totals[d_str]['expense_pending'] += item['total']
-
-    cal = calendar.Calendar(firstweekday=6)
-    month_days = list(cal.itermonthdays4(start_date.year, start_date.month))
-
-    grid = []
-    today_date = timezone.localdate()
-    for year, month, day, _ in month_days:
-        day_date = date(year, month, day)
-        d_str = day_date.strftime('%Y-%m-%d')
-        is_current_month = (month == start_date.month)
-        totals = daily_totals.get(d_str, {
-            'income_done': Decimal('0.00'),
-            'expense_done': Decimal('0.00'),
-            'income_pending': Decimal('0.00'),
-            'expense_pending': Decimal('0.00'),
-        })
-
-        has_data = any(v > 0 for v in totals.values())
-
-        grid.append({
-            'day': day,
-            'date_str': d_str,
-            'is_current_month': is_current_month,
-            'is_today': (day_date == today_date),
-            'income_done': totals['income_done'],
-            'expense_done': totals['expense_done'],
-            'income_pending': totals['income_pending'],
-            'expense_pending': totals['expense_pending'],
-            'income': totals['income_done'] + totals['income_pending'],
-            'expense': totals['expense_done'] + totals['expense_pending'],
-            'has_data': has_data,
-        })
-
-    return grid
 
 
 FIELD_LABELS_PT = {
